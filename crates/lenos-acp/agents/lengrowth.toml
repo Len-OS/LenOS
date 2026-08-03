@@ -1,0 +1,25 @@
+# Subscription rules for the LenGrowth lenos-acp instance.
+# lengrowth_mcp runs on LenGrowth's server — connect via HTTP MCP (Streamable HTTP transport).
+# Launch a dedicated process with:
+#   LENOS_ACP_MCP_URL=https://api.lengrowth.com/mcp \
+#   LENOS_ACP_CONFIG=crates/lenos-acp/agents/lengrowth.toml \
+#   lenos-acp
+#
+# If lenos-acp does not support HTTP MCP natively, use the mcp CLI proxy instead:
+#   LENOS_ACP_AGENT_COMMAND=uvx \
+#   LENOS_ACP_AGENT_ARGS="mcp proxy --server-url https://api.lengrowth.com/mcp" \
+#   LENOS_ACP_CONFIG=crates/lenos-acp/agents/lengrowth.toml \
+#   lenos-acp
+#
+# NOTE: lengrowth_mcp is NOT a PyPI package. Do NOT pip install / uvx lengrowth-mcp.
+# It is a FastMCP HTTP server running on the LenGrowth backend at /mcp.
+
+[[rules]]
+name = "lengrowth-mentions"
+channels = "all"
+filter = 'str_contains(content, "@lengrowth")'
+
+[[rules]]
+name = "lengrowth-hq-channel"
+channels = ["lengrowth-hq"]
+filter = "true"
