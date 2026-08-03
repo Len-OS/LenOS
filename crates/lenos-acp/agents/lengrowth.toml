@@ -21,5 +21,8 @@ filter = 'str_contains(content, "@lengrowth")'
 
 [[rules]]
 name = "lengrowth-hq-channel"
-channels = ["lengrowth-hq"]
-filter = "true"
+# IMPORTANT: Replace the UUID placeholder with the actual channel UUID after running:
+#   lenos channel create --name "LenGrowth HQ" --topic "lengrowth-hq" --description "Your growth operating system"
+# channels must be UUIDs, not topic names. channel_id is available in filter expressions.
+channels = "all"
+filter = 'channel_id == "00000000-0000-0000-0000-000000000000"'
