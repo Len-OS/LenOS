@@ -74,7 +74,7 @@ identity.key
 deploy/charts/*/charts/*.tgz
 
 # Terraform (secrets, state, cache)
-LenOS/infra/terraform/terraform.tfvars
-LenOS/infra/terraform/.terraform/
-LenOS/infra/terraform/*.tfstate
-LenOS/infra/terraform/*.tfstate.backup
+infra/terraform/terraform.tfvars
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
