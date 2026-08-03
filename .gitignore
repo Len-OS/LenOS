@@ -72,3 +72,9 @@ identity.key
 
 # Helm dependency tarballs — regenerable from Chart.lock via `helm dependency build`
 deploy/charts/*/charts/*.tgz
+
+# Terraform (secrets, state, cache)
+LenOS/infra/terraform/terraform.tfvars
+LenOS/infra/terraform/.terraform/
+LenOS/infra/terraform/*.tfstate
+LenOS/infra/terraform/*.tfstate.backup
