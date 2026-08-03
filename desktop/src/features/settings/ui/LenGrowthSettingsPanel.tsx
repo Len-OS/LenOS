@@ -4,7 +4,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCommunities } from "@/features/communities/useCommunities";
 import type { SettingsPanelProps } from "./SettingsPanels";
 
-const LENGROWTH_BASE = import.meta.env.VITE_LENGROWTH_URL ?? "https://lengrowth.com";
+const LENGROWTH_BASE =
+  import.meta.env.VITE_LENGROWTH_URL ?? "https://lengrowth.com";
 
 function buildConnectUrl(pubkey: string, relayUrl: string): string {
   const state = crypto.randomUUID().replace(/-/g, "");
@@ -13,7 +14,7 @@ function buildConnectUrl(pubkey: string, relayUrl: string): string {
 
 export function LenGrowthSettingsPanel(props: SettingsPanelProps) {
   const [connected, setConnected] = useState<boolean>(
-    () => localStorage.getItem("lengrowth-linked") === "true"
+    () => localStorage.getItem("lengrowth-linked") === "true",
   );
 
   const { activeCommunity } = useCommunities();
@@ -22,15 +23,23 @@ export function LenGrowthSettingsPanel(props: SettingsPanelProps) {
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
-    listen("deep-link-lengrowth-auth", (event: { payload: { linked?: boolean } }) => {
-      if (event.payload?.linked) {
-        setConnected(true);
-        localStorage.setItem("lengrowth-linked", "true");
-      }
-    }).then((fn) => {
-      unlisten = fn;
+    let cancelled = false;
+    listen(
+      "deep-link-lengrowth-auth",
+      (event: { payload: { linked?: boolean } }) => {
+        if (event.payload?.linked) {
+          setConnected(true);
+          localStorage.setItem("lengrowth-linked", "true");
+        }
+      },
+    ).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
     });
-    return () => unlisten?.();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
   }, []);
 
   function handleConnect() {
@@ -64,8 +73,10 @@ export function LenGrowthSettingsPanel(props: SettingsPanelProps) {
             LenGrowth connected
           </div>
           <p className="text-sm text-muted-foreground">
-            Use <code className="text-xs bg-muted px-1 rounded">@lengrowth</code> in
-            the LenGrowth HQ channel to create tasks, trigger agents, and query metrics.
+            Use{" "}
+            <code className="text-xs bg-muted px-1 rounded">@lengrowth</code> in
+            the LenGrowth HQ channel to create tasks, trigger agents, and query
+            metrics.
           </p>
           <button
             onClick={handleDisconnect}
