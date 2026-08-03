@@ -97,13 +97,13 @@ Channel created: <UUID>
 Open `crates/lenos-acp/agents/lengrowth.toml` and find the line containing:
 
 ```toml
-channel_id = "00000000-0000-0000-0000-000000000000"
+filter = 'channel_id == "00000000-0000-0000-0000-000000000000"'
 ```
 
-Replace the UUID placeholder with the one returned above:
+Replace the nil UUID with the one returned above:
 
 ```toml
-channel_id = "<UUID from channel create>"
+filter = 'channel_id == "<UUID from channel create>"'
 ```
 
 ### Checkpoint
