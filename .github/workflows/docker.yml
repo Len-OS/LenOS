@@ -86,8 +86,6 @@ jobs:
     permissions:
       contents: read
       packages: write    # push to GHCR
-      id-token: write    # OIDC for build provenance attestation
-      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -231,8 +229,6 @@ jobs:
     permissions:
       contents: read
       packages: write    # push the merged manifest
-      id-token: write    # OIDC for provenance attestation on the manifest
-      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -307,15 +303,6 @@ jobs:
           merged_digest=$(docker buildx imagetools inspect "$first_tag" \
             --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=${merged_digest}" >> "$GITHUB_OUTPUT"
-
-      - name: Attest provenance for the merged image
-        # Sigstore-signed in-toto attestation, verifiable with:
-        #   gh attestation verify oci://ghcr.io/buildgrowthnow/lenos:<tag> --owner block
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373  # v4.1.1
-        with:
-          subject-name: ${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.manifest.outputs.digest }}
-          push-to-registry: true
 
       - name: Summary
         env:
@@ -426,8 +413,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
-      attestations: write
     steps:
       - name: Download per-arch digests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
@@ -466,12 +451,6 @@ jobs:
           first_tag=$(echo "$META_TAGS" | head -n1)
           digest=$(docker buildx imagetools inspect "$first_tag" --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
-      - name: Attest gateway image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373  # v4.1.1
-        with:
-          subject-name: ghcr.io/buildgrowthnow/lenos-push-gateway
-          subject-digest: ${{ steps.manifest.outputs.digest }}
-          push-to-registry: true
       - name: Gateway publication summary
         env:
           GATEWAY_DIGEST: ${{ steps.manifest.outputs.digest }}
