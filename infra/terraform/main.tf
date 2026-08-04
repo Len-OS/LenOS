@@ -37,7 +37,10 @@ resource "aws_subnet" "private" {
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.lenos.id
-  route { cidr_block = "0.0.0.0/0"; gateway_id = aws_internet_gateway.lenos.id }
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.lenos.id
+  }
 }
 
 resource "aws_route_table_association" "public" {
@@ -50,28 +53,63 @@ resource "aws_route_table_association" "public" {
 resource "aws_security_group" "alb" {
   name   = "${var.app_name}-alb"
   vpc_id = aws_vpc.lenos.id
-  ingress { from_port = 443; to_port = 443; protocol = "tcp"; cidr_blocks = ["0.0.0.0/0"] }
-  ingress { from_port = 80;  to_port = 80;  protocol = "tcp"; cidr_blocks = ["0.0.0.0/0"] }
-  egress  { from_port = 0;   to_port = 0;   protocol = "-1";  cidr_blocks = ["0.0.0.0/0"] }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "relay" {
   name   = "${var.app_name}-relay"
   vpc_id = aws_vpc.lenos.id
-  ingress { from_port = 3000; to_port = 3000; protocol = "tcp"; security_groups = [aws_security_group.alb.id] }
-  egress  { from_port = 0;    to_port = 0;    protocol = "-1";  cidr_blocks = ["0.0.0.0/0"] }
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "db" {
   name   = "${var.app_name}-db"
   vpc_id = aws_vpc.lenos.id
-  ingress { from_port = 5432; to_port = 5432; protocol = "tcp"; security_groups = [aws_security_group.relay.id] }
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.relay.id]
+  }
 }
 
 resource "aws_security_group" "redis" {
   name   = "${var.app_name}-redis"
   vpc_id = aws_vpc.lenos.id
-  ingress { from_port = 6379; to_port = 6379; protocol = "tcp"; security_groups = [aws_security_group.relay.id] }
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.relay.id]
+  }
 }
 
 # RDS Postgres 17
@@ -121,7 +159,7 @@ resource "aws_iam_role" "ecs_task" {
   name = "${var.app_name}-ecs-task"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{ Effect = "Allow"; Principal = { Service = "ecs-tasks.amazonaws.com" }; Action = "sts:AssumeRole" }]
+    Statement = [{ Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" }, Action = "sts:AssumeRole" }]
   })
 }
 
@@ -159,16 +197,23 @@ resource "aws_ecs_task_definition" "relay" {
 
   container_definitions = jsonencode([{
     name  = "relay"
-    image = "<your-ecr-account>.dkr.ecr.${var.aws_region}.amazonaws.com/lenos-relay:latest"
+    image = "ghcr.io/buildgrowthnow/lenos:main"
     portMappings = [{ containerPort = 3000 }]
     environment = [
-      { name = "DATABASE_URL",             value = "postgres://lenos:${var.postgres_password}@${aws_db_instance.lenos.endpoint}/lenos" },
-      { name = "REDIS_URL",                value = "redis://${aws_elasticache_cluster.lenos.cache_nodes[0].address}:6379" },
-      { name = "LENOS_RELAY_URL",          value = "wss://${var.domain_name}" },
-      { name = "LENGROWTH_ADAPTER_PUBKEY", value = var.lengrowth_adapter_pubkey },
-      { name = "S3_BUCKET",                value = aws_s3_bucket.media.bucket },
-      { name = "S3_REGION",                value = var.aws_region },
-      { name = "LENOS_PRIVATE_KEY",        value = var.relay_private_key_hex },
+      { name = "DATABASE_URL",              value = "postgres://lenos:${var.postgres_password}@${aws_db_instance.lenos.endpoint}/lenos" },
+      { name = "REDIS_URL",                 value = "redis://${aws_elasticache_cluster.lenos.cache_nodes[0].address}:6379" },
+      { name = "LENOS_RELAY_URL",           value = "wss://${var.domain_name}" },
+      { name = "RELAY_URL",                 value = "wss://${var.domain_name}" },
+      { name = "LENGROWTH_ADAPTER_PUBKEY",  value = var.lengrowth_adapter_pubkey },
+      { name = "LENOS_S3_BUCKET",           value = aws_s3_bucket.media.bucket },
+      { name = "LENOS_S3_REGION",           value = var.aws_region },
+      { name = "LENOS_S3_ENDPOINT",         value = "https://s3.${var.aws_region}.amazonaws.com" },
+      { name = "LENOS_S3_ACCESS_KEY",       value = "" },
+      { name = "LENOS_S3_SECRET_KEY",       value = "" },
+      { name = "LENOS_S3_ADDRESSING_STYLE", value = "virtual" },
+      { name = "LENOS_MEDIA_BASE_URL",      value = "https://${var.domain_name}/media" },
+      { name = "LENOS_RELAY_PRIVATE_KEY",   value = var.relay_private_key_hex },
+      { name = "LENOS_AUTO_MIGRATE",        value = "true" },
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -232,7 +277,10 @@ resource "aws_lb_target_group" "relay" {
     interval            = 30
   }
 
-  stickiness { enabled = false; type = "lb_cookie" }
+  stickiness {
+    enabled = false
+    type    = "lb_cookie"
+  }
 }
 
 resource "aws_lb_listener" "https" {
@@ -241,7 +289,10 @@ resource "aws_lb_listener" "https" {
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = var.certificate_arn
-  default_action    { type = "forward"; target_group_arn = aws_lb_target_group.relay.arn }
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.relay.arn
+  }
 }
 
 resource "aws_lb_listener" "http_redirect" {
@@ -250,7 +301,11 @@ resource "aws_lb_listener" "http_redirect" {
   protocol          = "HTTP"
   default_action {
     type = "redirect"
-    redirect { port = "443"; protocol = "HTTPS"; status_code = "HTTP_301" }
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 

@@ -25,4 +25,4 @@ name = "lengrowth-hq-channel"
 #   lenos channel create --name "LenGrowth HQ" --topic "lengrowth-hq" --description "Your growth operating system"
 # channels must be UUIDs, not topic names. channel_id is available in filter expressions.
 channels = "all"
-filter = 'channel_id == "00000000-0000-0000-0000-000000000000"'
+filter = 'channel_id == "34fb566f-4883-4941-b18a-3ac7b9020552"'
