@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryEvents, type NostrEvent } from "@/shared/lib/nostr-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
+import { useCommunityId } from "@/shared/lib/workspace-context";
 import { mockRepos } from "./mock-repos";
 
 export interface Repo {
@@ -62,26 +63,33 @@ export function dedup(events: NostrEvent[]): NostrEvent[] {
   return [...best.values()];
 }
 
-async function fetchRepos(): Promise<Repo[]> {
-  const events = await queryEvents(relayWsUrl(), { kinds: [30617] });
-  return dedup(events)
-    .map(eventToRepo)
-    .sort((a, b) => b.createdAt - a.createdAt);
+function makeFetchRepos(communityId: string | null) {
+  return async function fetchRepos(): Promise<Repo[]> {
+    const filter = communityId
+      ? { kinds: [30617], "#community": [communityId] }
+      : { kinds: [30617] };
+    const events = await queryEvents(relayWsUrl(), filter);
+    return dedup(events)
+      .map(eventToRepo)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  };
 }
 
 export function useRepos({ enabled = true }: { enabled?: boolean } = {}) {
+  const communityId = useCommunityId();
   return useQuery({
-    queryKey: ["repos"],
-    queryFn: fetchRepos,
+    queryKey: ["repos", communityId],
+    queryFn: makeFetchRepos(communityId),
     enabled,
     staleTime: 60_000,
   });
 }
 
 export function useRepo(repoId: string, { preview = false } = {}) {
+  const communityId = useCommunityId();
   return useQuery({
-    queryKey: preview ? ["repos", "mock"] : ["repos"],
-    queryFn: preview ? async () => mockRepos : fetchRepos,
+    queryKey: preview ? ["repos", "mock"] : ["repos", communityId],
+    queryFn: preview ? async () => mockRepos : makeFetchRepos(communityId),
     initialData: preview ? mockRepos : undefined,
     staleTime: 60_000,
     select: (repos) => repos.find((r) => r.id === repoId),

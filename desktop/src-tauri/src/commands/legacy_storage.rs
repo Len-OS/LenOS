@@ -3,9 +3,9 @@ use std::path::{Path, PathBuf};
 use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
 
-const LENOS_RELEASE_IDENTIFIER_PREFIX: &str = "xyz.block.lenos.app";
+const LENOS_RELEASE_IDENTIFIER_PREFIX: &str = "com.lengrowth.lenos";
 const SPROUT_RELEASE_IDENTIFIER: &str = "xyz.block.sprout.app";
-const LENOS_DEV_IDENTIFIER_PREFIX: &str = "xyz.block.lenos.app.dev";
+const LENOS_DEV_IDENTIFIER_PREFIX: &str = "com.lengrowth.lenos.dev";
 const SPROUT_DEV_IDENTIFIER_PREFIX: &str = "xyz.block.sprout.app.dev";
 
 const SPROUT_WORKSPACES_KEY: &str = "sprout-workspaces";
@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn legacy_identifier_maps_release_identifier() {
         assert_eq!(
-            legacy_identifier("xyz.block.lenos.app"),
+            legacy_identifier("com.lengrowth.lenos"),
             Some("xyz.block.sprout.app".to_string())
         );
     }
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn legacy_identifier_maps_dev_worktree_identifier() {
         assert_eq!(
-            legacy_identifier("xyz.block.lenos.app.dev.my-branch"),
+            legacy_identifier("com.lengrowth.lenos.dev.my-branch"),
             Some("xyz.block.sprout.app.dev.my-branch".to_string())
         );
     }

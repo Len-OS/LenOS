@@ -25,7 +25,7 @@ if [[ "${LENOS_RESET_WEBVIEW_STATE:-0}" == "1" ]]; then
     DEV_URL="${DEV_URL}?resetDevState=1"
 fi
 
-LENOS_TAURI_CONFIG="{\"build\":{\"devUrl\":\"${DEV_URL}\",\"beforeDevCommand\":\"exec ./node_modules/.bin/vite --port ${LENOS_VITE_PORT} --strictPort\"},\"identifier\":\"xyz.block.lenos.app.dev\",\"productName\":\"LenOS Dev\"}"
+LENOS_TAURI_CONFIG="{\"build\":{\"devUrl\":\"${DEV_URL}\",\"beforeDevCommand\":\"exec ./node_modules/.bin/vite --port ${LENOS_VITE_PORT} --strictPort\"},\"identifier\":\"com.lengrowth.lenos.dev\",\"productName\":\"LenOS Dev\"}"
 unset VITE_DEV_BRANCH
 
 # In worktrees, extract a label from the branch name and derive a unique app
@@ -63,7 +63,7 @@ if git rev-parse --is-inside-work-tree &>/dev/null; then
             esac
 
             KEYRING_IDENTITY="$(printf '%s' "$KEYRING_BLOB" | python3 -c 'import json, sys; value = json.load(sys.stdin).get("identity", ""); print(value if isinstance(value, str) else "")' 2>/dev/null || true)"
-            CANONICAL_KEY="$HOME/Library/Application Support/xyz.block.lenos.app.dev/identity.key"
+            CANONICAL_KEY="$HOME/Library/Application Support/com.lengrowth.lenos.dev/identity.key"
             LEGACY_CANONICAL_KEY="$HOME/Library/Application Support/xyz.block.sprout.app.dev/identity.key"
 
             SHARED_IDENTITY="$KEYRING_IDENTITY"
@@ -89,7 +89,7 @@ if git rev-parse --is-inside-work-tree &>/dev/null; then
         if swift "$GENERATE_DEV_ICON" "$BASE_ICON" "$DEV_ICON" "$LENOS_WORKTREE_LABEL"; then
             echo "🌳 Worktree: ${LENOS_WORKTREE_LABEL}"
             export VITE_DEV_BRANCH="$LENOS_WORKTREE_LABEL"
-            LENOS_TAURI_CONFIG="{\"build\":{\"devUrl\":\"${DEV_URL}\",\"beforeDevCommand\":\"exec ./node_modules/.bin/vite --port ${LENOS_VITE_PORT} --strictPort\"},\"identifier\":\"xyz.block.lenos.app.dev.${LENOS_INSTANCE_SLUG}\",\"productName\":\"LenOS Dev (${LENOS_WORKTREE_LABEL})\",\"bundle\":{\"icon\":[\"$DEV_ICON\"]}}"
+            LENOS_TAURI_CONFIG="{\"build\":{\"devUrl\":\"${DEV_URL}\",\"beforeDevCommand\":\"exec ./node_modules/.bin/vite --port ${LENOS_VITE_PORT} --strictPort\"},\"identifier\":\"com.lengrowth.lenos.dev.${LENOS_INSTANCE_SLUG}\",\"productName\":\"LenOS Dev (${LENOS_WORKTREE_LABEL})\",\"bundle\":{\"icon\":[\"$DEV_ICON\"]}}"
         fi
     fi
 fi

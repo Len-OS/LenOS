@@ -15,8 +15,8 @@ printf '\n' >>"$GH_CALLS"
 if [[ "${2:-}" == graphql ]]; then
   expected_query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){reviewDecision}}}'
   [[ "$#" -eq 12 && "$3" == -f && "$4" == "query=$expected_query" &&
-    "$5" == -F && "$6" == owner=block &&
-    "$7" == -F && "$8" == repo=lenos &&
+    "$5" == -F && "$6" == owner=BuildGrowthNow &&
+    "$7" == -F && "$8" == repo=LenOS &&
     "$9" == -F && "${10}" == number=123 &&
     "${11}" == --jq && "${12}" == '.data.repository.pullRequest' ]] || {
     echo "GraphQL call does not match the deployed query contract" >&2; exit 92;

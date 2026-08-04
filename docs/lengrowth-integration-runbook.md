@@ -1,318 +1,235 @@
-# LenOS + LenGrowth E2E Integration Runbook
+# LenOS + LenGrowth Integration Runbook
 
-**Last Updated:** 2026-08-03  
-**Purpose:** Complete operator checklist for connecting LenGrowth to deployed LenOS relay
-
----
-
-## Prerequisites
-
-Before starting, ensure the following are available from the LenGrowth team:
-
-- [ ] **NOSTR_ADAPTER_PUBKEY** — Public key of the LenGrowth nostr_adapter service
-- [ ] **Production MCP URL** — Confirmed URL of LenGrowth's MCP endpoint (e.g., `https://api.lengrowth.com/mcp`)
-- [ ] **LENOS_RELAY_URL** — Deployed LenOS relay WebSocket URL (from terraform output, e.g., `wss://your-lenos-domain`)
-- [ ] LenGrowth Tasks 1–8 completed and deployed to AWS
-- [ ] LenOS Task 3 (relay deployment) completed
+**Last updated:** 2026-08-04  
+**Status legend:** ✅ Done · 🔲 Pending · ⚠️ Partial
 
 ---
 
-## Step 1: Point LenGrowth nostr_adapter at deployed relay
+## Real values (fill in once, reference below)
 
-Configure the LenGrowth ECS task definition to connect to the LenOS relay.
+| Key | Value |
+|---|---|
+| Relay WSS | `wss://relay.lengrowth.com` |
+| HQ channel UUID | `34fb566f-4883-4941-b18a-3ac7b9020552` |
+| nostr_adapter pubkey | `ce928671e149874e5eb96078fe6c3dd0c485c90c26ba05cad98cc948550f9b78` |
+| LENGROWTH_ADAPTER_PUBKEY (relay config) | `6f994679b94588e0e427b31752377055a4ba02c1a6cd7d89fbb421bd46861c6f` |
+| MCP HTTP endpoint | `https://growth-api.lenquant.com/mcp` |
+| LenGrowth backend Scalingo app | `lengrowth-main` |
+| LenGrowth frontend Scalingo app | `lengrowth-web` |
+| LenOS relay ECS task def | `lenos-relay:4` |
 
-### Set environment variable
+---
 
-In the LenGrowth ECS task definition, add or update:
+## Step 1 — Point nostr_adapter at deployed relay ✅ DONE
+
+nostr_adapter runs as `nostradapter` process on Scalingo `lengrowth-main`.  
+(Underscore in Procfile process names rejected by Scalingo — must be alphanumeric.)
+
+### Current Procfile entry
 
 ```
-LENOS_RELAY_URL=wss://<relay_wss_url from terraform output>
+nostradapter: python -m nostr_adapter.main
 ```
 
-### Redeploy LenGrowth service
+### Env vars set on lengrowth-main
 
-```bash
-aws ecs update-service --cluster lengrowth --service lengrowth --force-new-deployment
+```
+NOSTR_PRIVATE_KEY   = <64-char hex — adapter identity>
+LENOS_RELAY_URL     = wss://relay.lengrowth.com
+LENOS_HQ_CHANNEL_ID = 34fb566f-4883-4941-b18a-3ac7b9020552
 ```
 
-Wait for the service to stabilize (check AWS ECS console or describe-service).
+`LENOS_HQ_CHANNEL_ID` has code default of `34fb566f...` but set explicitly anyway.
 
 ### Checkpoint
 
-- [ ] ECS service redeployed successfully
-- [ ] No rollback observed in last 2 minutes
+- [x] Procfile has `nostradapter` process
+- [x] `LENOS_RELAY_URL` and `NOSTR_PRIVATE_KEY` set on Scalingo
+- [ ] Verify connection: `scalingo --app lengrowth-main logs --filter nostradapter -n 50`
+  - Expected: `Connected to LenOS relay wss://relay.lengrowth.com`
 
 ---
 
-## Step 2: Confirm nostr_adapter connects
-
-Verify that the LenGrowth adapter successfully connects to the LenOS relay.
+## Step 2 — Confirm nostr_adapter connects ✅ DONE (code), 🔲 verify live
 
 ### Check logs
 
 ```bash
-aws logs tail /ecs/lengrowth --filter-pattern "Connected to LenOS relay" --follow
+scalingo --app lengrowth-main logs --filter nostradapter -n 100
 ```
 
-### Expected output
+### Expected
 
 ```
-Connected to LenOS relay wss://<your-domain>
+Connected to LenOS relay wss://relay.lengrowth.com
+Subscribed to HQ channel 34fb566f-4883-4941-b18a-3ac7b9020552
 ```
 
-Allow 30–60 seconds after redeploy before checking logs.
+### If not connecting
 
-### Checkpoint
-
-- [ ] Log message confirms connection to relay
-- [ ] No connection errors in recent logs
+1. Confirm `NOSTR_PRIVATE_KEY` is 64-char hex (not mnemonic, not base58)
+2. Confirm Cloudflare proxy is OFF on `relay.lengrowth.com` (DNS-only grey cloud)
+3. Check relay health: `curl -s https://relay.lengrowth.com/health`
+4. Restart process: Scalingo dashboard → `lengrowth-main` → Processes → Restart `nostradapter`
 
 ---
 
-## Step 3: Create HQ channel on deployed relay
+## Step 3 — Create HQ channel on relay ✅ DONE
 
-Create the LenGrowth HQ channel on the LenOS relay and note the UUID.
+Created 2026-08-04. Rust CLI not available without local toolchain — used Python pynostr script with NIP-42 auth.
 
-### Run channel creation command
+**Result:**
+```
+Name:  LenGrowth HQ
+UUID:  34fb566f-4883-4941-b18a-3ac7b9020552
+Kind:  9007
+Type:  stream / open
+```
 
+Config updated in `crates/lenos-acp/agents/lengrowth.toml`:
+```toml
+filter = 'channel_id == "34fb566f-4883-4941-b18a-3ac7b9020552"'
+```
+
+### If you need to recreate the channel (e.g., new relay)
+
+Rust CLI option (requires local build):
 ```bash
-LENOS_RELAY_URL=wss://<your-lenos-domain> lenos channel create \
-  --name "LenGrowth HQ" \
-  --topic "lengrowth-hq" \
+LENOS_RELAY_URL=wss://relay.lengrowth.com \
+LENOS_PRIVATE_KEY=<relay-operator-private-key-hex> \
+lenos channel create --name "LenGrowth HQ" --topic "lengrowth-hq" \
   --description "Your growth operating system"
 ```
 
-### Capture the channel UUID
-
-The command will return:
-
-```
-Channel created: <UUID>
-```
-
-**Important:** Copy the returned UUID. You will substitute it in the next step.
-
-### Update lengrowth.toml with channel_id
-
-Open `crates/lenos-acp/agents/lengrowth.toml` and find the line containing:
-
-```toml
-filter = 'channel_id == "00000000-0000-0000-0000-000000000000"'
+Python option (pynostr + websocket-client):
+```python
+# See C:\Users\smikl\.claude\jobs\fc6dd037\tmp\create_hq_channel.py
+# (or recreate: kind:9007 event with tags h/name/visibility/channel_type/about,
+#  handle NIP-42 AUTH challenge first)
 ```
 
-Replace the nil UUID with the one returned above:
-
-```toml
-filter = 'channel_id == "<UUID from channel create>"'
-```
-
-### Checkpoint
-
-- [ ] Channel "LenGrowth HQ" exists on relay
-- [ ] UUID captured and updated in `lengrowth.toml`
+After creating, update `lengrowth.toml` with new UUID.
 
 ---
 
-## Step 4: Launch lenos-acp for LenGrowth
+## Step 4 — Command dispatch via nostr_adapter ✅ DONE (replaces lenos-acp)
 
-Deploy the lenos-acp agent service. Choose Option A or B based on your deployment model.
+**Architecture decision:** lenos-acp binary is not in the relay Docker image and requires a local Rust build to deploy separately. Instead, command dispatch is implemented directly in `nostr_adapter/relay_connection.py`.
 
-### Gather required values
+### What's implemented
+
+File: `LenGrowth/backend/nostr_adapter/relay_connection.py`
+
+- Subscribes to HQ channel (`#h` filter on kind:9)
+- Dispatches `@lengrowth get tasks` → calls `get_tasks()` from `lengrowth_mcp.tools`
+- Dispatches `@lengrowth get metrics [type]` → calls `get_metrics()` from `lengrowth_mcp.tools`
+- Falls back to help text for unknown commands
+- Ignores own pubkey to prevent loops
+- Replies as kind:9 with `["e", ..., "reply"]` and `["p", sender]` tags
+
+### MCP HTTP endpoint (future lenos-acp or external use)
+
+`https://growth-api.lenquant.com/mcp` — mounted in `main.py` via FastMCP `streamable_http_app()`.
+
+### If you later want lenos-acp (optional)
 
 ```bash
-LENOS_RELAY_URL=wss://<your-lenos-domain>
-LENOS_PRIVATE_KEY=<agent-keypair-hex>
-LENOS_ACP_CONFIG=crates/lenos-acp/agents/lengrowth.toml
-LENOS_ACP_MCP_URL=https://api.lengrowth.com/mcp  # from LenGrowth team
-```
-
-### Option A: Native HTTP MCP transport (preferred)
-
-If lenos-acp supports `LENOS_ACP_MCP_URL` natively:
-
-```bash
-LENOS_RELAY_URL=wss://<your-lenos-domain> \
+LENOS_RELAY_URL=wss://relay.lengrowth.com \
 LENOS_PRIVATE_KEY=<agent-keypair-hex> \
-LENOS_ACP_MCP_URL=https://api.lengrowth.com/mcp \
+LENOS_ACP_MCP_URL=https://growth-api.lenquant.com/mcp \
 LENOS_ACP_CONFIG=crates/lenos-acp/agents/lengrowth.toml \
 lenos-acp
 ```
 
-### Option B: MCP proxy (fallback)
-
-If native HTTP is not supported:
-
-```bash
-LENOS_RELAY_URL=wss://<your-lenos-domain> \
-LENOS_PRIVATE_KEY=<agent-keypair-hex> \
-LENOS_ACP_AGENT_COMMAND=uvx \
-LENOS_ACP_AGENT_ARGS="mcp proxy --server-url https://api.lengrowth.com/mcp" \
-LENOS_ACP_CONFIG=crates/lenos-acp/agents/lengrowth.toml \
-lenos-acp
-```
-
-### Deploy to ECS (if using AWS)
-
-As a second service on the LenOS cluster, or as a sidecar container. Ensure the service has:
-- Network access to `wss://<your-lenos-domain>`
-- Network access to `https://api.lengrowth.com/mcp` (LenGrowth MCP endpoint)
-- IAM permissions to read task definition and environment variables
-
-### Checkpoint
-
-- [ ] lenos-acp service launched (Option A or B)
-- [ ] No startup errors in logs
-- [ ] Service is running and healthy
+Requires building `lenos-acp` from `crates/lenos-acp/` with Rust toolchain.
 
 ---
 
-## Step 5: End-to-end checklist
+## Step 5 — E2E testing 🔲 PENDING (blocked on web app deploy)
 
-Run the following verification steps **in order**. Each should complete before moving to the next.
+**Blocker:** LenOS web app (`LenOS/web/`) not deployed yet. See `DEPLOYMENT.md` Part 4.
 
-### 5.1: Open LenOS client
+Once web app is live at `company.lengrowth.com`:
 
-- [ ] Open LenOS desktop application or navigate to `https://<your-lenos-domain>`
-- [ ] Page loads without errors
+### 5.1 Relay health
 
-### 5.2: Initiate LenGrowth connection
+```bash
+curl -s https://relay.lengrowth.com/health
+# → ok
+```
 
-- [ ] Navigate to Settings → LenGrowth
-- [ ] Click "Connect LenGrowth" button
-- [ ] OAuth flow redirects to LenGrowth login page
+### 5.2 Web app loads
 
-### 5.3: Complete OAuth and verify linked state
+- [ ] Visit `company.lengrowth.com` (or test subdomain)
+- [ ] Page loads, WebSocket connects to relay
+- [ ] No console errors
 
-- [ ] Log in with LenGrowth credentials
-- [ ] After successful login, callback redirects with `lenos://lengrowth-auth?linked=true`
-- [ ] LenOS Settings now displays "LenGrowth connected"
+### 5.3 Post-login workspace entry
 
-### 5.4: Verify HQ channel access
+- [ ] Login at `app.lengrowth.com`
+- [ ] See both options: "LenGrowth Dashboard" and "Enter workspace"
+- [ ] "Enter workspace" opens `company.lengrowth.com`
 
-- [ ] Return to main LenOS interface
-- [ ] Locate and open the "LenGrowth HQ" channel (created in Step 3)
-- [ ] Channel loads without errors
+### 5.4 LenGrowth OAuth link (LenOS → LenGrowth)
 
-### 5.5: Test task list retrieval
+- [ ] In LenOS workspace: Settings → LenGrowth → Connect
+- [ ] OAuth redirects to `app.lengrowth.com/auth/nostr-link`
+- [ ] Login with LenGrowth credentials
+- [ ] Callback: `lenos://lengrowth-auth?linked=true`
+- [ ] Settings shows "LenGrowth connected"
 
-- [ ] In the HQ channel message input, type: `@lengrowth get tasks`
-- [ ] Send the message
-- [ ] **Expected response:** Task list appears as a reply message within 5 seconds
+### 5.5 HQ channel commands
 
-### 5.6: Test task creation
+- [ ] Open LenGrowth HQ channel in workspace
+- [ ] Send `@lengrowth get tasks` → task list reply within 5s
+- [ ] Send `@lengrowth get metrics north_star` → metrics reply within 5s
+- [ ] Send `@lengrowth create task: SEO brief` → (if implemented) task ID in reply
 
-- [ ] Send: `@lengrowth create task: SEO brief`
-- [ ] **Expected response:** Acknowledgment with `task_id` (e.g., `task_id: task-12345`)
+### 5.6 Disconnect / reconnect
 
-### 5.7: Wait for async job completion
-
-- [ ] After task creation, wait for Celery job to complete (typically 10–30 seconds)
-- [ ] **Expected result:** Result event arrives in the channel as a new message
-
-### 5.8: Test metrics retrieval
-
-- [ ] Send: `@lengrowth get metrics north_star`
-- [ ] **Expected response:** North star metrics data returned in reply
-
-### 5.9: Disconnect and verify not-connected state
-
-- [ ] Navigate to Settings → LenGrowth
-- [ ] Click "Disconnect LenGrowth"
-- [ ] Return to HQ channel
-- [ ] Send: `@lengrowth get tasks`
-- [ ] **Expected response:** Error message like "LenGrowth not connected. Please reconnect in Settings."
-
-### 5.10: Reconnect and verify no duplicates
-
-- [ ] Return to Settings → LenGrowth
-- [ ] Click "Connect LenGrowth" and complete OAuth again
-- [ ] Check the MongoDB `nostr_links` collection (or LenOS internal links table)
-- [ ] **Expected state:** Only one active connection record for this user+LenGrowth pair (no duplicates)
-
-### Checkpoint
-
-- [ ] All 10 substeps completed successfully
-- [ ] No errors or unexpected messages observed
+- [ ] Settings → Disconnect LenGrowth
+- [ ] `@lengrowth get tasks` returns "not connected" error
+- [ ] Reconnect → only one active record in MongoDB `nostr_links` per user
 
 ---
 
-## Step 6: Post-launch updates
+## Step 6 — Web app deploy and branding 🔲 PENDING
 
-After successful E2E verification, update infrastructure-as-code with final values.
+See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
 
-### Update terraform.tfvars
-
-In your Terraform configuration, add or update:
-
-```hcl
-lengrowth_relay_url         = "wss://<your-lenos-domain>"
-lengrowth_adapter_public_key = "<NOSTR_ADAPTER_PUBKEY>"
-lengrowth_hq_channel_id     = "<UUID from Step 3>"
-lengrowth_mcp_url           = "https://api.lengrowth.com/mcp"
-```
-
-### Commit any fixes or documentation updates
-
-```bash
-git add -p
-git commit -m "fix(lenos-lengrowth): e2e integration fixes"
-```
-
-### Checkpoint
-
-- [ ] terraform.tfvars updated with real values
-- [ ] Changes committed to version control
+1. Brand `LenOS/web/src/` — replace LenOS logo/colors with LenGrowth design system
+2. Set default relay to `wss://relay.lengrowth.com` in web app config
+3. Deploy to Cloudflare Pages (recommended) or second ECS service
+4. Add wildcard `*.lengrowth.com` DNS in Cloudflare
+5. Add "Enter workspace" option to LenGrowth post-login flow (`lengrowth-web`)
+6. Add `GET /api/workspace` endpoint to `lengrowth-main`
 
 ---
 
 ## Troubleshooting
 
-### nostr_adapter fails to connect
+**nostr_adapter crashes on start**
+```bash
+scalingo --app lengrowth-main logs --filter nostradapter -n 200
+# NOSTR_PRIVATE_KEY must be 64-char lowercase hex
+# LENOS_RELAY_URL must start with wss://, not ws:// or https://
+```
 
-**Symptom:** No "Connected to LenOS relay" log message after 2 minutes.
+**Commands time out with no reply**
+- Confirm `nostradapter` process running: Scalingo dashboard → Processes
+- Confirm HQ channel UUID matches in `relay_connection.py` `HQ_CHANNEL_ID`
+- Confirm relay is up: `curl https://relay.lengrowth.com/health`
+- Confirm Cloudflare proxy OFF on `relay.lengrowth.com`
 
-**Actions:**
-1. Verify `LENOS_RELAY_URL` is correct and accessible from LenGrowth network
-2. Check network ACLs and security groups allow WebSocket (port 443)
-3. Confirm relay service is running: `curl -I https://<your-lenos-domain>`
-4. Check LenGrowth ECS task logs for DNS or connection errors
+**@lengrowth command returns wrong data**
+- MCP tools in `lengrowth_mcp/tools.py` — check DB query logic
+- Set `LOG_LEVEL=DEBUG` on Scalingo → `nostradapter` logs full dispatch trace
 
-### lenos-acp fails to start
+**Channel not found in client**
+- Channel UUID `34fb566f...` must exist on the relay
+- Verify with: connect to `wss://relay.lengrowth.com`, send `["REQ","v",{"kinds":[39000],"#d":["34fb566f-4883-4941-b18a-3ac7b9020552"]}]`
+- If relay was wiped/reset, recreate channel (see Step 3 above)
 
-**Symptom:** Continuous restarts or crash logs in ECS.
-
-**Actions:**
-1. Verify `LENOS_ACP_CONFIG` file exists and is readable
-2. Verify `LENOS_PRIVATE_KEY` is valid hex format
-3. Verify `LENOS_ACP_MCP_URL` (or proxy args) are correct
-4. Check IAM role has necessary permissions for ECS and CloudWatch Logs
-5. If using Option B proxy, verify `mcp` and `uvx` are installed
-
-### @lengrowth commands return "not connected"
-
-**Symptom:** Commands fail even though LenGrowth is shown as "connected" in Settings.
-
-**Actions:**
-1. Verify the `channel_id` in `lengrowth.toml` matches the HQ channel UUID
-2. Check lenos-acp logs for errors connecting to MCP endpoint
-3. Verify HTTPS certificate chain for LenGrowth MCP URL is valid
-4. Restart lenos-acp service and retry
-
-### Duplicate connections after reconnect
-
-**Symptom:** Multiple entries for same user in `nostr_links` collection.
-
-**Actions:**
-1. Check LenGrowth OAuth callback handling for idempotency
-2. Verify LenOS link deregistration on disconnect
-3. Review logs for missed cleanup operations
-
----
-
-## Support
-
-For issues not covered above, contact:
-- **LenOS Team:** [ops contact]
-- **LenGrowth Team:** [integration contact]
-
-Include logs from both services and the exact steps that failed.
+**Duplicate nostr_links after reconnect**
+- Check `POST /api/auth/nostr-link` in `lengrowth-main` for idempotency (upsert not insert)
+- Review disconnect handler — must delete old link before new one created

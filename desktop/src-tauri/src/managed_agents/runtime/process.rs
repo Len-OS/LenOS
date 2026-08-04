@@ -125,7 +125,7 @@ pub(crate) fn process_belongs_to_us(_pid: u32) -> bool {
 
 /// The value stamped into the `LENOS_MANAGED_AGENT` env var of every agent we
 /// spawn, identifying *which* desktop instance owns it. We use the app's bundle
-/// identifier (`xyz.block.lenos.app` for release, `xyz.block.lenos.app.dev`
+/// identifier (`com.lengrowth.lenos` for release, `com.lengrowth.lenos.dev`
 /// for `just dev`) because it is stable across restarts — a relaunched dev
 /// instance still recognizes its own previously-spawned agents as reclaimable,
 /// while never matching another instance's (e.g. a dev build never reaps a DMG

@@ -7,6 +7,7 @@ import "@/shared/styles/globals.css";
 import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { Toaster } from "@/shared/ui/sonner";
 import { TooltipProvider } from "@/shared/ui/tooltip";
+import { WorkspaceProvider } from "@/shared/lib/workspace-context";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,10 +27,12 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider delayDuration={300}>
-          <App />
-          <Toaster />
-        </TooltipProvider>
+        <WorkspaceProvider>
+          <TooltipProvider delayDuration={300}>
+            <App />
+            <Toaster />
+          </TooltipProvider>
+        </WorkspaceProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>,
