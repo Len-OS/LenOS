@@ -254,18 +254,5 @@ resource "aws_lb_listener" "http_redirect" {
   }
 }
 
-# Route53
-data "aws_route53_zone" "main" {
-  name = join(".", slice(split(".", var.domain_name), 1, length(split(".", var.domain_name))))
-}
-
-resource "aws_route53_record" "relay" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = var.domain_name
-  type    = "A"
-  alias {
-    name                   = aws_lb.lenos.dns_name
-    zone_id                = aws_lb.lenos.zone_id
-    evaluate_target_health = true
-  }
-}
+# DNS is managed in Cloudflare — add CNAME manually after deploy:
+# relay.<yourdomain.com> CNAME <alb_dns_name output>  (proxy: DNS-only / orange cloud OFF)
