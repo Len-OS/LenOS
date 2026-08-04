@@ -67,9 +67,9 @@ COPY --from=planner /build/recipe.json recipe.json
 # scoping to -p buzz-relay misses transitive deps and re-builds them later.
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
-RUN cargo build --release --locked -p lenos-relay --bin lenos-relay \
-                                   -p lenos-admin --bin lenos-admin \
-                                   -p lenos-pair-relay --bin lenos-pair-relay
+RUN cargo build --release -p lenos-relay --bin lenos-relay \
+                          -p lenos-admin --bin lenos-admin \
+                          -p lenos-pair-relay --bin lenos-pair-relay
 
 # Derive the normal release binaries from the same optimized ELF files as the
 # debug image so the two variants cannot drift at code-generation time.
