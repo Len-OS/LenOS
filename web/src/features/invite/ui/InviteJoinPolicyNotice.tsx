@@ -113,7 +113,7 @@ export function InviteJoinPolicyNotice({
 
       {policy.terms_markdown || policy.privacy_markdown ? (
         <PolicyCheckbox
-          accessibleLabel="I agree to the LenOS Terms of Service and Privacy Policy."
+          accessibleLabel="I agree to the LenGrowth Terms of Service and Privacy Policy."
           checked={agreementConfirmed}
           onCheckedChange={onAgreementConfirmedChange}
         >
