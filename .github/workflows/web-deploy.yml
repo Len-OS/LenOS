@@ -24,7 +24,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@fe02b74ab2366c09e13089efa2a9f6da1ea1defe # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           run_install: false
 
