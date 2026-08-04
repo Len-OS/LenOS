@@ -12,7 +12,7 @@ import { ONBOARDING_INK_ICON_CLASS } from "./OnboardingChrome";
 import { OnboardingFooter } from "./OnboardingFooter";
 
 const IDENTITY_KEY_HELP_SEEN_STORAGE_KEY =
-  "buzz.machine-onboarding.identity-key-help-seen.v1";
+  "lenos.machine-onboarding.identity-key-help-seen.v1";
 const IDENTITY_KEY_HELP_DELAY_MS = 2_000;
 
 function hasSeenIdentityKeyHelp(): boolean {
@@ -65,7 +65,7 @@ export function IdentityKeyHelpDialog() {
         </DialogTrigger>
       </OnboardingFooter>
       <DialogContent
-        className="buzz-onboarding-neutral-theme max-w-[47.5rem] -translate-y-5"
+        className="lenos-onboarding-neutral-theme max-w-[47.5rem] -translate-y-5"
         closeButtonClassName={ONBOARDING_INK_ICON_CLASS}
         data-system-color-scheme="light"
         data-testid="identity-key-help-dialog"
@@ -78,21 +78,21 @@ export function IdentityKeyHelpDialog() {
           </DialogTitle>
           <DialogDescription
             asChild
-            className="mt-6 space-y-4 text-pretty text-base leading-7 text-[color:var(--buzz-onboarding-backup-ink)]"
+            className="mt-6 space-y-4 text-pretty text-base leading-7 text-[color:var(--lenos-onboarding-backup-ink)]"
           >
             <div>
               <p>
-                Buzz uses an identity key instead of a traditional account. It’s
-                created on your device and represents you whenever you use Buzz.
+                LenOS uses an identity key instead of a traditional account. It’s
+                created on your device and represents you whenever you use LenOS.
               </p>
               <p>
-                Your identity belongs to you, not Buzz. There’s no password to
-                reset, and Buzz can’t recover your key if you lose it. Keep a
+                Your identity belongs to you, not LenOS. There’s no password to
+                reset, and LenOS can’t recover your key if you lose it. Keep a
                 backup somewhere safe and never share it. Anyone with your key
                 can act as you.
               </p>
               <p>
-                If you’re new to Buzz, create a new identity key. If you already
+                If you’re new to LenOS, create a new identity key. If you already
                 have a Nostr identity, use your existing key.
               </p>
             </div>

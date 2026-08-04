@@ -2,10 +2,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use buzz_core_pkg::kind::KIND_PAIRING;
-use buzz_core_pkg::pairing::qr::encode_qr;
-use buzz_core_pkg::pairing::session::PairingSession;
-use buzz_core_pkg::pairing::types::{AbortReason, PayloadType};
+use lenos_core_pkg::kind::KIND_PAIRING;
+use lenos_core_pkg::pairing::qr::encode_qr;
+use lenos_core_pkg::pairing::session::PairingSession;
+use lenos_core_pkg::pairing::types::{AbortReason, PayloadType};
 use futures_util::{SinkExt, StreamExt};
 use nostr::ToBech32;
 use serde::Serialize;
@@ -452,7 +452,7 @@ fn event_to_relay_json(event: &nostr::Event) -> String {
     format!("[\"EVENT\",{}]", nostr::JsonUtil::as_json(event))
 }
 
-/// Parse a relay EVENT message into a nostr 0.36 Event (buzz-core compatible).
+/// Parse a relay EVENT message into a nostr 0.36 Event (lenos-core compatible).
 fn parse_relay_event(text: &str, sub_id: &str) -> Option<nostr::Event> {
     let arr: serde_json::Value = serde_json::from_str(text).ok()?;
     let arr = arr.as_array()?;
@@ -667,20 +667,20 @@ mod pairing_relay_tests {
     #[test]
     fn configured_pairing_relay_takes_precedence_over_legacy_path() {
         let document = serde_json::json!({
-            "pairing_relay_url": "wss://pairing.buzz.xyz",
+            "pairing_relay_url": "wss://pairing.lenos.xyz",
             "supported_nips": [43]
         });
 
         assert_eq!(
             pairing_relay_from_nip11(&document),
-            PairingRelay::Configured("wss://pairing.buzz.xyz".to_string())
+            PairingRelay::Configured("wss://pairing.lenos.xyz".to_string())
         );
     }
 
     #[test]
     fn invalid_pairing_relay_url_falls_back_to_legacy_path() {
         let document = serde_json::json!({
-            "pairing_relay_url": "https://pairing.buzz.xyz",
+            "pairing_relay_url": "https://pairing.lenos.xyz",
             "supported_nips": [43]
         });
 
@@ -700,23 +700,23 @@ mod pairing_relay_tests {
     #[test]
     fn configured_pairing_relay_resolves_to_configured_url() {
         let resolved = resolve_pairing_relay_url(
-            "wss://flint.communities.buzz.xyz",
-            PairingRelay::Configured("wss://pairing.buzz.xyz".to_string()),
+            "wss://flint.communities.lenos.xyz",
+            PairingRelay::Configured("wss://pairing.lenos.xyz".to_string()),
         )
         .expect("resolve configured pairing relay");
 
-        assert_eq!(resolved, "wss://pairing.buzz.xyz");
+        assert_eq!(resolved, "wss://pairing.lenos.xyz");
     }
 
     #[test]
     fn legacy_pairing_relay_appends_pair_path() {
         let resolved = resolve_pairing_relay_url(
-            "wss://flint.communities.buzz.xyz/community",
+            "wss://flint.communities.lenos.xyz/community",
             PairingRelay::LegacyPath,
         )
         .expect("resolve legacy pairing relay");
 
-        assert_eq!(resolved, "wss://flint.communities.buzz.xyz/community/pair");
+        assert_eq!(resolved, "wss://flint.communities.lenos.xyz/community/pair");
     }
 
     #[test]

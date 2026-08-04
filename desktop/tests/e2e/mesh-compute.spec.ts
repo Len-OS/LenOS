@@ -4,12 +4,12 @@ import { installMockBridge } from "../helpers/bridge";
 import { openSettings } from "../helpers/settings";
 
 type E2eWindow = Window & {
-  __BUZZ_E2E_COMMANDS__?: string[];
-  __BUZZ_E2E_COMMAND_PAYLOADS__?: Array<{
+  __LENOS_E2E_COMMANDS__?: string[];
+  __LENOS_E2E_COMMAND_PAYLOADS__?: Array<{
     command: string;
     payload: { request?: { mode?: string; modelId?: string } } | null;
   }>;
-  __BUZZ_E2E_SET_MESH__?: (mesh: {
+  __LENOS_E2E_SET_MESH__?: (mesh: {
     nodeState?: "off" | "running";
     nodeMode?: "serve" | "client" | null;
   }) => void;
@@ -33,7 +33,7 @@ test("Share compute selects the curated default and starts and stops sharing", a
   await expect(model).toHaveValue("Gemma-4-E4B-it-Q4_K_M");
   await expect(toggle).toBeEnabled();
   await expect(card).toContainText(
-    "Buzz downloads remote models when sharing starts",
+    "LenOS downloads remote models when sharing starts",
   );
 
   await toggle.click();
@@ -41,13 +41,13 @@ test("Share compute selects the curated default and starts and stops sharing", a
   await expect(card).toContainText("Sharing Gemma 4 E4B with relay members");
   await expect
     .poll(() =>
-      page.evaluate(() => (window as E2eWindow).__BUZZ_E2E_COMMANDS__ ?? []),
+      page.evaluate(() => (window as E2eWindow).__LENOS_E2E_COMMANDS__ ?? []),
     )
     .toContain("mesh_start_node");
   await expect
     .poll(() =>
       page.evaluate(
-        () => (window as E2eWindow).__BUZZ_E2E_COMMAND_PAYLOADS__ ?? [],
+        () => (window as E2eWindow).__LENOS_E2E_COMMAND_PAYLOADS__ ?? [],
       ),
     )
     .toContainEqual({
@@ -62,7 +62,7 @@ test("Share compute selects the curated default and starts and stops sharing", a
   await expect(card).toContainText("Not sharing right now");
   await expect
     .poll(() =>
-      page.evaluate(() => (window as E2eWindow).__BUZZ_E2E_COMMANDS__ ?? []),
+      page.evaluate(() => (window as E2eWindow).__LENOS_E2E_COMMANDS__ ?? []),
     )
     .toContain("mesh_stop_node");
 });
@@ -78,17 +78,17 @@ test("a consuming client can switch to sharing its saved local model", async ({
   // client with one serve start (never a stop command).
   const localModel = "hf://demo/local-small-model:Q4_K_M";
   await page.addInitScript((model) => {
-    window.localStorage.setItem("buzz.mesh-compute.share.model.v1", model);
+    window.localStorage.setItem("lenos.mesh-compute.share.model.v1", model);
   }, localModel);
   await installMockBridge(page);
   await page.goto("/");
   // The mesh seed hook is installed when the mock bridge boots; calling it
   // before then silently no-ops (optional chaining) and the seed is lost.
   await page.waitForFunction(
-    () => typeof (window as E2eWindow).__BUZZ_E2E_SET_MESH__ === "function",
+    () => typeof (window as E2eWindow).__LENOS_E2E_SET_MESH__ === "function",
   );
   await page.evaluate(() => {
-    (window as E2eWindow).__BUZZ_E2E_SET_MESH__?.({
+    (window as E2eWindow).__LENOS_E2E_SET_MESH__?.({
       nodeState: "running",
       nodeMode: "client",
     });
@@ -102,7 +102,7 @@ test("a consuming client can switch to sharing its saved local model", async ({
   await expect(card).toContainText(
     "This machine is currently using another member's shared compute",
   );
-  await expect(card).toContainText("Buzz may briefly restart");
+  await expect(card).toContainText("LenOS may briefly restart");
   await expect(toggle).not.toBeChecked();
   await expect(model).toBeEnabled();
   await expect(model).toHaveValue(localModel);
@@ -111,8 +111,8 @@ test("a consuming client can switch to sharing its saved local model", async ({
   await expect(toggle).toBeChecked();
 
   const commands = await page.evaluate(() => ({
-    names: (window as E2eWindow).__BUZZ_E2E_COMMANDS__ ?? [],
-    payloads: (window as E2eWindow).__BUZZ_E2E_COMMAND_PAYLOADS__ ?? [],
+    names: (window as E2eWindow).__LENOS_E2E_COMMANDS__ ?? [],
+    payloads: (window as E2eWindow).__LENOS_E2E_COMMAND_PAYLOADS__ ?? [],
   }));
   expect(commands.names).not.toContain("mesh_stop_node");
   expect(commands.payloads).toContainEqual({

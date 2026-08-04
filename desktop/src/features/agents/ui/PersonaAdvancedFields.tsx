@@ -3,8 +3,8 @@ import { cn } from "@/shared/lib/cn";
 import { EnvVarsEditor, type EnvVarsValue } from "./EnvVarsEditor";
 import { CreateAgentRespondToField } from "./RespondToField";
 import type { PersonaBehaviorDraft } from "./personaBehaviorDraft";
-import { isBuzzAgentRuntime } from "./buzzAgentConfig";
-import { BuzzAgentModelTuningFields } from "./buzzAgentModelTuningFields";
+import { isLenOSAgentRuntime } from "./lenosAgentConfig";
+import { LenOSAgentModelTuningFields } from "./lenosAgentModelTuningFields";
 import {
   PERSONA_FIELD_CONTROL_CLASS,
   PERSONA_FIELD_SHELL_CLASS,
@@ -33,15 +33,15 @@ export function PersonaAdvancedFields({
   /** Env vars to display as inherited defaults in tuning-field placeholders.
    *  For templates, pass `globalConfig.env_vars` (the fallback layer). */
   inheritedEnvVars?: EnvVarsValue;
-  /** Active LLM model — forwarded to BuzzAgentModelTuningFields for effort filtering. */
+  /** Active LLM model — forwarded to LenOSAgentModelTuningFields for effort filtering. */
   model?: string;
-  /** Runtime id for the buzz-agent tuning knobs visibility gate. */
+  /** Runtime id for the lenos-agent tuning knobs visibility gate. */
   modelTuningRuntimeId?: string;
   namePoolText: string;
   onBehaviorDraftChange: (value: PersonaBehaviorDraft) => void;
   onEnvVarsChange: (value: EnvVarsValue) => void;
   onNamePoolTextChange: (value: string) => void;
-  /** Active LLM provider id — forwarded to BuzzAgentModelTuningFields for effort filtering. */
+  /** Active LLM provider id — forwarded to LenOSAgentModelTuningFields for effort filtering. */
   provider?: string;
   requiredEnvKeys?: readonly string[];
   fileSatisfiedEnvKeys?: readonly string[];
@@ -147,9 +147,9 @@ export function PersonaAdvancedFields({
         value={envVars}
       />
 
-      {/* Tier-1 buzz-agent model-tuning knobs — only shown for buzz-agent. */}
-      {isBuzzAgentRuntime(modelTuningRuntimeId) ? (
-        <BuzzAgentModelTuningFields
+      {/* Tier-1 lenos-agent model-tuning knobs — only shown for lenos-agent. */}
+      {isLenOSAgentRuntime(modelTuningRuntimeId) ? (
+        <LenOSAgentModelTuningFields
           envVars={envVars}
           inheritedEnvVars={inheritedEnvVars}
           model={model}

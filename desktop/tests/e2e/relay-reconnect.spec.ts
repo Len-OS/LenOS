@@ -9,9 +9,9 @@ async function setMockWebsocketSendsStalled(
   await page.evaluate((shouldStall) => {
     const setter = (
       window as Window & {
-        __BUZZ_E2E_SET_STALL_WEBSOCKET_SENDS__?: (stall: boolean) => void;
+        __LENOS_E2E_SET_STALL_WEBSOCKET_SENDS__?: (stall: boolean) => void;
       }
-    ).__BUZZ_E2E_SET_STALL_WEBSOCKET_SENDS__;
+    ).__LENOS_E2E_SET_STALL_WEBSOCKET_SENDS__;
     if (!setter) {
       throw new Error("E2E websocket stall setter is not installed.");
     }
@@ -23,9 +23,9 @@ async function disconnectMockWebsockets(page: import("@playwright/test").Page) {
   const disconnected = await page.evaluate(() => {
     const disconnect = (
       window as Window & {
-        __BUZZ_E2E_DISCONNECT_MOCK_WEBSOCKETS__?: () => number;
+        __LENOS_E2E_DISCONNECT_MOCK_WEBSOCKETS__?: () => number;
       }
-    ).__BUZZ_E2E_DISCONNECT_MOCK_WEBSOCKETS__;
+    ).__LENOS_E2E_DISCONNECT_MOCK_WEBSOCKETS__;
     if (!disconnect) {
       throw new Error("E2E mock websocket disconnect seam is not installed.");
     }
@@ -39,9 +39,9 @@ async function restartMockWebsockets(page: import("@playwright/test").Page) {
   const restarted = await page.evaluate(() => {
     const restart = (
       window as Window & {
-        __BUZZ_E2E_RESTART_MOCK_WEBSOCKETS__?: () => number;
+        __LENOS_E2E_RESTART_MOCK_WEBSOCKETS__?: () => number;
       }
-    ).__BUZZ_E2E_RESTART_MOCK_WEBSOCKETS__;
+    ).__LENOS_E2E_RESTART_MOCK_WEBSOCKETS__;
     if (!restart)
       throw new Error("E2E websocket restart seam is not installed.");
     return restart();
@@ -54,7 +54,7 @@ async function setMockWebsocketUnavailable(
   unavailable: boolean,
 ) {
   await page.evaluate((value) => {
-    const setUnavailable = window.__BUZZ_E2E_SET_MOCK_WEBSOCKET_UNAVAILABLE__;
+    const setUnavailable = window.__LENOS_E2E_SET_MOCK_WEBSOCKET_UNAVAILABLE__;
     if (!setUnavailable) {
       throw new Error("E2E websocket availability seam is not installed.");
     }
@@ -67,7 +67,7 @@ async function activateRelayRateLimit(
   seconds: number,
 ) {
   await page.evaluate((duration) => {
-    const activate = window.__BUZZ_E2E_ACTIVATE_RELAY_RATE_LIMIT__;
+    const activate = window.__LENOS_E2E_ACTIVATE_RELAY_RATE_LIMIT__;
     if (!activate) {
       throw new Error("E2E relay rate-limit seam is not installed.");
     }
@@ -79,7 +79,7 @@ async function getMockWebsocketConnectAttempts(
   page: import("@playwright/test").Page,
 ) {
   return page.evaluate(() => {
-    const getAttempts = window.__BUZZ_E2E_GET_WEBSOCKET_CONNECT_ATTEMPTS__;
+    const getAttempts = window.__LENOS_E2E_GET_WEBSOCKET_CONNECT_ATTEMPTS__;
     if (!getAttempts) {
       throw new Error("E2E websocket attempt seam is not installed.");
     }
@@ -94,13 +94,13 @@ async function emitMockMessages(
   await page.evaluate((items) => {
     const emit = (
       window as Window & {
-        __BUZZ_E2E_EMIT_MOCK_MESSAGE__?: (input: {
+        __LENOS_E2E_EMIT_MOCK_MESSAGE__?: (input: {
           channelName: string;
           content: string;
           createdAt: number;
         }) => unknown;
       }
-    ).__BUZZ_E2E_EMIT_MOCK_MESSAGE__;
+    ).__LENOS_E2E_EMIT_MOCK_MESSAGE__;
     if (!emit) {
       throw new Error("E2E mock message emitter is not installed.");
     }
@@ -118,9 +118,9 @@ async function driveConnectionDegraded(
   await page.evaluate((s) => {
     const setter = (
       window as Window & {
-        __BUZZ_E2E_SET_RELAY_CONNECTION_STATE__?: (state: string) => void;
+        __LENOS_E2E_SET_RELAY_CONNECTION_STATE__?: (state: string) => void;
       }
-    ).__BUZZ_E2E_SET_RELAY_CONNECTION_STATE__;
+    ).__LENOS_E2E_SET_RELAY_CONNECTION_STATE__;
     if (!setter) {
       throw new Error("E2E relay state setter is not installed.");
     }
@@ -147,9 +147,9 @@ test("failed initial relay dial retries automatically", async ({ page }) => {
         page.evaluate(() => {
           const getState = (
             window as Window & {
-              __BUZZ_E2E_GET_RELAY_CONNECTION_STATE__?: () => string;
+              __LENOS_E2E_GET_RELAY_CONNECTION_STATE__?: () => string;
             }
-          ).__BUZZ_E2E_GET_RELAY_CONNECTION_STATE__;
+          ).__LENOS_E2E_GET_RELAY_CONNECTION_STATE__;
           if (!getState) throw new Error("Relay state seam is not installed.");
           return getState();
         }),
@@ -175,7 +175,7 @@ test("routine traffic cannot bypass outage backoff and recovery stays automatic"
   await page.evaluate(async () => {
     const deadline = Date.now() + 4_200;
     while (Date.now() < deadline) {
-      await window.__BUZZ_E2E_QUERY_CLIENT__?.invalidateQueries({
+      await window.__LENOS_E2E_QUERY_CLIENT__?.invalidateQueries({
         queryKey: ["channels"],
       });
       await new Promise((resolve) => window.setTimeout(resolve, 100));
@@ -193,7 +193,7 @@ test("routine traffic cannot bypass outage backoff and recovery stays automatic"
   await expect
     .poll(
       () =>
-        page.evaluate(() => window.__BUZZ_E2E_GET_RELAY_CONNECTION_STATE__?.()),
+        page.evaluate(() => window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.()),
       { timeout: 10_000 },
     )
     .toBe("connected");
@@ -223,7 +223,7 @@ test("authenticated reconnect reports connected while replay is rate-limited", a
   await expect
     .poll(
       () =>
-        page.evaluate(() => window.__BUZZ_E2E_GET_RELAY_CONNECTION_STATE__?.()),
+        page.evaluate(() => window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.()),
       { timeout: 3_000 },
     )
     .toBe("connected");
@@ -244,7 +244,7 @@ test("service restart close resets accumulated backoff", async ({ page }) => {
   await expect
     .poll(
       () =>
-        page.evaluate(() => window.__BUZZ_E2E_GET_RELAY_CONNECTION_STATE__?.()),
+        page.evaluate(() => window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.()),
       { timeout: 2_500 },
     )
     .toBe("connected");

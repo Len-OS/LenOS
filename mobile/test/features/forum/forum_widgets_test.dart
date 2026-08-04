@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:buzz/features/channels/channel.dart';
-import 'package:buzz/features/forum/forum_models.dart';
-import 'package:buzz/features/forum/forum_post_card.dart';
-import 'package:buzz/features/forum/forum_posts_view.dart';
-import 'package:buzz/features/forum/forum_provider.dart';
-import 'package:buzz/features/forum/forum_thread_page.dart';
-import 'package:buzz/features/profile/profile_provider.dart';
-import 'package:buzz/features/profile/user_cache_provider.dart';
-import 'package:buzz/features/profile/user_profile.dart';
-import 'package:buzz/shared/relay/relay.dart';
-import 'package:buzz/shared/theme/theme.dart';
+import 'package:lenos/features/channels/channel.dart';
+import 'package:lenos/features/forum/forum_models.dart';
+import 'package:lenos/features/forum/forum_post_card.dart';
+import 'package:lenos/features/forum/forum_posts_view.dart';
+import 'package:lenos/features/forum/forum_provider.dart';
+import 'package:lenos/features/forum/forum_thread_page.dart';
+import 'package:lenos/features/profile/profile_provider.dart';
+import 'package:lenos/features/profile/user_cache_provider.dart';
+import 'package:lenos/features/profile/user_profile.dart';
+import 'package:lenos/shared/relay/relay.dart';
+import 'package:lenos/shared/theme/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _channelId = 'forum-channel';

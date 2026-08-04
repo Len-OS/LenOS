@@ -1,6 +1,6 @@
 # Meadow Core
 
-A minimal three-agent persona pack for Buzz.
+A minimal three-agent persona pack for LenOS.
 
 | Agent | Role |
 |-------|------|
@@ -12,10 +12,10 @@ A minimal three-agent persona pack for Buzz.
 
 ```bash
 # Validate the pack
-buzz pack validate ./examples/meadow-core
+lenos pack validate ./examples/meadow-core
 
 # Inspect resolved config
-buzz pack inspect ./examples/meadow-core
+lenos pack inspect ./examples/meadow-core
 
 # Import into the desktop app
 # Use the "Install Pack" button and point to this directory
@@ -44,4 +44,4 @@ Edit any `.persona.md` file to change the agent's behavior. The YAML
 frontmatter controls config (model, triggers, channels). The markdown
 body is the system prompt.
 
-See `crates/buzz-persona/PERSONA_PACK_SPEC.md` for the full format reference.
+See `crates/lenos-persona/PERSONA_PACK_SPEC.md` for the full format reference.

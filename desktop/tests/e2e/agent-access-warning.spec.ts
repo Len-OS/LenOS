@@ -60,7 +60,7 @@ test("open agent access explains the available access before save", async ({
   await expect(saveAccess).toBeVisible();
 
   const commandsBeforeSave = await page.evaluate(
-    () => window.__BUZZ_E2E_COMMAND_LOG__?.length ?? 0,
+    () => window.__LENOS_E2E_COMMAND_LOG__?.length ?? 0,
   );
   await accessSelect.selectOption("anyone");
   const warning = page.getByTestId("agent-access-warning");
@@ -81,7 +81,7 @@ test("open agent access explains the available access before save", async ({
   await expect
     .poll(async () =>
       page.evaluate((start) => {
-        const commands = window.__BUZZ_E2E_COMMAND_LOG__ ?? [];
+        const commands = window.__LENOS_E2E_COMMAND_LOG__ ?? [];
         return commands
           .slice(start)
           .some(
@@ -183,14 +183,14 @@ test("persona-backed edit warns before saving open access", async ({
   );
 
   const commandsBeforeSave = await page.evaluate(
-    () => window.__BUZZ_E2E_COMMAND_LOG__?.length ?? 0,
+    () => window.__LENOS_E2E_COMMAND_LOG__?.length ?? 0,
   );
   await page.getByTestId("edit-agent-dialog-submit").click();
   await expect(dialog).not.toBeVisible();
   await expect
     .poll(async () =>
       page.evaluate((start) => {
-        const commands = window.__BUZZ_E2E_COMMAND_LOG__ ?? [];
+        const commands = window.__LENOS_E2E_COMMAND_LOG__ ?? [];
         return commands
           .slice(start)
           .some(

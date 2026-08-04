@@ -3,7 +3,7 @@ import { TerminalSquare } from "lucide-react";
 
 import type { AcpRuntimeCatalogEntry } from "@/shared/api/types";
 import { cn } from "@/shared/lib/cn";
-import { BuzzMark } from "@/shared/ui/buzz-logo/BuzzMark";
+import { LenOSMark } from "@/shared/ui/lenos-logo/LenOSMark";
 import claudeLogoUrl from "../assets/harness-logos/claude.png?inline";
 import { RUNTIME_MARKS } from "./HarnessMarks";
 
@@ -27,14 +27,14 @@ export const PRESET_LOGOS: Record<string, string> = {
   openclaw: "/harness-logos/openclaw.svg",
 };
 
-function isBuzzRuntime(runtime: AcpRuntimeCatalogEntry): boolean {
-  return runtime.id.trim().toLowerCase() === "buzz-agent";
+function isLenOSRuntime(runtime: AcpRuntimeCatalogEntry): boolean {
+  return runtime.id.trim().toLowerCase() === "lenos-agent";
 }
 
 export function getRuntimeDisplayLabel(
   runtime: AcpRuntimeCatalogEntry,
 ): string {
-  return isBuzzRuntime(runtime) ? "Buzz" : runtime.label;
+  return isLenOSRuntime(runtime) ? "LenOS" : runtime.label;
 }
 
 function getRuntimeLogoUrl(runtime: AcpRuntimeCatalogEntry): string | null {
@@ -56,10 +56,10 @@ export function RuntimeIcon({
   const imageUrl = getRuntimeLogoUrl(runtime);
   const Mark = RUNTIME_MARKS[id];
 
-  if (isBuzzRuntime(runtime)) {
+  if (isLenOSRuntime(runtime)) {
     // The mark's wide viewBox letterboxes inside a square box, so honoring
     // the caller's size keeps it optically in line with the square logos.
-    return <BuzzMark className={cn(className, "text-foreground")} />;
+    return <LenOSMark className={cn(className, "text-foreground")} />;
   }
 
   if (Mark) {

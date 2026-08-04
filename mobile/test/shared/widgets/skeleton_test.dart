@@ -1,5 +1,5 @@
-import 'package:buzz/shared/theme/theme.dart';
-import 'package:buzz/shared/widgets/skeleton.dart';
+import 'package:lenos/shared/theme/theme.dart';
+import 'package:lenos/shared/widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';

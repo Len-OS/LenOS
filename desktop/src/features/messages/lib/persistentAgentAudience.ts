@@ -1,7 +1,7 @@
 import * as React from "react";
 
-const ENABLED_STORAGE_KEY = "buzz:keep-addressed-agents-active";
-const AUDIENCES_STORAGE_KEY = "buzz:persistent-agent-audiences:v2";
+const ENABLED_STORAGE_KEY = "lenos:keep-addressed-agents-active";
+const AUDIENCES_STORAGE_KEY = "lenos:persistent-agent-audiences:v2";
 
 const listeners = new Set<() => void>();
 const revisions = new Map<string, number>();

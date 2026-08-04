@@ -7,7 +7,7 @@ import '../../shared/mentions/agent_identity_provider.dart';
 import '../../shared/mentions/mention_tags.dart';
 import '../../shared/theme/theme.dart';
 import '../../shared/widgets/avatar_image.dart';
-import '../../shared/widgets/buzz_loading_indicator.dart';
+import '../../shared/widgets/lenos_loading_indicator.dart';
 import '../../shared/widgets/filter_chip_bar.dart';
 import '../../shared/widgets/frosted_app_bar.dart';
 import '../../shared/widgets/frosted_scaffold.dart';
@@ -64,15 +64,15 @@ class SearchPage extends HookConsumerWidget {
       () => focusNode.hasFocus,
     );
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final isBuzzTheme = context.appColors.topSectionGradient != null;
-    final buzzSearchColor = context.theme.brightness == Brightness.dark
+    final isLenOSTheme = context.appColors.topSectionGradient != null;
+    final lenosSearchColor = context.theme.brightness == Brightness.dark
         ? Colors.white
         : Colors.black;
-    final searchSurfaceColor = isBuzzTheme
-        ? buzzSearchColor.withValues(alpha: 0.04)
+    final searchSurfaceColor = isLenOSTheme
+        ? lenosSearchColor.withValues(alpha: 0.04)
         : context.colors.surfaceContainerHighest;
-    final searchMutedColor = isBuzzTheme
-        ? buzzSearchColor.withValues(alpha: 0.4)
+    final searchMutedColor = isLenOSTheme
+        ? lenosSearchColor.withValues(alpha: 0.4)
         : context.colors.onSurfaceVariant;
     final headerTitleStyle = context.textTheme.titleMedium?.copyWith(
       fontSize: 22,
@@ -374,7 +374,7 @@ class _SearchBody extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.all(Grid.sm),
             child: Center(
-              child: BuzzLoadingIndicator(
+              child: LenOSLoadingIndicator(
                 size: 36,
                 semanticLabel: 'Loading more search results',
               ),

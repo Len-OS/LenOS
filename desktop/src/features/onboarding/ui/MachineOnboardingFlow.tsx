@@ -165,11 +165,11 @@ export function MachineOnboardingFlow({
 
   return (
     <div
-      className={`buzz-onboarding-neutral-theme buzz-startup-shell flex max-h-dvh items-start justify-center overflow-x-hidden overflow-y-auto px-4 text-foreground ${
-        isSecuritySubview ? "buzz-onboarding-security-theme" : ""
+      className={`lenos-onboarding-neutral-theme lenos-startup-shell flex max-h-dvh items-start justify-center overflow-x-hidden overflow-y-auto px-4 text-foreground ${
+        isSecuritySubview ? "lenos-onboarding-security-theme" : ""
       } ${
         page === "identity"
-          ? "buzz-onboarding-welcome py-8"
+          ? "lenos-onboarding-welcome py-8"
           : "pb-28 pt-[106px]"
       }`}
       data-testid="machine-onboarding-gate"
@@ -201,7 +201,7 @@ export function MachineOnboardingFlow({
       <OnboardingFooterProvider>
         <div
           className={`relative flex w-full max-w-[1040px] flex-col items-center text-center ${
-            page === "identity" ? "my-auto" : "buzz-onboarding-step-frame"
+            page === "identity" ? "my-auto" : "lenos-onboarding-step-frame"
           }`}
         >
           {page === "identity" ? (
@@ -212,9 +212,9 @@ export function MachineOnboardingFlow({
               transitionKey="machine-identity"
             >
               <img
-                alt="Buzz"
+                alt="LenOS"
                 className="w-full max-w-[600px]"
-                src="/landing/buzz-wordmark.png"
+                src="/landing/lenos-wordmark.png"
               />
               <p className="mt-2 max-w-[560px] text-center text-2xl font-normal leading-none text-foreground">
                 Your people, your agents, your projects —<br />
@@ -282,10 +282,10 @@ export function MachineOnboardingFlow({
                     ? "Enter your backup password to unlock your key and restore your identity."
                     : identityLost
                       ? "Your identity is no longer in the system keyring. Re-import your nsec to restore it."
-                      : "If you already have a Buzz account, enter your private key below to get started."}
+                      : "If you already have a LenOS account, enter your private key below to get started."}
                 </p>
               </motion.div>
-              <div className="buzz-onboarding-key-import-position w-full">
+              <div className="lenos-onboarding-key-import-position w-full">
                 <NostrKeyImportForm
                   backLabel={identityLost ? "Start new identity" : "Back"}
                   onBack={

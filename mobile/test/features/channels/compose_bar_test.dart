@@ -13,16 +13,16 @@ import 'package:http/testing.dart' as http_testing;
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nostr/nostr.dart' as nostr;
-import 'package:buzz/features/channels/channel.dart';
-import 'package:buzz/features/channels/channel_management_provider.dart';
-import 'package:buzz/features/channels/compose_bar.dart';
-import 'package:buzz/features/channels/channels_provider.dart';
-import 'package:buzz/features/channels/photo_library.dart';
-import 'package:buzz/shared/custom_emoji/custom_emoji.dart';
-import 'package:buzz/shared/custom_emoji/custom_emoji_provider.dart';
-import 'package:buzz/shared/mentions/agent_identity_provider.dart';
-import 'package:buzz/shared/relay/relay.dart';
-import 'package:buzz/shared/theme/theme.dart';
+import 'package:lenos/features/channels/channel.dart';
+import 'package:lenos/features/channels/channel_management_provider.dart';
+import 'package:lenos/features/channels/compose_bar.dart';
+import 'package:lenos/features/channels/channels_provider.dart';
+import 'package:lenos/features/channels/photo_library.dart';
+import 'package:lenos/shared/custom_emoji/custom_emoji.dart';
+import 'package:lenos/shared/custom_emoji/custom_emoji_provider.dart';
+import 'package:lenos/shared/mentions/agent_identity_provider.dart';
+import 'package:lenos/shared/relay/relay.dart';
+import 'package:lenos/shared/theme/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final _pngBytes = Uint8List.fromList([
@@ -127,9 +127,9 @@ List<int> _testPngChunk(String type, List<int> payload) {
   ];
 }
 
-const _mediaUploadPlatformChannel = MethodChannel('buzz/media_upload');
+const _mediaUploadPlatformChannel = MethodChannel('lenos/media_upload');
 const _nativeAttachmentPopoverChannel = MethodChannel(
-  'buzz/native_attachment_popover',
+  'lenos/native_attachment_popover',
 );
 
 void _setMockMediaUploadPlatformHandler(

@@ -11,7 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import type { BuzzToolInfo, ToolStatus } from "./agentSessionTypes";
+import type { LenOSToolInfo, ToolStatus } from "./agentSessionTypes";
 
 export function normalizeToolStatus(status: string): ToolStatus {
   const normalized = status.toLowerCase();
@@ -64,7 +64,7 @@ export function getToolStatusDisplay(status: ToolStatus, isError: boolean) {
   };
 }
 
-const BUZZ_READ_TOOLS = new Set([
+const LENOS_READ_TOOLS = new Set([
   "get_messages",
   "get_channel_history",
   "get_thread",
@@ -85,7 +85,7 @@ const BUZZ_READ_TOOLS = new Set([
   "get_contact_list",
 ]);
 
-const BUZZ_WRITE_TOOLS = new Set([
+const LENOS_WRITE_TOOLS = new Set([
   "send_message",
   "send_diff_message",
   "edit_message",
@@ -119,13 +119,13 @@ const BUZZ_WRITE_TOOLS = new Set([
   "set_contact_list",
 ]);
 
-const BUZZ_TOOL_NAMES = new Set([...BUZZ_READ_TOOLS, ...BUZZ_WRITE_TOOLS]);
+const LENOS_TOOL_NAMES = new Set([...LENOS_READ_TOOLS, ...LENOS_WRITE_TOOLS]);
 
-const BUZZ_TOOL_NAMES_BY_LENGTH = [...BUZZ_TOOL_NAMES].sort(
+const LENOS_TOOL_NAMES_BY_LENGTH = [...LENOS_TOOL_NAMES].sort(
   (left, right) => right.length - left.length,
 );
 
-const BUZZ_TOOL_TITLE_ALIASES: Array<[RegExp, string]> = [
+const LENOS_TOOL_TITLE_ALIASES: Array<[RegExp, string]> = [
   [/\bsending message to channel\b/, "send_message"],
   [/\bretrieving recent messages from channel\b/, "get_messages"],
   [/\bgetting channel details\b/, "get_channel"],
@@ -136,10 +136,10 @@ const BUZZ_TOOL_TITLE_ALIASES: Array<[RegExp, string]> = [
   [/\bremoving reaction\b/, "remove_reaction"],
 ];
 
-export function getBuzzToolInfo(title: string): BuzzToolInfo | null {
+export function getLenOSToolInfo(title: string): LenOSToolInfo | null {
   const name = normalizeToolName(title);
-  const isRead = BUZZ_READ_TOOLS.has(name);
-  const isWrite = BUZZ_WRITE_TOOLS.has(name);
+  const isRead = LENOS_READ_TOOLS.has(name);
+  const isWrite = LENOS_WRITE_TOOLS.has(name);
   if (!isRead && !isWrite) {
     return null;
   }
@@ -148,8 +148,8 @@ export function getBuzzToolInfo(title: string): BuzzToolInfo | null {
     return {
       icon: Workflow,
       label: isRead
-        ? "Reads workflow state from Buzz."
-        : "Updates workflow state in Buzz.",
+        ? "Reads workflow state from LenOS."
+        : "Updates workflow state in LenOS.",
       tone: isWrite ? "write" : "read",
     };
   }
@@ -161,8 +161,8 @@ export function getBuzzToolInfo(title: string): BuzzToolInfo | null {
     return {
       icon: Hash,
       label: isRead
-        ? "Reads channel context from the Buzz relay."
-        : "Changes channel state in the Buzz relay.",
+        ? "Reads channel context from the LenOS relay."
+        : "Changes channel state in the LenOS relay.",
       tone: isWrite ? "write" : "read",
     };
   }
@@ -174,15 +174,15 @@ export function getBuzzToolInfo(title: string): BuzzToolInfo | null {
     return {
       icon: Users,
       label: isRead
-        ? "Reads Buzz identity or presence data."
-        : "Updates Buzz identity or membership data.",
+        ? "Reads LenOS identity or presence data."
+        : "Updates LenOS identity or membership data.",
       tone: isWrite ? "write" : "admin",
     };
   }
   if (name.includes("search") || name === "get_feed") {
     return {
       icon: Search,
-      label: "Searches relay-visible Buzz history.",
+      label: "Searches relay-visible LenOS history.",
       tone: "read",
     };
   }
@@ -193,23 +193,23 @@ export function getBuzzToolInfo(title: string): BuzzToolInfo | null {
   ) {
     return {
       icon: Send,
-      label: "Publishes relay-visible Buzz activity.",
+      label: "Publishes relay-visible LenOS activity.",
       tone: "write",
     };
   }
 
   return {
     icon: MessageSquare,
-    label: isRead ? "Reads from Buzz." : "Writes to Buzz.",
+    label: isRead ? "Reads from LenOS." : "Writes to LenOS.",
     tone: isWrite ? "write" : "read",
   };
 }
 
 export function normalizeToolName(title: string): string {
-  const knownName = findBuzzToolName(title, true);
+  const knownName = findLenOSToolName(title, true);
   if (knownName) return knownName;
 
-  const normalized = normalizeToolNameText(title).replace(/^buzz_/, "");
+  const normalized = normalizeToolNameText(title).replace(/^lenos_/, "");
   return normalized.match(/[a-z][a-z0-9_]+/)?.[0] ?? normalized;
 }
 
@@ -222,27 +222,27 @@ export function normalizeToolNameText(value: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
-export function findBuzzToolName(value: string, includeShortNames: boolean) {
-  const alias = findBuzzToolAlias(value);
+export function findLenOSToolName(value: string, includeShortNames: boolean) {
+  const alias = findLenOSToolAlias(value);
   if (alias) return alias;
 
   const normalized = normalizeToolNameText(value);
   return (
-    BUZZ_TOOL_NAMES_BY_LENGTH.find(
+    LENOS_TOOL_NAMES_BY_LENGTH.find(
       (name) =>
         (includeShortNames || name.length >= 8) && normalized.includes(name),
     ) ?? null
   );
 }
 
-function findBuzzToolAlias(value: string) {
+function findLenOSToolAlias(value: string) {
   const normalizedPhrase = value
     .trim()
     .toLowerCase()
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ");
   return (
-    BUZZ_TOOL_TITLE_ALIASES.find(([pattern]) =>
+    LENOS_TOOL_TITLE_ALIASES.find(([pattern]) =>
       pattern.test(normalizedPhrase),
     )?.[1] ?? null
   );
@@ -268,7 +268,7 @@ export function formatToolTitle(
   fallbackTitle?: string,
 ): string {
   const name = normalizeToolName(toolName);
-  if (BUZZ_READ_TOOLS.has(name) || BUZZ_WRITE_TOOLS.has(name)) {
+  if (LENOS_READ_TOOLS.has(name) || LENOS_WRITE_TOOLS.has(name)) {
     return name
       .split("_")
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

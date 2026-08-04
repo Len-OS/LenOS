@@ -35,7 +35,7 @@ const HERMES_AVAILABLE = {
   binary_path: "/usr/local/bin/hermes-acp",
   default_args: [],
   mcp_command: null,
-  install_hint: "Buzz talks to Hermes Agent through its hermes-acp command.",
+  install_hint: "LenOS talks to Hermes Agent through its hermes-acp command.",
   install_instructions_url: "https://hermes-agent.nousresearch.com",
   can_auto_install: false,
   requires_external_cli: true,
@@ -56,7 +56,7 @@ const OPENCLAW_NOT_INSTALLED = {
   default_args: ["acp"],
   mcp_command: null,
   install_hint:
-    "Buzz talks to OpenClaw through its ACP mode (openclaw acp), which relies on the OpenClaw Gateway daemon. Follow the setup guide to install both.",
+    "LenOS talks to OpenClaw through its ACP mode (openclaw acp), which relies on the OpenClaw Gateway daemon. Follow the setup guide to install both.",
   install_instructions_url: "https://docs.openclaw.ai/start/getting-started",
   can_auto_install: false,
   requires_external_cli: true,
@@ -78,7 +78,7 @@ const CURSOR_AVAILABLE = {
   binary_path: "/usr/local/bin/cursor-agent",
   default_args: [],
   mcp_command: null,
-  install_hint: "Buzz talks to Cursor through the cursor-agent CLI's ACP mode.",
+  install_hint: "LenOS talks to Cursor through the cursor-agent CLI's ACP mode.",
   install_instructions_url: "https://cursor.com/cli",
   can_auto_install: false,
   requires_external_cli: true,
@@ -286,8 +286,8 @@ test.describe("your harnesses split", () => {
       page.evaluate(
         () =>
           (
-            (window as Window & { __BUZZ_E2E_COMMANDS__?: string[] })
-              .__BUZZ_E2E_COMMANDS__ ?? []
+            (window as Window & { __LENOS_E2E_COMMANDS__?: string[] })
+              .__LENOS_E2E_COMMANDS__ ?? []
           ).filter((command) => command === "install_acp_runtime").length,
       );
 
@@ -654,7 +654,7 @@ test("onboarding setup More-harnesses click navigates to Settings → Agents", a
   await page.addInitScript(() => {
     const communityId = "e2e-default-community";
     window.localStorage.setItem(
-      "buzz-communities",
+      "lenos-communities",
       JSON.stringify([
         {
           id: communityId,
@@ -665,7 +665,7 @@ test("onboarding setup More-harnesses click navigates to Settings → Agents", a
         },
       ]),
     );
-    window.localStorage.setItem("buzz-active-community-id", communityId);
+    window.localStorage.setItem("lenos-active-community-id", communityId);
   });
   await page.goto("/");
 

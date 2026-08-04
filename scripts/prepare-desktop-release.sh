@@ -22,7 +22,7 @@ fi
 
 git checkout -B "$branch" "$base_sha"
 just bump-desktop-version "$version"
-scripts/desktop_release.py generate "$version" --base "$base_sha" --repo block/buzz
+scripts/desktop_release.py generate "$version" --base "$base_sha" --repo BuildGrowthNow/LenOS
 
 git add \
   .release/desktop-candidate.json \
@@ -38,13 +38,13 @@ agent_email="${RELEASE_AUTOMATION_EMAIL:-${AGENT_EMAIL:-release-automation@users
 msg="$(mktemp)"
 trap 'rm -f "$msg"' EXIT
 cat >"$msg" <<EOF
-chore(release): release Buzz Desktop version $version
+chore(release): release LenOS Desktop version $version
 
 Co-authored-by: $agent_name <$agent_email>
 EOF
 git -c user.name='Wes' -c user.email='wesbillman@users.noreply.github.com' \
   commit -s -F "$msg"
-scripts/desktop_release.py validate --candidate HEAD --version "$version" --repo block/buzz
+scripts/desktop_release.py validate --candidate HEAD --version "$version" --repo BuildGrowthNow/LenOS
 
 candidate_sha="$(git rev-parse HEAD)"
 previous_tag="$(python3 -c 'import json; print(json.load(open(".release/desktop-candidate.json"))["previous_tag"] or "initial")')"
@@ -64,7 +64,7 @@ fi
 body="$(mktemp)"
 trap 'rm -f "$msg" "$body"' EXIT
 cat >"$body" <<EOF
-## Buzz Desktop release v$version
+## LenOS Desktop release v$version
 
 - **Frozen main:** \`$base_sha\`
 - **Reviewed candidate:** \`$candidate_sha\`
@@ -76,8 +76,8 @@ This PR must be **squash merged** only after the Desktop Release Candidate check
 The checked-in changelog accounts for every non-merge commit in the release range. Publication remains bound to the immutable candidate tag.
 EOF
 if existing="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')" && [[ -n "$existing" ]]; then
-  gh pr edit "$existing" --title "chore(release): release Buzz Desktop version $version" --body-file "$body"
+  gh pr edit "$existing" --title "chore(release): release LenOS Desktop version $version" --body-file "$body"
 else
   gh pr create --base main --head "$branch" \
-    --title "chore(release): release Buzz Desktop version $version" --body-file "$body"
+    --title "chore(release): release LenOS Desktop version $version" --body-file "$body"
 fi

@@ -1,4 +1,4 @@
-const CONVERSATION_STORAGE_PREFIX = "buzz.projects.agentConversation";
+const CONVERSATION_STORAGE_PREFIX = "lenos.projects.agentConversation";
 
 /**
  * Minimal workspace-scoped pointer to the last inline Projects conversation.

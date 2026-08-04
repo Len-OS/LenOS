@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SIDECARS=(buzz-acp buzz-agent buzz-dev-mcp git-credential-nostr buzz)
+SIDECARS=(lenos-acp lenos-agent lenos-dev-mcp git-credential-nostr lenos)
 HOST=$(rustc -vV | sed -n 's|host: ||p')
 TARGET=${1:-$HOST}
 if [[ "$TARGET" != *windows* ]]; then
-    SIDECARS+=(buzz-backend-kubernetes)
-    BUILD_HINT="cargo build --release -p buzz-acp -p buzz-agent -p buzz-backend-kubernetes -p buzz-dev-mcp -p git-credential-nostr -p buzz-cli"
+    SIDECARS+=(lenos-backend-kubernetes)
+    BUILD_HINT="cargo build --release -p lenos-acp -p lenos-agent -p lenos-backend-kubernetes -p lenos-dev-mcp -p git-credential-nostr -p lenos-cli"
 else
-    BUILD_HINT="cargo build --release -p buzz-acp -p buzz-agent -p buzz-dev-mcp -p git-credential-nostr -p buzz-cli"
+    BUILD_HINT="cargo build --release -p lenos-acp -p lenos-agent -p lenos-dev-mcp -p git-credential-nostr -p lenos-cli"
 fi
 BINARIES_DIR="desktop/src-tauri/binaries"
 

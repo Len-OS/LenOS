@@ -1,0 +1,68 @@
+.lenos-logo {
+  display: grid;
+  place-items: center;
+  inline-size: fit-content;
+}
+
+.lenos-logo--screen {
+  min-block-size: 100vh;
+  inline-size: 100%;
+  overflow: hidden;
+}
+
+.lenos-logo--background {
+  background-color: #d7d72e;
+  background-image: radial-gradient(
+    circle,
+    rgba(35, 30, 30, 0.16) 1.2px,
+    transparent 1.3px
+  );
+  background-position: 0 0;
+  background-size: 37px 37px;
+}
+
+.lenos-logo__mark {
+  display: block;
+  inline-size: min(466px, calc(100vw - 32px));
+  block-size: auto;
+  overflow: visible;
+}
+
+.lenos-logo--compact {
+  inline-size: 1.5rem;
+}
+
+.lenos-logo--compact .lenos-logo__mark {
+  inline-size: 100%;
+  block-size: auto;
+  max-inline-size: 100%;
+}
+
+.lenos-logo__ink {
+  fill: currentColor;
+}
+
+@keyframes lenos-logo-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.lenos-logo--pulse .lenos-logo__mark {
+  animation: lenos-logo-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lenos-logo animate {
+    display: none;
+  }
+
+  .lenos-logo--pulse .lenos-logo__mark {
+    animation: none;
+    opacity: 0.8;
+  }
+}

@@ -19,13 +19,13 @@ export type ProjectsFilter =
   | "users";
 export type ProjectsSort = "updated" | "created" | "name";
 
-const PROJECTS_VIEW_MODE_STORAGE_KEY = "buzz.projects.viewMode";
-const PROJECTS_FILTER_STORAGE_KEY = "buzz.projects.filter";
-const PROJECTS_REPOSITORY_SCOPE_STORAGE_KEY = "buzz.projects.repositoryScope";
+const PROJECTS_VIEW_MODE_STORAGE_KEY = "lenos.projects.viewMode";
+const PROJECTS_FILTER_STORAGE_KEY = "lenos.projects.filter";
+const PROJECTS_REPOSITORY_SCOPE_STORAGE_KEY = "lenos.projects.repositoryScope";
 const PROJECTS_PULL_REQUEST_SCOPE_STORAGE_KEY =
-  "buzz.projects.pullRequestScope";
-const PROJECTS_ISSUE_SCOPE_STORAGE_KEY = "buzz.projects.issueScope";
-const PROJECTS_SORT_STORAGE_KEY = "buzz.projects.sort";
+  "lenos.projects.pullRequestScope";
+const PROJECTS_ISSUE_SCOPE_STORAGE_KEY = "lenos.projects.issueScope";
+const PROJECTS_SORT_STORAGE_KEY = "lenos.projects.sort";
 
 export function readStoredViewMode(): ProjectsViewMode | null {
   try {

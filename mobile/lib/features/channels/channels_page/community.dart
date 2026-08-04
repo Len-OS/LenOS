@@ -67,7 +67,7 @@ class _CommunitySwitcherSheet extends HookConsumerWidget {
               loading: () => const SizedBox(
                 height: 120,
                 child: Center(
-                  child: BuzzLoadingIndicator(
+                  child: LenOSLoadingIndicator(
                     size: 40,
                     semanticLabel: 'Loading communities',
                   ),

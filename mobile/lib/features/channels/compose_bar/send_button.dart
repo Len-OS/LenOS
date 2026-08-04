@@ -27,7 +27,7 @@ class _SendButton extends StatelessWidget {
         ),
         padding: EdgeInsets.zero,
         icon: isSending
-            ? BuzzLoadingIndicator(
+            ? LenOSLoadingIndicator(
                 size: 18,
                 color: context.colors.onPrimary,
                 semanticLabel: 'Sending message',

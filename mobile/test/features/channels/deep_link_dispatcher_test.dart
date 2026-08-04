@@ -1,10 +1,10 @@
-import 'package:buzz/features/channels/channel.dart';
-import 'package:buzz/features/channels/channels_provider.dart';
-import 'package:buzz/features/channels/deep_link_dispatcher.dart';
-import 'package:buzz/features/invites/invite_join_provider.dart';
-import 'package:buzz/shared/auth/auth.dart';
-import 'package:buzz/shared/deeplink/deep_link.dart';
-import 'package:buzz/shared/deeplink/pending_deep_link_provider.dart';
+import 'package:lenos/features/channels/channel.dart';
+import 'package:lenos/features/channels/channels_provider.dart';
+import 'package:lenos/features/channels/deep_link_dispatcher.dart';
+import 'package:lenos/features/invites/invite_join_provider.dart';
+import 'package:lenos/shared/auth/auth.dart';
+import 'package:lenos/shared/deeplink/deep_link.dart';
+import 'package:lenos/shared/deeplink/pending_deep_link_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -119,7 +119,7 @@ void main() {
 
     expect(storage.loadCalls, 1);
     expect(pending.consumeCalls, 1);
-    expect(find.text('Join this Buzz community?'), findsOneWidget);
+    expect(find.text('Join this LenOS community?'), findsOneWidget);
   });
 
   testWidgets(
@@ -154,7 +154,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Join this Buzz community?'), findsOneWidget);
+      expect(find.text('Join this LenOS community?'), findsOneWidget);
       expect(inviteContainer.read(pendingDeepLinkProvider), isNull);
 
       final messageContainer = ProviderContainer(
@@ -224,11 +224,11 @@ class _ThrowingCommunityStorage extends CommunityStorage {
 class _RecordingPendingDeepLinkNotifier extends PendingDeepLinkNotifier {
   _RecordingPendingDeepLinkNotifier(this.link);
 
-  final BuzzDeepLink link;
+  final LenOSDeepLink link;
   int consumeCalls = 0;
 
   @override
-  BuzzDeepLink? build() => link;
+  LenOSDeepLink? build() => link;
 
   @override
   void consume() {
@@ -240,10 +240,10 @@ class _RecordingPendingDeepLinkNotifier extends PendingDeepLinkNotifier {
 class _FakePendingDeepLinkNotifier extends PendingDeepLinkNotifier {
   _FakePendingDeepLinkNotifier(this.link);
 
-  final BuzzDeepLink link;
+  final LenOSDeepLink link;
 
   @override
-  BuzzDeepLink? build() => link;
+  LenOSDeepLink? build() => link;
 }
 
 class _FakeChannelsNotifier extends ChannelsNotifier {

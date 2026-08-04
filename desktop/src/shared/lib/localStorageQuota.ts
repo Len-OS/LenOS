@@ -8,13 +8,13 @@
  */
 
 const PURE_CACHE_KEY_PREFIXES = [
-  "buzz-channel-messages.v1:",
-  "buzz-channels.v1:",
-  "buzz-sidebar-skeleton-shape.v1:",
-  "buzz-timeline-skeleton-shape.v1:",
+  "lenos-channel-messages.v1:",
+  "lenos-channels.v1:",
+  "lenos-sidebar-skeleton-shape.v1:",
+  "lenos-timeline-skeleton-shape.v1:",
 ];
 
-const QUOTA_RECOVERY_MARKER_KEY = "buzz-local-storage-quota-recovery.v1";
+const QUOTA_RECOVERY_MARKER_KEY = "lenos-local-storage-quota-recovery.v1";
 
 // Keep disposable snapshots below 2 MiB, leaving roughly 3 MiB of WebKit's
 // observed ~5 MiB origin quota for identities, communities, preferences, and
@@ -130,7 +130,7 @@ function notifyStorageFull(): void {
     .then(({ toast }) => {
       toast.error("Local storage is full", {
         description:
-          "Buzz could not save some local data — read positions may not persist across restarts.",
+          "LenOS could not save some local data — read positions may not persist across restarts.",
       });
     })
     .catch(() => {});

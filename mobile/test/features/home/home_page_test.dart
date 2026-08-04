@@ -1,6 +1,6 @@
-import 'package:buzz/features/home/home_page.dart';
-import 'package:buzz/features/channels/channels_page.dart';
-import 'package:buzz/shared/theme/theme.dart';
+import 'package:lenos/features/home/home_page.dart';
+import 'package:lenos/features/channels/channels_page.dart';
+import 'package:lenos/shared/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

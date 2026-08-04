@@ -17,7 +17,7 @@ async function setHuddleSnapshot(
     async ({ nextMembers, nextTranscriptionEnabled }) => {
       const setSnapshot = (
         window as Window & {
-          __BUZZ_E2E_SET_MOCK_HUDDLE_SNAPSHOT__?: (input: {
+          __LENOS_E2E_SET_MOCK_HUDDLE_SNAPSHOT__?: (input: {
             members: Array<{
               pubkey: string;
               role: "member" | "bot";
@@ -25,7 +25,7 @@ async function setHuddleSnapshot(
             transcriptionEnabled: boolean;
           }) => Promise<void>;
         }
-      ).__BUZZ_E2E_SET_MOCK_HUDDLE_SNAPSHOT__;
+      ).__LENOS_E2E_SET_MOCK_HUDDLE_SNAPSHOT__;
       if (!setSnapshot) {
         throw new Error("Mock huddle snapshot control is not installed.");
       }
@@ -107,7 +107,7 @@ test("renders authoritative huddle snapshots and sends explicit off once", async
     .not.toBe(activeBackground);
 
   const explicitToggleCommands = await page.evaluate(() =>
-    (window.__BUZZ_E2E_COMMAND_LOG__ ?? []).filter(
+    (window.__LENOS_E2E_COMMAND_LOG__ ?? []).filter(
       (entry) => entry.command === "set_huddle_transcription_enabled",
     ),
   );
@@ -129,7 +129,7 @@ test("renders authoritative huddle snapshots and sends explicit off once", async
     .poll(() =>
       page.evaluate(
         () =>
-          (window.__BUZZ_E2E_COMMAND_LOG__ ?? []).filter(
+          (window.__LENOS_E2E_COMMAND_LOG__ ?? []).filter(
             (entry) => entry.command === "set_huddle_transcription_enabled",
           ).length,
       ),
@@ -168,7 +168,7 @@ test("keeps a newer huddle event over a delayed hydration snapshot", async ({
   await expect
     .poll(() =>
       page.evaluate(() =>
-        (window.__BUZZ_E2E_COMMAND_LOG__ ?? []).some(
+        (window.__LENOS_E2E_COMMAND_LOG__ ?? []).some(
           (entry) => entry.command === "get_huddle_state",
         ),
       ),
@@ -207,7 +207,7 @@ test("starts an agent DM huddle with the agent enrolled", async ({ page }) => {
     .poll(() =>
       page.evaluate(
         () =>
-          (window.__BUZZ_E2E_COMMAND_LOG__ ?? []).find(
+          (window.__LENOS_E2E_COMMAND_LOG__ ?? []).find(
             (entry) => entry.command === "start_huddle",
           )?.payload,
       ),

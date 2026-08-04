@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-DB_HOST="${BUZZ_DB_HOST:-127.0.0.1}"
-DB_PORT="${BUZZ_DB_PORT:-5432}"
-DB_USER="${BUZZ_DB_USER:-buzz}"
-DB_PASS="${BUZZ_DB_PASS:-buzz_dev}"
-DB_NAME="${BUZZ_DB_NAME:-buzz}"
-DB_DOCKER_CONTAINER="${BUZZ_DB_DOCKER_CONTAINER:-buzz-postgres}"
+DB_HOST="${LENOS_DB_HOST:-127.0.0.1}"
+DB_PORT="${LENOS_DB_PORT:-5432}"
+DB_USER="${LENOS_DB_USER:-lenos}"
+DB_PASS="${LENOS_DB_PASS:-lenos_dev}"
+DB_NAME="${LENOS_DB_NAME:-lenos}"
+DB_DOCKER_CONTAINER="${LENOS_DB_DOCKER_CONTAINER:-lenos-postgres}"
 
 SYSTEM_PUBKEY="0000000000000000000000000000000000000000000000000000000000000000"
 ALICE_PUBKEY="953d3363262e86b770419834c53d2446409db6d918a57f8f339d495d54ab001f"
@@ -54,7 +54,7 @@ run_sql "SELECT 1" >/dev/null
 # Host must match the relay's normalized bind host verbatim (non-default ports
 # are kept by normalize_host). Overridable so an isolated relay on an alternate
 # port can seed the same channels/members against its own tenant.
-COMMUNITY_HOST="${BUZZ_COMMUNITY_HOST:-localhost:3000}"
+COMMUNITY_HOST="${LENOS_COMMUNITY_HOST:-localhost:3000}"
 COMMUNITY_HOST_SQL="${COMMUNITY_HOST//\'/\'\'}"
 
 run_sql "
@@ -75,15 +75,15 @@ if [[ ! "${COMMUNITY_ID}" =~ ^[0-9a-fA-F-]{36}$ ]]; then
   exit 1
 fi
 
-UUID_GENERAL=$(uuid5_hex "buzz.channel.general")
-UUID_RANDOM=$(uuid5_hex "buzz.channel.random")
-UUID_ENGINEERING=$(uuid5_hex "buzz.channel.engineering")
-UUID_AGENTS=$(uuid5_hex "buzz.channel.agents")
-UUID_WATERCOOLER=$(uuid5_hex "buzz.channel.watercooler")
-UUID_ANNOUNCEMENTS=$(uuid5_hex "buzz.channel.announcements")
-UUID_DM_ALICE_TYLER=$(uuid5_hex "buzz.channel.dm.alice-tyler")
-UUID_DM_BOB_TYLER=$(uuid5_hex "buzz.channel.dm.bob-tyler")
-UUID_DM_BOB_CHARLIE_TYLER=$(uuid5_hex "buzz.channel.dm.bob-charlie-tyler")
+UUID_GENERAL=$(uuid5_hex "lenos.channel.general")
+UUID_RANDOM=$(uuid5_hex "lenos.channel.random")
+UUID_ENGINEERING=$(uuid5_hex "lenos.channel.engineering")
+UUID_AGENTS=$(uuid5_hex "lenos.channel.agents")
+UUID_WATERCOOLER=$(uuid5_hex "lenos.channel.watercooler")
+UUID_ANNOUNCEMENTS=$(uuid5_hex "lenos.channel.announcements")
+UUID_DM_ALICE_TYLER=$(uuid5_hex "lenos.channel.dm.alice-tyler")
+UUID_DM_BOB_TYLER=$(uuid5_hex "lenos.channel.dm.bob-tyler")
+UUID_DM_BOB_CHARLIE_TYLER=$(uuid5_hex "lenos.channel.dm.bob-charlie-tyler")
 
 run_sql "
 INSERT INTO channels

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Outlet, useLocation } from "@tanstack/react-router";
 import { deriveShellRoute } from "@/app/AppShell.helpers";
 import { AppShellProvider } from "@/app/AppShellContext";
-import * as BuzzTheme from "@/app/BuzzThemeSurfaces";
+import * as LenOSTheme from "@/app/LenOSThemeSurfaces";
 import { AppShellOverlays } from "@/app/AppShellOverlays";
 import { AppTopChrome } from "@/app/AppTopChrome";
 import { useAppNavigation } from "@/app/navigation/useAppNavigation";
@@ -615,7 +615,7 @@ export function AppShell() {
     unreadChannelIds,
     unreadChannelNotificationCount,
   });
-  // Dispatch `buzz://message` deep links into the router.
+  // Dispatch `lenos://message` deep links into the router.
   useMessageDeepLinks();
   const handleOpenCreateChannel = React.useCallback(
     () => setIsCreateChannelOpen(true),
@@ -738,16 +738,16 @@ export function AppShell() {
           <HuddleProvider>
             <RemindMeLaterProvider pubkey={identityQuery.data?.pubkey}>
               <div
-                className="buzz-huddle-shell relative h-dvh overflow-hidden overscroll-none"
+                className="lenos-huddle-shell relative h-dvh overflow-hidden overscroll-none"
                 data-huddle-open={isHuddleDrawerOpen}
               >
                 <div
                   className={cn(
-                    "buzz-huddle-app-surface z-10 flex min-h-0 flex-row overflow-hidden bg-background",
-                    isHuddleDrawerOpen && "buzz-huddle-app-surface-open",
+                    "lenos-huddle-app-surface z-10 flex min-h-0 flex-row overflow-hidden bg-background",
+                    isHuddleDrawerOpen && "lenos-huddle-app-surface-open",
                   )}
                 >
-                  <BuzzTheme.GradientLayer />
+                  <LenOSTheme.GradientLayer />
                   {hasCommunityRail ? (
                     <CommunityRail
                       activeCommunityId={
@@ -921,15 +921,15 @@ export function AppShell() {
                             <SidebarInset
                               ref={mainInsetRef}
                               className="isolate min-h-0 min-w-0 overflow-hidden bg-sidebar"
-                              data-buzz-glass-inset
-                              data-buzz-shadow-viewport
+                              data-lenos-glass-inset
+                              data-lenos-shadow-viewport
                               style={
                                 chromeCssVarDefaults as React.CSSProperties
                               }
                             >
-                              <BuzzTheme.ContentSurface>
+                              <LenOSTheme.ContentSurface>
                                 <Outlet />
-                              </BuzzTheme.ContentSurface>
+                              </LenOSTheme.ContentSurface>
                             </SidebarInset>
                           </MainInsetProvider>
                           <RelayConnectionOverlay
@@ -978,7 +978,7 @@ export function AppShell() {
                   </SidebarProvider>
                 </div>
 
-                <div className="absolute inset-x-0 bottom-0 z-0 h-(--buzz-huddle-drawer-height)">
+                <div className="absolute inset-x-0 bottom-0 z-0 h-(--lenos-huddle-drawer-height)">
                   <AppHuddleBar
                     onOpenThread={(channelId, messageId) => {
                       void goChannel(channelId, {

@@ -1,7 +1,7 @@
-/// Parsing for `buzz://` deep links.
+/// Parsing for `lenos://` deep links.
 ///
 /// Mirrors the desktop handler in `desktop/src-tauri/src/deep_link.rs`:
-/// `buzz://message?channel=<uuid>&id=<hex>[&thread=<hex>]` references a
+/// `lenos://message?channel=<uuid>&id=<hex>[&thread=<hex>]` references a
 /// message (optionally inside a thread) in a channel. Required params that
 /// are missing or empty make the link invalid — the caller never sees a
 /// half-formed target.
@@ -10,16 +10,16 @@ library;
 import '../relay/relay_validation.dart';
 
 /// A parsed deep link supported by the app.
-sealed class BuzzDeepLink {
-  const BuzzDeepLink();
+sealed class LenOSDeepLink {
+  const LenOSDeepLink();
 }
 
 /// A parsed relay invite link.
 ///
 /// Canonical share links are `https://<relay>/invite/<code>`. The custom
-/// `buzz://join?relay=<ws(s)://relay>&code=<code>` form is only an installed-app
+/// `lenos://join?relay=<ws(s)://relay>&code=<code>` form is only an installed-app
 /// handoff from the web landing page.
-class InviteDeepLink extends BuzzDeepLink {
+class InviteDeepLink extends LenOSDeepLink {
   /// Relay URL normalized to the websocket scheme used by the app.
   final String relayUrl;
 
@@ -50,8 +50,8 @@ class InviteDeepLink extends BuzzDeepLink {
       'InviteDeepLink(relay: $relayUrl, code: $code, policyReceipt: $policyReceipt)';
 }
 
-/// A parsed `buzz://message` deep link.
-class MessageDeepLink extends BuzzDeepLink {
+/// A parsed `lenos://message` deep link.
+class MessageDeepLink extends LenOSDeepLink {
   /// Channel UUID from the `channel` query param.
   final String channelId;
 
@@ -83,11 +83,11 @@ class MessageDeepLink extends BuzzDeepLink {
       'thread: $threadRootId)';
 }
 
-/// Build a canonical `buzz://message` link for a channel message.
+/// Build a canonical `lenos://message` link for a channel message.
 ///
 /// Mirrors `desktop/src/features/messages/lib/messageLink.ts` so links copied
 /// or shared from mobile round-trip through every client's parser:
-/// `buzz://message?channel=<uuid>&id=<eventId>[&thread=<rootId>]`.
+/// `lenos://message?channel=<uuid>&id=<eventId>[&thread=<rootId>]`.
 ///
 /// An empty [threadRootId] is treated as "no thread" so callers can pass
 /// through a nullable thread reference without extra checks.
@@ -109,19 +109,19 @@ String buildMessageLink({
     if (threadRootId != null && threadRootId.isNotEmpty) 'thread': threadRootId,
   };
   return Uri(
-    scheme: 'buzz',
+    scheme: 'lenos',
     host: 'message',
     queryParameters: params,
   ).toString();
 }
 
-/// Parse a `buzz://message?…` URI into a [MessageDeepLink].
+/// Parse a `lenos://message?…` URI into a [MessageDeepLink].
 ///
-/// Returns `null` for non-`buzz` schemes, non-`message` hosts (e.g.
-/// `buzz://connect` which is desktop-only), or links missing a non-empty
+/// Returns `null` for non-`lenos` schemes, non-`message` hosts (e.g.
+/// `lenos://connect` which is desktop-only), or links missing a non-empty
 /// `channel` or `id` param.
 MessageDeepLink? parseMessageDeepLink(Uri uri) {
-  if (uri.scheme != 'buzz' || uri.host != 'message') return null;
+  if (uri.scheme != 'lenos' || uri.host != 'message') return null;
 
   final channel = uri.queryParameters['channel'];
   final id = uri.queryParameters['id'];
@@ -137,13 +137,13 @@ MessageDeepLink? parseMessageDeepLink(Uri uri) {
   );
 }
 
-/// Parse canonical HTTPS invite links and `buzz://join` app handoffs.
+/// Parse canonical HTTPS invite links and `lenos://join` app handoffs.
 ///
 /// Accepted forms:
 /// - `https://<relay>/invite/<code>` -> `wss://<relay>` + code
 /// - `http://localhost/invite/<code>` -> `ws://localhost` + code in debug builds
-/// - `buzz://join?relay=<wss://relay>&code=<code>` -> relay + code
-/// - `buzz://join?relay=<ws://localhost>&code=<code>` -> local relay in debug
+/// - `lenos://join?relay=<wss://relay>&code=<code>` -> relay + code
+/// - `lenos://join?relay=<ws://localhost>&code=<code>` -> local relay in debug
 ///
 /// Rejects credentials, fragments, missing params, nested relay credentials, and
 /// non-invite paths so scanners do not accidentally treat arbitrary URLs as
@@ -151,7 +151,7 @@ MessageDeepLink? parseMessageDeepLink(Uri uri) {
 InviteDeepLink? parseInviteDeepLink(Uri uri) {
   if (uri.hasFragment || uri.userInfo.isNotEmpty) return null;
 
-  if (uri.scheme == 'buzz') {
+  if (uri.scheme == 'lenos') {
     if (uri.host != 'join') return null;
     final relay = uri.queryParameters['relay'];
     final code = uri.queryParameters['code'];
@@ -216,6 +216,6 @@ InviteDeepLink? parseInviteDeepLink(Uri uri) {
   return null;
 }
 
-/// Parse any supported Buzz deep link.
-BuzzDeepLink? parseBuzzDeepLink(Uri uri) =>
+/// Parse any supported LenOS deep link.
+LenOSDeepLink? parseLenOSDeepLink(Uri uri) =>
     parseInviteDeepLink(uri) ?? parseMessageDeepLink(uri);

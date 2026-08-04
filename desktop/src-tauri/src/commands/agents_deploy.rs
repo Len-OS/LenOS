@@ -56,21 +56,21 @@ pub(super) fn build_launch_block(
             policy_env.insert("MCP_HOOK_SERVERS".into(), "*".into());
         }
     }
-    policy_env.insert("BUZZ_ACP_RELAY_OBSERVER".into(), "true".into());
-    policy_env.insert("BUZZ_ACP_LAZY_POOL".into(), "true".into());
-    policy_env.insert("BUZZ_ACP_AGENTS".into(), record.parallelism.to_string());
+    policy_env.insert("LENOS_ACP_RELAY_OBSERVER".into(), "true".into());
+    policy_env.insert("LENOS_ACP_LAZY_POOL".into(), "true".into());
+    policy_env.insert("LENOS_ACP_AGENTS".into(), record.parallelism.to_string());
 
     if let Some(value) = effective_prompt {
-        policy_env.insert("BUZZ_ACP_SYSTEM_PROMPT".into(), value.to_string());
+        policy_env.insert("LENOS_ACP_SYSTEM_PROMPT".into(), value.to_string());
     }
     if let Some(value) = effective_model {
-        policy_env.insert("BUZZ_ACP_MODEL".into(), value.to_string());
+        policy_env.insert("LENOS_ACP_MODEL".into(), value.to_string());
     }
     if let Some(value) = record.idle_timeout_seconds {
-        policy_env.insert("BUZZ_ACP_IDLE_TIMEOUT".into(), value.to_string());
+        policy_env.insert("LENOS_ACP_IDLE_TIMEOUT".into(), value.to_string());
     }
     if let Some(value) = record.max_turn_duration_seconds {
-        policy_env.insert("BUZZ_ACP_MAX_TURN_DURATION".into(), value.to_string());
+        policy_env.insert("LENOS_ACP_MAX_TURN_DURATION".into(), value.to_string());
     }
     if let Some(value) = resolve_session_title(record.display_name.as_deref(), &record.name) {
         policy_env.insert(SESSION_TITLE_ENV_VAR.into(), value);
@@ -78,7 +78,7 @@ pub(super) fn build_launch_block(
     if let Some(value) =
         crate::managed_agents::spawn_hash::effective_team_instructions(record, teams)
     {
-        policy_env.insert("BUZZ_ACP_TEAM_INSTRUCTIONS".into(), value);
+        policy_env.insert("LENOS_ACP_TEAM_INSTRUCTIONS".into(), value);
     }
 
     serde_json::json!({
@@ -196,7 +196,7 @@ mod tests {
             "display_name": "Agent\u{0000} Name",
             "private_key_nsec": "nsec1fake",
             "relay_url": "wss://relay.example",
-            "acp_command": "buzz-acp",
+            "acp_command": "lenos-acp",
             "agent_command": "goose",
             "agent_args": [],
             "mcp_command": "",
@@ -243,18 +243,18 @@ mod tests {
         // policy_env is applied first, so this default remains separate from
         // the descriptor value that wins in launch.env.
         assert_eq!(launch["policy_env"]["GOOSE_MODE"], "auto");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_LAZY_POOL"], "true");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_RELAY_OBSERVER"], "true");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_LAZY_POOL"], "true");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_RELAY_OBSERVER"], "true");
         assert_eq!(
-            launch["policy_env"]["BUZZ_ACP_TEAM_INSTRUCTIONS"],
+            launch["policy_env"]["LENOS_ACP_TEAM_INSTRUCTIONS"],
             "Coordinate"
         );
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_SESSION_TITLE"], "Agent Name");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_SYSTEM_PROMPT"], "prompt");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_MODEL"], "model");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_IDLE_TIMEOUT"], "17");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_MAX_TURN_DURATION"], "23");
-        assert_eq!(launch["policy_env"]["BUZZ_ACP_AGENTS"], "4");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_SESSION_TITLE"], "Agent Name");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_SYSTEM_PROMPT"], "prompt");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_MODEL"], "model");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_IDLE_TIMEOUT"], "17");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_MAX_TURN_DURATION"], "23");
+        assert_eq!(launch["policy_env"]["LENOS_ACP_AGENTS"], "4");
         assert_eq!(launch["owner_pubkey"], "owner-hex");
     }
 }

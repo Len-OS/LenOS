@@ -1,5 +1,5 @@
-.buzz-spoiler {
-  --buzz-spoiler-accent: #333;
+.lenos-spoiler {
+  --lenos-spoiler-accent: #333;
 
   -webkit-box-decoration-break: clone;
   background: transparent;
@@ -16,11 +16,11 @@
   vertical-align: baseline;
 }
 
-.dark .buzz-spoiler {
-  --buzz-spoiler-accent: #fff;
+.dark .lenos-spoiler {
+  --lenos-spoiler-accent: #fff;
 }
 
-.buzz-spoiler__content {
+.lenos-spoiler__content {
   position: relative;
   transition:
     opacity 500ms ease-out,
@@ -28,8 +28,8 @@
   z-index: 0;
 }
 
-.buzz-spoiler:not([data-revealed="true"]) .buzz-spoiler__content,
-.buzz-spoiler:not([data-revealed="true"]) .buzz-spoiler__content * {
+.lenos-spoiler:not([data-revealed="true"]) .lenos-spoiler__content,
+.lenos-spoiler:not([data-revealed="true"]) .lenos-spoiler__content * {
   color: transparent;
   filter: blur(0.5px);
   opacity: 0;
@@ -40,10 +40,10 @@
     filter 200ms ease-out;
 }
 
-.buzz-spoiler__particles {
+.lenos-spoiler__particles {
   background: transparent;
   border-radius: inherit;
-  color: var(--buzz-spoiler-accent, #333);
+  color: var(--lenos-spoiler-accent, #333);
   height: calc(100% + 0.2em);
   inset: -0.1em -0.1em;
   opacity: 1;
@@ -54,62 +54,62 @@
   z-index: 1;
 }
 
-.dark .buzz-spoiler__particles {
-  --buzz-spoiler-accent: #fff;
+.dark .lenos-spoiler__particles {
+  --lenos-spoiler-accent: #fff;
 }
 
-.buzz-spoiler--block {
+.lenos-spoiler--block {
   display: inline-block;
   max-width: 100%;
 }
 
-.buzz-spoiler--block .buzz-spoiler__content,
-.buzz-spoiler--block [data-block-media] {
+.lenos-spoiler--block .lenos-spoiler__content,
+.lenos-spoiler--block [data-block-media] {
   display: inline-block;
   max-width: 100%;
 }
 
-.buzz-spoiler--block img[data-spoiler-media-size] {
-  aspect-ratio: var(--buzz-spoiler-media-aspect-ratio);
+.lenos-spoiler--block img[data-spoiler-media-size] {
+  aspect-ratio: var(--lenos-spoiler-media-aspect-ratio);
   height: auto;
-  width: var(--buzz-spoiler-media-width);
+  width: var(--lenos-spoiler-media-width);
 }
 
-.buzz-spoiler--inert,
+.lenos-spoiler--inert,
 /* biome-ignore lint/style/noDescendingSpecificity: selector order preserved from monolithic globals.css split */
-.buzz-spoiler--inert * {
+.lenos-spoiler--inert * {
   cursor: inherit;
   pointer-events: none;
 }
 
-.buzz-spoiler[data-revealed="true"],
-.buzz-spoiler:hover,
-.buzz-spoiler:focus-visible {
+.lenos-spoiler[data-revealed="true"],
+.lenos-spoiler:hover,
+.lenos-spoiler:focus-visible {
   animation: none;
   background: hsl(var(--muted) / 0.5);
   color: inherit;
   text-decoration-color: currentColor;
 }
 
-.buzz-spoiler[data-revealed="true"] .buzz-spoiler__particles {
+.lenos-spoiler[data-revealed="true"] .lenos-spoiler__particles {
   opacity: 0;
 }
 
-.ProseMirror .buzz-spoiler {
+.ProseMirror .lenos-spoiler {
   background: transparent;
   color: transparent;
   cursor: text;
   text-decoration-color: transparent;
 }
 
-.buzz-spoiler-composer-particles {
+.lenos-spoiler-composer-particles {
   inset: 0;
   pointer-events: none;
   position: absolute;
   z-index: 1;
 }
 
-.buzz-spoiler__particles--composer {
+.lenos-spoiler__particles--composer {
   border-radius: 0.3rem;
   height: auto;
   inset: auto;
@@ -119,12 +119,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .buzz-spoiler__particles {
+  .lenos-spoiler__particles {
     transition: none;
   }
 }
 
-@keyframes buzz-side-panel-enter {
+@keyframes lenos-side-panel-enter {
   from {
     opacity: 0;
     transform: translate3d(24px, 0, 0);

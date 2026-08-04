@@ -4,7 +4,7 @@ pub(crate) mod agent_snapshot;
 pub(crate) mod agent_snapshot_envelope;
 pub(crate) mod team_snapshot;
 pub(crate) use agent_env::{
-    baked_build_env, build_buzz_agent_provider_defaults, discovery_env_with_baked_floor,
+    baked_build_env, build_lenos_agent_provider_defaults, discovery_env_with_baked_floor,
 };
 mod backend;
 pub(crate) mod config_bridge;
@@ -79,12 +79,12 @@ pub use storage::*;
 pub use teams::*;
 pub use types::*;
 
-/// Returns the Buzz nest directory (`~/.buzz`) if it exists as a real
+/// Returns the LenOS nest directory (`~/.lenos`) if it exists as a real
 /// directory (not a symlink), falling back to the user's home directory.
 ///
 /// Used as the default working directory for spawned agent processes.
 /// `ensure_nest()` must be called during app setup before this is first
-/// invoked, so that `~/.buzz` exists and gets cached.
+/// invoked, so that `~/.lenos` exists and gets cached.
 ///
 /// Cached for the process lifetime via `OnceLock`.
 /// Returns `None` in sandboxed/containerized environments where `$HOME` is
@@ -95,7 +95,7 @@ pub fn default_agent_workdir() -> Option<std::path::PathBuf> {
     static WORKDIR: OnceLock<Option<std::path::PathBuf>> = OnceLock::new();
     WORKDIR
         .get_or_init(|| {
-            // Prefer ~/.buzz if it exists (created by ensure_nest()).
+            // Prefer ~/.lenos if it exists (created by ensure_nest()).
             // Reject symlinks to prevent redirect attacks — is_dir()
             // follows symlinks, so check symlink_metadata() first.
             // Fall back to $HOME for resilience.

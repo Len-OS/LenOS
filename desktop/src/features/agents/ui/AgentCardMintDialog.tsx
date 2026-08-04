@@ -89,7 +89,7 @@ function FreeSharePathRow({
  * composer activity rail shows live status, and the finished card opens in
  * the global `AgentCardViewerDialog` (preview, reroll, save, share).
  *
- * The saved PNG carries the agent's `buzz_agent_snapshot` chunk, so sharing
+ * The saved PNG carries the agent's `lenos_agent_snapshot` chunk, so sharing
  * the card shares an importable agent (fresh identity, never secrets; memory
  * only when the owner opts in below — plaintext unless the card is locked).
  * All snapshot construction and verification happens in Rust.
@@ -330,7 +330,7 @@ export function AgentCardMintDialog({
             >
               Minting calls the OpenAI API with your key and costs money —
               typically well under a dollar per mint, billed by OpenAI. It runs
-              in the background (takes a few minutes); you can keep using Buzz
+              in the background (takes a few minutes); you can keep using LenOS
               while it works.
             </p>
             <FreeSharePathRow

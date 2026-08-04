@@ -1,4 +1,4 @@
-# Buzz
+# LenOS
 
 Desktop chat shell with:
 

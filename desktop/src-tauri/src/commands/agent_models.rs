@@ -28,7 +28,7 @@ use crate::{
     util::now_iso,
 };
 
-/// Query available models from an agent via `buzz-acp models --json`.
+/// Query available models from an agent via `lenos-acp models --json`.
 ///
 /// Spawns a short-lived subprocess (no relay connection needed). The subprocess
 /// starts the agent, queries its model catalog, and exits. ~2-5s total.
@@ -237,7 +237,7 @@ pub async fn discover_agent_models(
         &merged_env,
     );
 
-    // Buzz shared compute discovery must not depend on the local OpenAI ingress: that
+    // LenOS shared compute discovery must not depend on the local OpenAI ingress: that
     // client endpoint is started only after a live target is selected.
     #[cfg(feature = "mesh-llm")]
     if input.provider.as_deref().map(str::trim)
@@ -251,11 +251,11 @@ pub async fn discover_agent_models(
             ],
         )
         .await
-        .map_err(|error| format!("Buzz shared compute model discovery failed: {error}"))?;
+        .map_err(|error| format!("LenOS shared compute model discovery failed: {error}"))?;
         let availability = crate::mesh_llm::availability_from_events(events);
         if availability.models.is_empty() {
             return Err(availability.reason.unwrap_or_else(|| {
-                "No live Buzz shared compute models are available".to_string()
+                "No live LenOS shared compute models are available".to_string()
             }));
         }
         return Ok(AgentModelsResponse {
@@ -279,7 +279,7 @@ pub async fn discover_agent_models(
     if input.provider.as_deref().map(str::trim)
         == Some(crate::managed_agents::RELAY_MESH_PROVIDER_ID)
     {
-        return Err("Buzz shared compute is not available in this build".to_string());
+        return Err("LenOS shared compute is not available in this build".to_string());
     }
 
     if let Some(models) =
@@ -685,7 +685,7 @@ async fn discover_anthropic_models(
 // Databricks model discovery (v1 + v2)
 // ---------------------------------------------------------------------------
 //
-// Delegates to buzz_agent_pkg::catalog::discover_databricks_models, which
+// Delegates to lenos_agent_pkg::catalog::discover_databricks_models, which
 // acquires auth in-process via build_token_source:
 //   - Static bearer (DATABRICKS_TOKEN): returned immediately.
 //   - PKCE cache hit: returned from disk without a browser flow.
@@ -702,13 +702,13 @@ fn is_databricks_provider(provider: Option<&str>) -> bool {
     )
 }
 
-fn databricks_agent_provider(provider: &str) -> buzz_agent_pkg::config::Provider {
+fn databricks_agent_provider(provider: &str) -> lenos_agent_pkg::config::Provider {
     if provider.trim().eq_ignore_ascii_case("databricks_v2")
         || provider.trim().eq_ignore_ascii_case("databricks-v2")
     {
-        buzz_agent_pkg::config::Provider::DatabricksV2
+        lenos_agent_pkg::config::Provider::DatabricksV2
     } else {
-        buzz_agent_pkg::config::Provider::Databricks
+        lenos_agent_pkg::config::Provider::Databricks
     }
 }
 
@@ -732,15 +732,15 @@ async fn discover_databricks_models(
     let api_key = env_or_process_value(env, "DATABRICKS_TOKEN").unwrap_or_default();
 
     let agent_provider = databricks_agent_provider(provider_str);
-    let cfg = buzz_agent_pkg::config::Config::for_discovery(agent_provider, api_key, host);
+    let cfg = lenos_agent_pkg::config::Config::for_discovery(agent_provider, api_key, host);
 
     // Build a redaction env so the token never appears in surfaced errors.
     let token_for_redact = env_or_process_value(env, "DATABRICKS_TOKEN").unwrap_or_default();
     let redaction_env = redaction_env_with_value(env, "DATABRICKS_TOKEN", &token_for_redact);
 
-    let entries = match buzz_agent_pkg::discover_databricks_models(&cfg).await {
+    let entries = match lenos_agent_pkg::discover_databricks_models(&cfg).await {
         Ok(e) => e,
-        Err(buzz_agent_pkg::AgentError::LlmAuth(_)) => {
+        Err(lenos_agent_pkg::AgentError::LlmAuth(_)) => {
             // No token + no PKCE cache → fall through to subprocess.
             return Ok(None);
         }
@@ -851,7 +851,7 @@ pub async fn update_managed_agent(
             record.parallelism = parallelism;
         }
         // turn_timeout_seconds is intentionally not applied here —
-        // BUZZ_ACP_TURN_TIMEOUT is deprecated and ignored by the harness.
+        // LENOS_ACP_TURN_TIMEOUT is deprecated and ignored by the harness.
         // Use idle_timeout_seconds or max_turn_duration_seconds instead.
         // Store the relay override exactly as supplied (trimmed). An explicit
         // value pins the agent; empty falls back to the workspace relay at
@@ -1016,7 +1016,7 @@ pub async fn update_managed_agent(
 
 // ── Model normalization ───────────────────────────────────────────────────────
 
-/// Normalize raw `buzz-acp models --json` output into a typed DTO for the frontend.
+/// Normalize raw `lenos-acp models --json` output into a typed DTO for the frontend.
 ///
 /// Merges models from both ACP paths (stable configOptions + unstable SessionModelState),
 /// deduplicates by ID (stable takes precedence), and returns a unified list.

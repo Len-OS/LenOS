@@ -16,11 +16,11 @@ METADATA = ROOT / ".release" / "desktop-candidate.json"
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$")
 DESKTOP_PATHS = (
     "desktop/",
-    "crates/buzz-core/",
-    "crates/buzz-persona/",
-    "crates/buzz-sdk/",
-    "crates/buzz-agent/",
-    "crates/buzz-media/",
+    "crates/lenos-core/",
+    "crates/lenos-persona/",
+    "crates/lenos-sdk/",
+    "crates/lenos-agent/",
+    "crates/lenos-media/",
 )
 CANDIDATE_FILES = {
     ".release/desktop-candidate.json",
@@ -164,7 +164,7 @@ def validate(args: argparse.Namespace) -> None:
             f"recorded previous tag {previous or '<none>'} does not match "
             f"nearest release tag {actual_previous or '<none>'}"
         )
-    repo = args.repo or "block/buzz"
+    repo = args.repo or "BuildGrowthNow/LenOS"
     expected_block, shas = render(version, data["base_sha"], previous, repo)
     text = CHANGELOG.read_text()
     blocks = re.findall(rf"(?ms)^## v{re.escape(version)}\n.*?(?=^## v|\Z)", text)

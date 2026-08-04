@@ -1,0 +1,37 @@
+[package]
+name = "lenos-admin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Operator CLI for LenOS relay administration"
+
+[[bin]]
+name = "lenos-admin"
+path = "src/main.rs"
+
+[dependencies]
+lenos-db = { workspace = true }
+lenos-core = { workspace = true }
+lenos-auth = { workspace = true }
+lenos-pubsub = { workspace = true }
+lenos-search = { workspace = true }
+lenos-audit = { workspace = true }
+lenos-workflow = { workspace = true }
+lenos-media = { workspace = true }
+nostr = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+hex = { workspace = true }
+deadpool-redis = { workspace = true }
+# Redis TLS (rediss://, e.g. ElastiCache) uses rustls, which needs a process
+# CryptoProvider installed at startup. The workspace redis TLS feature compiles
+# both aws-lc-rs and ring in transitively, so rustls can't auto-select one — we
+# install ring explicitly in main(). Mirrors lenos-relay's setup.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+tracing = { workspace = true }
+sqlx = { workspace = true }
+url = { workspace = true }
+clap = { version = "4", features = ["derive"] }

@@ -3,13 +3,13 @@ import { expect, test } from "@playwright/test";
 import { installMockBridge, TEST_IDENTITIES } from "../helpers/bridge";
 
 const BAKED_DEFAULTS = [
-  { key: "BUZZ_AGENT_PROVIDER", value: "anthropic", masked: false },
+  { key: "LENOS_AGENT_PROVIDER", value: "anthropic", masked: false },
   {
-    key: "BUZZ_AGENT_MODEL",
+    key: "LENOS_AGENT_MODEL",
     value: "claude-opus-4-8",
     masked: false,
   },
-  { key: "BUZZ_AGENT_THINKING_EFFORT", value: "high", masked: false },
+  { key: "LENOS_AGENT_THINKING_EFFORT", value: "high", masked: false },
   { key: "ANTHROPIC_API_KEY", value: "sk-ant-baked-test", masked: true },
 ];
 
@@ -249,7 +249,7 @@ test.describe("edit agent dialog", () => {
       globalAgentConfig: {
         provider: "anthropic",
         model: "claude-opus-4-5",
-        env_vars: { BUZZ_AGENT_THINKING_EFFORT: "low" },
+        env_vars: { LENOS_AGENT_THINKING_EFFORT: "low" },
       },
       managedAgents: [
         {

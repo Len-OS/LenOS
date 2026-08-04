@@ -1,11 +1,11 @@
-import 'package:buzz/features/channels/emoji_picker.dart';
-import 'package:buzz/features/channels/recent_emoji_provider.dart';
-import 'package:buzz/shared/custom_emoji/custom_emoji.dart';
-import 'package:buzz/shared/custom_emoji/custom_emoji_provider.dart';
-import 'package:buzz/shared/emoji/emoji_data.dart';
-import 'package:buzz/shared/emoji/emoji_data_provider.dart';
-import 'package:buzz/shared/relay/relay.dart';
-import 'package:buzz/shared/theme/theme.dart';
+import 'package:lenos/features/channels/emoji_picker.dart';
+import 'package:lenos/features/channels/recent_emoji_provider.dart';
+import 'package:lenos/shared/custom_emoji/custom_emoji.dart';
+import 'package:lenos/shared/custom_emoji/custom_emoji_provider.dart';
+import 'package:lenos/shared/emoji/emoji_data.dart';
+import 'package:lenos/shared/emoji/emoji_data_provider.dart';
+import 'package:lenos/shared/relay/relay.dart';
+import 'package:lenos/shared/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -364,7 +364,7 @@ void main() {
       expect(selected, ['\u{1F525}']);
       expect(
         prefs.getString(
-          'buzz.quick-reaction-emojis.v1:http://localhost:3000:self',
+          'lenos.quick-reaction-emojis.v1:http://localhost:3000:self',
         ),
         isNull,
       );
