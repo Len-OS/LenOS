@@ -67,16 +67,16 @@ COPY --from=planner /build/recipe.json recipe.json
 # scoping to -p buzz-relay misses transitive deps and re-builds them later.
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
-RUN cargo build --release --locked -p buzz-relay --bin buzz-relay \
-                                   -p buzz-admin --bin buzz-admin \
-                                   -p buzz-pair-relay --bin buzz-pair-relay
+RUN cargo build --release --locked -p lenos-relay --bin lenos-relay \
+                                   -p lenos-admin --bin lenos-admin \
+                                   -p lenos-pair-relay --bin lenos-pair-relay
 
 # Derive the normal release binaries from the same optimized ELF files as the
 # debug image so the two variants cannot drift at code-generation time.
 FROM builder AS stripped-binaries
-RUN strip target/release/buzz-relay \
-    && strip target/release/buzz-admin \
-    && strip target/release/buzz-pair-relay
+RUN strip target/release/lenos-relay \
+    && strip target/release/lenos-admin \
+    && strip target/release/lenos-pair-relay
 
 # ─── Stage 4: web bundle (pnpm + vite) ──────────────────────────────────────
 # Independent of the Rust layers so a CSS change doesn't bust Rust cache and
@@ -113,7 +113,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches/ patches/
 COPY web/package.json web/
 COPY admin-web/package.json admin-web/
-RUN pnpm install --frozen-lockfile --filter buzz-web --filter buzz-admin-web
+RUN pnpm install --frozen-lockfile --filter lenos-web --filter lenos-admin-web
 COPY web/ web/
 COPY admin-web/ admin-web/
 RUN pnpm -C web build && pnpm -C admin-web build
@@ -124,11 +124,11 @@ FROM debian:${DEBIAN_VERSION}-slim AS runtime-base
 # OCI annotations: required for GHCR to auto-link the image to this repo and
 # inherit its visibility. org.opencontainers.image.source is the load-bearing
 # one — without it GHCR keeps the image private even when the repo is public.
-LABEL org.opencontainers.image.title="Buzz" \
-      org.opencontainers.image.description="WebSocket relay server for the Buzz communications platform" \
-      org.opencontainers.image.source="https://github.com/block/buzz" \
-      org.opencontainers.image.url="https://github.com/block/buzz" \
-      org.opencontainers.image.documentation="https://github.com/block/buzz#readme" \
+LABEL org.opencontainers.image.title="LenOS" \
+      org.opencontainers.image.description="WebSocket relay server for the LenOS communications platform" \
+      org.opencontainers.image.source="https://github.com/BuildGrowthNow/LenOS" \
+      org.opencontainers.image.url="https://github.com/BuildGrowthNow/LenOS" \
+      org.opencontainers.image.documentation="https://github.com/BuildGrowthNow/LenOS#readme" \
       org.opencontainers.image.licenses="Apache-2.0"
 
 RUN apt-get update \
@@ -138,41 +138,41 @@ RUN apt-get update \
         git \
         openssl \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system --gid 1000 buzz \
-    && useradd  --system --uid 1000 --gid 1000 --home-dir /var/lib/buzz \
-                --create-home --shell /usr/sbin/nologin buzz
+    && groupadd --system --gid 1000 lenos \
+    && useradd  --system --uid 1000 --gid 1000 --home-dir /var/lib/lenos \
+                --create-home --shell /usr/sbin/nologin lenos
 
-COPY --from=web-builder /build/web/dist                 /srv/buzz/web
-COPY --from=web-builder /build/admin-web/dist           /srv/buzz/admin-web
+COPY --from=web-builder /build/web/dist                 /srv/lenos/web
+COPY --from=web-builder /build/admin-web/dist           /srv/lenos/admin-web
 
 # The invite landing page is always served from the bundled web UI. Repository
-# browser routes require the separate BUZZ_SERVE_GIT_WEB_GUI=true opt-in. The
-# admin bundle is inert until BUZZ_ADMIN_HOST is configured.
-ENV BUZZ_WEB_DIR=/srv/buzz/web \
-    BUZZ_ADMIN_WEB_DIR=/srv/buzz/admin-web
+# browser routes require the separate LENOS_SERVE_GIT_WEB_GUI=true opt-in. The
+# admin bundle is inert until LENOS_ADMIN_HOST is configured.
+ENV LENOS_WEB_DIR=/srv/lenos/web \
+    LENOS_ADMIN_WEB_DIR=/srv/lenos/admin-web
 
 # 3000: app (WS + REST)  ·  8080: /_liveness, /_readiness  ·  9102: /metrics
 EXPOSE 3000 8080 9102
 
-# deploy/compose mounts a volume here; pre-created so it inherits buzz:buzz.
-RUN mkdir -p /data/git && chown buzz:buzz /data/git
+# deploy/compose mounts a volume here; pre-created so it inherits lenos:lenos.
+RUN mkdir -p /data/git && chown lenos:lenos /data/git
 
-USER buzz:buzz
-WORKDIR /var/lib/buzz
+USER lenos:lenos
+WORKDIR /var/lib/lenos
 
-ENTRYPOINT ["/usr/local/bin/buzz-relay"]
+ENTRYPOINT ["/usr/local/bin/lenos-relay"]
 
 # Optimized binaries with line-table debug information for native profiling.
 # Published under debug-* tags; runtime behavior otherwise matches the normal
 # image exactly.
 FROM runtime-base AS runtime-debug
-COPY --from=builder /build/target/release/buzz-relay /usr/local/bin/buzz-relay
-COPY --from=builder /build/target/release/buzz-admin /usr/local/bin/buzz-admin
-COPY --from=builder /build/target/release/buzz-pair-relay /usr/local/bin/buzz-pair-relay
+COPY --from=builder /build/target/release/lenos-relay /usr/local/bin/lenos-relay
+COPY --from=builder /build/target/release/lenos-admin /usr/local/bin/lenos-admin
+COPY --from=builder /build/target/release/lenos-pair-relay /usr/local/bin/lenos-pair-relay
 
 # Keep the stripped runtime as the final/default Dockerfile target so existing
 # `docker build .` callers and release tags retain their current behavior.
 FROM runtime-base AS runtime
-COPY --from=stripped-binaries /build/target/release/buzz-relay /usr/local/bin/buzz-relay
-COPY --from=stripped-binaries /build/target/release/buzz-admin /usr/local/bin/buzz-admin
-COPY --from=stripped-binaries /build/target/release/buzz-pair-relay /usr/local/bin/buzz-pair-relay
+COPY --from=stripped-binaries /build/target/release/lenos-relay /usr/local/bin/lenos-relay
+COPY --from=stripped-binaries /build/target/release/lenos-admin /usr/local/bin/lenos-admin
+COPY --from=stripped-binaries /build/target/release/lenos-pair-relay /usr/local/bin/lenos-pair-relay
