@@ -49,37 +49,22 @@ export function extractSlug(): string | null {
   return slug;
 }
 
-function extractCommunityId(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  if (Array.isArray(data)) return extractCommunityId(data[0]);
-
-  const obj = data as Record<string, unknown>;
-
-  if (Array.isArray(obj.communities))
-    return extractCommunityId(obj.communities[0]);
-
-  const id = obj.id ?? obj.community_id;
-  if (typeof id === "string" && id.length > 0) return id;
-
-  return null;
-}
 
 export async function fetchWorkspace(slug: string): Promise<WorkspaceInfo> {
+  // The relay maps the subdomain host to a community automatically on WebSocket
+  // connect. Verify existence via NIP-11 relay info (public, no auth needed).
   const base = relayHttpBaseUrl().replace(/\/+$/, "");
-  const url = `${base}/operator/communities?slug=${encodeURIComponent(slug)}`;
+  const url = `${base}/`;
 
   const response = await fetch(url, {
-    signal: AbortSignal.timeout(10_000),
+    headers: { Accept: "application/nostr+json" },
+    signal: AbortSignal.timeout(8_000),
   });
 
+  // NIP-11 returns 200 with relay metadata when the host is valid.
+  // A 404 means no community is configured for this subdomain.
   if (response.status === 404) throw new WorkspaceNotFoundError(slug);
-  if (!response.ok)
-    throw new Error(`Failed to load workspace: HTTP ${response.status}`);
+  if (!response.ok) throw new WorkspaceNotFoundError(slug);
 
-  const data: unknown = await response.json().catch(() => null);
-  const communityId = extractCommunityId(data);
-
-  if (!communityId) throw new WorkspaceNotFoundError(slug);
-
-  return { slug, communityId };
+  return { slug, communityId: "" };
 }
