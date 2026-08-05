@@ -1,8 +1,13 @@
 {
   "name": "lenos",
   "compatibility_date": "2026-08-04",
+  "main": "src/index.ts",
+  "vars": {
+    "RELAY_ORIGIN": "https://relay.lengrowth.com"
+  },
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
   }
 }
