@@ -56,6 +56,11 @@ export function hasNip07Provider(): boolean {
   return typeof window !== "undefined" && window.nostr != null;
 }
 
+/** True only for an identity that survives a page reload. */
+export function hasDurableIdentity(): boolean {
+  return hasNip07Provider() || Boolean(localStorage.getItem("lenos_privkey"));
+}
+
 export async function getCurrentPubkey(): Promise<string | null> {
   if (hasNip07Provider()) {
     try {

@@ -15,7 +15,10 @@ export function relayWsUrl(): string {
   const isWorkspaceHost = hostname.endsWith(".lengrowth.com") &&
     hostname.split(".").length >= 3 &&
     !["www", "app", "api", "relay", "growth-api", "lenos"].includes(hostname.split(".")[0]);
-  if (isWorkspaceHost) return `wss://${hostname}`;
+    if (isWorkspaceHost) {
+      const suffix = import.meta.env.VITE_RELAY_HOST_SUFFIX ?? ".lengrowth.com";
+      return `wss://${hostname.replace(/\.lengrowth\.com$/, suffix)}`;
+    }
   return configured ?? "wss://relay.lengrowth.com";
 }
 
