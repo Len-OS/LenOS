@@ -5,15 +5,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/root";
-import { Route as reposRouteImport } from "./routes/repos";
+import { Route as workspaceRouteImport } from "./routes/_workspace";
 import { Route as indexRouteImport } from "./routes/index";
 import { Route as reposDotrepoIdRouteImport } from "./routes/repos.$repoId";
 import { Route as inviteDotcodeRouteImport } from "./routes/invite.$code";
+import { Route as workspaceDotreposRouteImport } from "./routes/_workspace.repos";
+import { Route as workspaceDotchannelsRouteImport } from "./routes/_workspace.channels";
+import { Route as workspaceDotchannelsDotchannelIdRouteImport } from "./routes/_workspace.channels.$channelId";
 import { Route as reposDotrepoIdDotblobDotsplatRouteImport } from "./routes/repos.$repoId.blob.$";
 
-const reposRoute = reposRouteImport.update({
-  id: "/repos",
-  path: "/repos",
+const workspaceRoute = workspaceRouteImport.update({
+  id: "/_workspace",
   getParentRoute: () => rootRouteImport,
 } as any);
 const indexRoute = indexRouteImport.update({
@@ -31,6 +33,22 @@ const inviteDotcodeRoute = inviteDotcodeRouteImport.update({
   path: "/invite/$code",
   getParentRoute: () => rootRouteImport,
 } as any);
+const workspaceDotreposRoute = workspaceDotreposRouteImport.update({
+  id: "/repos",
+  path: "/repos",
+  getParentRoute: () => workspaceRoute,
+} as any);
+const workspaceDotchannelsRoute = workspaceDotchannelsRouteImport.update({
+  id: "/channels",
+  path: "/channels",
+  getParentRoute: () => workspaceRoute,
+} as any);
+const workspaceDotchannelsDotchannelIdRoute =
+  workspaceDotchannelsDotchannelIdRouteImport.update({
+    id: "/channels/$channelId",
+    path: "/channels/$channelId",
+    getParentRoute: () => workspaceRoute,
+  } as any);
 const reposDotrepoIdDotblobDotsplatRoute =
   reposDotrepoIdDotblobDotsplatRouteImport.update({
     id: "/repos/$repoId/blob/$",
@@ -40,53 +58,67 @@ const reposDotrepoIdDotblobDotsplatRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof indexRoute;
-  "/repos": typeof reposRoute;
+  "/channels": typeof workspaceDotchannelsRoute;
+  "/repos": typeof workspaceDotreposRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/repos/$repoId": typeof reposDotrepoIdRoute;
+  "/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
   "/repos/$repoId/blob/$": typeof reposDotrepoIdDotblobDotsplatRoute;
 }
 export interface FileRoutesByTo {
   "/": typeof indexRoute;
-  "/repos": typeof reposRoute;
+  "/channels": typeof workspaceDotchannelsRoute;
+  "/repos": typeof workspaceDotreposRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/repos/$repoId": typeof reposDotrepoIdRoute;
+  "/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
   "/repos/$repoId/blob/$": typeof reposDotrepoIdDotblobDotsplatRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/": typeof indexRoute;
-  "/repos": typeof reposRoute;
+  "/_workspace": typeof workspaceRouteWithChildren;
+  "/_workspace/channels": typeof workspaceDotchannelsRoute;
+  "/_workspace/repos": typeof workspaceDotreposRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/repos/$repoId": typeof reposDotrepoIdRoute;
+  "/_workspace/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
   "/repos/$repoId/blob/$": typeof reposDotrepoIdDotblobDotsplatRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | "/"
+    | "/channels"
     | "/repos"
     | "/invite/$code"
     | "/repos/$repoId"
+    | "/channels/$channelId"
     | "/repos/$repoId/blob/$";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/"
+    | "/channels"
     | "/repos"
     | "/invite/$code"
     | "/repos/$repoId"
+    | "/channels/$channelId"
     | "/repos/$repoId/blob/$";
   id:
     | "__root__"
     | "/"
-    | "/repos"
+    | "/_workspace"
+    | "/_workspace/channels"
+    | "/_workspace/repos"
     | "/invite/$code"
     | "/repos/$repoId"
+    | "/_workspace/channels/$channelId"
     | "/repos/$repoId/blob/$";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   indexRoute: typeof indexRoute;
-  reposRoute: typeof reposRoute;
+  workspaceRoute: typeof workspaceRouteWithChildren;
   inviteDotcodeRoute: typeof inviteDotcodeRoute;
   reposDotrepoIdRoute: typeof reposDotrepoIdRoute;
   reposDotrepoIdDotblobDotsplatRoute: typeof reposDotrepoIdDotblobDotsplatRoute;
@@ -94,11 +126,11 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/repos": {
-      id: "/repos";
-      path: "/repos";
-      fullPath: "/repos";
-      preLoaderRoute: typeof reposRouteImport;
+    "/_workspace": {
+      id: "/_workspace";
+      path: "";
+      fullPath: "/";
+      preLoaderRoute: typeof workspaceRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/": {
@@ -122,6 +154,27 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof inviteDotcodeRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/_workspace/repos": {
+      id: "/_workspace/repos";
+      path: "/repos";
+      fullPath: "/repos";
+      preLoaderRoute: typeof workspaceDotreposRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
+    "/_workspace/channels": {
+      id: "/_workspace/channels";
+      path: "/channels";
+      fullPath: "/channels";
+      preLoaderRoute: typeof workspaceDotchannelsRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
+    "/_workspace/channels/$channelId": {
+      id: "/_workspace/channels/$channelId";
+      path: "/channels/$channelId";
+      fullPath: "/channels/$channelId";
+      preLoaderRoute: typeof workspaceDotchannelsDotchannelIdRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
     "/repos/$repoId/blob/$": {
       id: "/repos/$repoId/blob/$";
       path: "/repos/$repoId/blob/$";
@@ -132,9 +185,25 @@ declare module "@tanstack/react-router" {
   }
 }
 
+interface workspaceRouteChildren {
+  workspaceDotchannelsRoute: typeof workspaceDotchannelsRoute;
+  workspaceDotreposRoute: typeof workspaceDotreposRoute;
+  workspaceDotchannelsDotchannelIdRoute: typeof workspaceDotchannelsDotchannelIdRoute;
+}
+
+const workspaceRouteChildren: workspaceRouteChildren = {
+  workspaceDotchannelsRoute: workspaceDotchannelsRoute,
+  workspaceDotreposRoute: workspaceDotreposRoute,
+  workspaceDotchannelsDotchannelIdRoute: workspaceDotchannelsDotchannelIdRoute,
+};
+
+const workspaceRouteWithChildren = workspaceRoute._addFileChildren(
+  workspaceRouteChildren,
+);
+
 const rootRouteChildren: RootRouteChildren = {
   indexRoute: indexRoute,
-  reposRoute: reposRoute,
+  workspaceRoute: workspaceRouteWithChildren,
   inviteDotcodeRoute: inviteDotcodeRoute,
   reposDotrepoIdRoute: reposDotrepoIdRoute,
   reposDotrepoIdDotblobDotsplatRoute: reposDotrepoIdDotblobDotsplatRoute,
