@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "@tanstack/react-router";
 import { Settings, Users } from "lucide-react";
+import { ForumView } from "@/features/forum/ui/ForumView";
 import { useMessages } from "@/features/messages/use-messages";
 import { useChannels } from "@/features/channels/use-channels";
 import { useReactions } from "@/features/messages/use-reactions";
@@ -119,22 +120,31 @@ export function ChannelView() {
           />
         )}
 
-        <MessageTimeline
-          messages={visibleMessages}
-          isLoading={isLoading}
-          channelName={channelName}
-          channelId={channelId}
-          reactions={reactions}
-          currentPubkey={currentPubkey}
-          onOpenThread={setThreadRootId}
-        />
-
-        <TypingIndicator pubkeys={[...typingPubkeys]} />
-        <MessageComposer
-          channelId={channelId}
-          channelName={channelName}
-          onTyping={notifyTyping}
-        />
+        {channel?.type === "forum" ? (
+          <ForumView
+            channelId={channelId}
+            channelName={channelName}
+            currentPubkey={currentPubkey}
+          />
+        ) : (
+          <>
+            <MessageTimeline
+              messages={visibleMessages}
+              isLoading={isLoading}
+              channelName={channelName}
+              channelId={channelId}
+              reactions={reactions}
+              currentPubkey={currentPubkey}
+              onOpenThread={setThreadRootId}
+            />
+            <TypingIndicator pubkeys={[...typingPubkeys]} />
+            <MessageComposer
+              channelId={channelId}
+              channelName={channelName}
+              onTyping={notifyTyping}
+            />
+          </>
+        )}
       </div>
 
       {/* Thread panel */}
