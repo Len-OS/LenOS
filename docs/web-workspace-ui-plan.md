@@ -1661,7 +1661,7 @@ Add `threadRootId` state. Render `<ThreadPanel>` as a sibling to `<MessageTimeli
 
 ---
 
-## Phase 18 — Rich Text Composer (ProseMirror)
+## ✅ Phase 18 — Rich Text Composer (ProseMirror)
 
 **Goal:** Replace the plain `<textarea>` in `MessageComposer` with a ProseMirror editor supporting markdown-style formatting, `@mentions`, and emoji autocomplete.
 

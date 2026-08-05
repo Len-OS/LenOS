@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef } from "react";
 import { Send } from "lucide-react";
 import {
   signNostrEvent,
@@ -8,6 +8,7 @@ import {
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 import { KIND_STREAM_MESSAGE } from "@/shared/constants/kinds";
+import { RichComposer } from "@/features/messages/ui/RichComposer";
 
 interface Props {
   channelId: string;
@@ -15,12 +16,14 @@ interface Props {
 }
 
 export function MessageComposer({ channelId, channelName }: Props) {
-  const [text, setText] = useState("");
+  const [pendingText, setPendingText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [clearCount, setClearCount] = useState(0);
+  const pendingTextRef = useRef(pendingText);
+  pendingTextRef.current = pendingText;
 
-  const send = async () => {
+  const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setSending(true);
@@ -36,8 +39,7 @@ export function MessageComposer({ channelId, channelName }: Props) {
         { requireNip07: true },
       );
       getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
-      setText("");
-      textareaRef.current?.focus();
+      setClearCount((c) => c + 1);
     } catch (err) {
       if (err instanceof Nip07UnavailableError) {
         setError(
@@ -51,32 +53,21 @@ export function MessageComposer({ channelId, channelName }: Props) {
     }
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void send();
-    }
-  };
-
   return (
     <div className="shrink-0 border-t border-black/10 px-4 py-3 dark:border-white/10">
       {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
       <div className="flex items-end gap-2 rounded-lg border border-black/15 bg-white px-3 py-2 focus-within:border-black/30 dark:border-white/15 dark:bg-white/5 dark:focus-within:border-white/30">
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={onKeyDown}
+        <RichComposer
           placeholder={`Message #${channelName}`}
           disabled={sending}
-          className="flex-1 resize-none bg-transparent text-sm text-black outline-none placeholder:text-black/40 disabled:opacity-50 dark:text-white dark:placeholder:text-white/40"
-          style={{ maxHeight: "200px", overflowY: "auto" }}
+          onSubmit={(text) => void send(text)}
+          onTextChange={setPendingText}
+          clearSignal={clearCount}
         />
         <button
           type="button"
-          onClick={() => void send()}
-          disabled={!text.trim() || sending}
+          onClick={() => void send(pendingTextRef.current)}
+          disabled={!pendingText.trim() || sending}
           className="shrink-0 rounded-md p-1.5 text-black/60 hover:bg-black/5 hover:text-black disabled:opacity-30 dark:text-white/60 dark:hover:bg-white/5 dark:hover:text-white"
           aria-label="Send message"
         >

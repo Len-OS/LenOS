@@ -18,5 +18,8 @@ overrides:
   # 5.0.1 / 5.0.2 respectively; pin >=5.0.2 to cover both. Removable once
   # markdown-it resolves linkify-it >=5.0.2 on its own.
   linkify-it: "^5.0.2"
+  # prosemirror-model: @tiptap/pm pins 1.25.4; web/ uses 1.25.11.
+  # Duplicate versions cause TS type-incompatibility errors at the boundary.
+  prosemirror-model: "^1.25.11"
 patchedDependencies:
   isomorphic-git: patches/isomorphic-git.patch
