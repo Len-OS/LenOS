@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { SettingsModal } from "@/features/settings/ui/SettingsModal";
+import { CommunitySettingsModal } from "@/features/communities/ui/CommunitySettingsModal";
+import { useMembers } from "@/features/channels/useMembers";
 import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
 import { DmList } from "@/features/messages/ui/DmList";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
@@ -35,7 +37,12 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const workspace = useWorkspace();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [communitySettingsOpen, setCommunitySettingsOpen] = useState(false);
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+  const members = useMembers(communityId);
+  const isAdmin =
+    currentPubkey != null &&
+    members.some((m) => m.pubkey === currentPubkey && m.role === "admin");
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -76,9 +83,15 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-black/10 px-4 dark:border-white/10">
-        <span className="truncate font-semibold text-black dark:text-white">
+        <button
+          type="button"
+          onClick={() => {
+            if (isAdmin) setCommunitySettingsOpen(true);
+          }}
+          className={`truncate font-semibold text-black dark:text-white ${isAdmin ? "cursor-pointer hover:underline" : "cursor-default"}`}
+        >
           {workspaceName}
-        </span>
+        </button>
         <div className="flex gap-0.5">
           <button
             type="button"
@@ -330,6 +343,14 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
         onClose={() => setCreateOpen(false)}
         communityId={communityId ?? ""}
       />
+      {communityId && (
+        <CommunitySettingsModal
+          isOpen={communitySettingsOpen}
+          communityId={communityId}
+          isAdmin={isAdmin}
+          onClose={() => setCommunitySettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

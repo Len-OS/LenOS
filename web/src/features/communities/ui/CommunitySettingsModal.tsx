@@ -1,0 +1,319 @@
+import { useState } from "react";
+import { Copy, Plus, Settings, Trash2, X } from "lucide-react";
+import { signNostrEvent } from "@/shared/lib/nostr-signer";
+import { getRelayClient } from "@/shared/lib/relay-live-client";
+import { relayWsUrl } from "@/shared/lib/relay-url";
+import { useMembers } from "@/features/channels/useMembers";
+import { useInvites } from "../useInvites";
+import { useCreateInvite } from "../useCreateInvite";
+
+type Tab = "overview" | "members" | "invites" | "danger";
+
+interface Props {
+  isOpen: boolean;
+  communityId: string;
+  isAdmin: boolean;
+  onClose: () => void;
+}
+
+function formatDate(unix: number | null): string {
+  if (!unix) return "Never";
+  return new Date(unix * 1000).toLocaleDateString();
+}
+
+export function CommunitySettingsModal({
+  isOpen,
+  communityId,
+  isAdmin,
+  onClose,
+}: Props) {
+  const [tab, setTab] = useState<Tab>("overview");
+  const [name, setName] = useState("");
+  const [about, setAbout] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [newInviteUrl, setNewInviteUrl] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const members = useMembers(communityId);
+  const invites = useInvites(communityId);
+  const { createInvite, isCreating } = useCreateInvite(communityId);
+
+  if (!isOpen) return null;
+
+  async function saveOverview() {
+    setSaving(true);
+    try {
+      const event = await signNostrEvent(
+        {
+          kind: 9002,
+          content: "",
+          tags: [
+            ["h", communityId],
+            ["name", name],
+            ["about", about],
+          ],
+        },
+        { requireNip07: true },
+      );
+      getRelayClient(relayWsUrl()).publish(event);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleCreateInvite() {
+    const url = await createInvite();
+    if (url) setNewInviteUrl(url);
+  }
+
+  async function handleDeleteWorkspace() {
+    try {
+      const event = await signNostrEvent(
+        {
+          kind: 9008,
+          content: "Workspace deleted",
+          tags: [["h", communityId]],
+        },
+        { requireNip07: true },
+      );
+      getRelayClient(relayWsUrl()).publish(event);
+      onClose();
+    } catch {
+      // ignore
+    }
+  }
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "members", label: "Members" },
+    { id: "invites", label: "Invites" },
+    ...(isAdmin ? [{ id: "danger" as Tab, label: "Danger" }] : []),
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="flex h-[600px] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#1a1a1a]">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-black/10 px-4 dark:border-white/10">
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 text-black/40 dark:text-white/40" />
+            <span className="font-semibold text-black dark:text-white">
+              Workspace Settings
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-black/40 hover:bg-black/5 dark:text-white/40 dark:hover:bg-white/5"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex shrink-0 gap-1 border-b border-black/10 px-4 dark:border-white/10">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`px-3 py-2 text-sm transition-colors ${
+                tab === t.id
+                  ? "border-b-2 border-black font-medium text-black dark:border-white dark:text-white"
+                  : "text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {tab === "overview" && (
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="ws-name"
+                  className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
+                >
+                  Workspace Name
+                </label>
+                <input
+                  id="ws-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My Workspace"
+                  className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="ws-about"
+                  className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="ws-about"
+                  value={about}
+                  onChange={(e) => setAbout(e.target.value)}
+                  rows={3}
+                  placeholder="What is this workspace for?"
+                  className="w-full resize-none rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
+                />
+              </div>
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={saving || !name.trim()}
+                  onClick={() => void saveOverview()}
+                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-black"
+                >
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {tab === "members" && (
+            <div className="space-y-1">
+              {members.length === 0 ? (
+                <p className="py-8 text-center text-sm text-black/30 dark:text-white/30">
+                  No members loaded
+                </p>
+              ) : (
+                members.map((m) => (
+                  <div
+                    key={m.pubkey}
+                    className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5"
+                  >
+                    <span className="font-mono text-xs text-black/60 dark:text-white/60">
+                      {m.pubkey.slice(0, 16)}…
+                    </span>
+                    <span className="rounded-full bg-black/10 px-2 py-0.5 text-xs capitalize dark:bg-white/10">
+                      {m.role ?? "member"}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {tab === "invites" && (
+            <div className="space-y-3">
+              {newInviteUrl && (
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
+                  <span className="flex-1 truncate font-mono text-xs text-green-800 dark:text-green-400">
+                    {newInviteUrl}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void navigator.clipboard.writeText(newInviteUrl)
+                    }
+                    className="shrink-0 rounded p-1 hover:bg-green-200 dark:hover:bg-green-800"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-green-700 dark:text-green-400" />
+                  </button>
+                </div>
+              )}
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={isCreating}
+                  onClick={() => void handleCreateInvite()}
+                  className="flex items-center gap-2 rounded-lg border border-black/10 px-3 py-2 text-sm text-black/70 hover:bg-black/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
+                >
+                  <Plus className="h-4 w-4" />
+                  {isCreating ? "Creating…" : "Create Invite Link"}
+                </button>
+              )}
+
+              {invites.length === 0 ? (
+                <p className="py-4 text-sm text-black/30 dark:text-white/30">
+                  No invite links yet
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {invites.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="flex items-center gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-xs text-black/70 dark:text-white/70">
+                          {inv.code}
+                        </p>
+                        <p className="mt-0.5 text-xs text-black/40 dark:text-white/40">
+                          {inv.uses} uses
+                          {inv.maxUses ? ` / ${inv.maxUses} max` : ""} · Expires{" "}
+                          {formatDate(inv.expiresAt)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const slug =
+                            window.location.hostname.split(".")[0] ?? "";
+                          void navigator.clipboard.writeText(
+                            `https://${slug}.lengrowth.com/invite/${inv.code}`,
+                          );
+                        }}
+                        className="shrink-0 rounded p-1 text-black/40 hover:bg-black/5 dark:text-white/40 dark:hover:bg-white/5"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "danger" && isAdmin && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-red-200 p-4 dark:border-red-800">
+                <h3 className="mb-1 font-semibold text-red-600 dark:text-red-400">
+                  Delete Workspace
+                </h3>
+                <p className="mb-3 text-sm text-black/60 dark:text-white/60">
+                  This action is permanent and cannot be undone. All channels
+                  and messages will be removed.
+                </p>
+                {!confirmDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Workspace
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteWorkspace()}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white"
+                    >
+                      Confirm Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="rounded-lg border border-black/10 px-4 py-2 text-sm dark:border-white/10"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
