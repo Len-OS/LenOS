@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { Hash, Plus, Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Hash,
+  MoreHorizontal,
+  Plus,
+  Settings,
+  Star,
+} from "lucide-react";
 import { SettingsModal } from "@/features/settings/ui/SettingsModal";
 import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
 import { DmList } from "@/features/messages/ui/DmList";
@@ -8,20 +16,7 @@ import { useUserStatus } from "@/features/profile/useUserStatus";
 import { StatusPicker } from "@/features/profile/ui/StatusPicker";
 import { useChannels } from "@/features/channels/use-channels";
 import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
-import { getRelayClient } from "@/shared/lib/relay-live-client";
-import { relayWsUrl } from "@/shared/lib/relay-url";
-import { hasUnread } from "@/features/channels/unreadChannelCounts";
-import {
-  KIND_STREAM_MESSAGE,
-  KIND_STREAM_MESSAGE_V2,
-  KIND_SYSTEM_MESSAGE,
-} from "@/shared/constants/kinds";
-
-const UNREAD_KINDS = [
-  KIND_STREAM_MESSAGE,
-  KIND_STREAM_MESSAGE_V2,
-  KIND_SYSTEM_MESSAGE,
-];
+import { useSidebarState } from "@/features/sidebar/useSidebarState";
 
 interface Props {
   activeChannelId: string | null;
@@ -32,12 +27,25 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const communityId = useCommunityId();
   const channels = useChannels(communityId);
   const workspace = useWorkspace();
-  const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const currentStatus = useUserStatus(currentPubkey ?? "");
+
+  const {
+    sections,
+    collapsedSections,
+    toggleCollapse,
+    unreadOnly,
+    setUnreadOnly,
+    toggleMute,
+    toggleStar,
+    markRead,
+    isUnread,
+  } = useSidebarState({ channels, communityId });
 
   useEffect(() => {
     getCurrentPubkey()
@@ -45,93 +53,171 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!menuOpenFor) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenFor(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpenFor]);
+
   const workspaceName =
     workspace.status === "found" ? workspace.workspace.slug : "Workspace";
 
-  // Subscribe to recent messages across all channels to detect unread state
-  // biome-ignore lint/correctness/useExhaustiveDependencies: channels identity changes on every relay event; using channels.length+communityId avoids infinite loop
-  useEffect(() => {
-    if (channels.length === 0) return;
-    const channelIds = channels.map((c) => c.id);
-    const client = getRelayClient(relayWsUrl());
-    const since = Math.floor(Date.now() / 1000) - 86400 * 30;
-    const subId = "sidebar-unread";
-
-    const unsub = client.subscribe({
-      id: subId,
-      filter: {
-        kinds: UNREAD_KINDS,
-        "#h": channelIds,
-        since,
-        limit: 500,
-      },
-      onEvent: (raw) => {
-        const tags = (raw.tags as string[][]) ?? [];
-        const channelId = tags.find((t) => t[0] === "h")?.[1];
-        const ts = raw.created_at as number;
-        if (!channelId || !ts) return;
-        setLastMsgAt((prev) => {
-          if ((prev[channelId] ?? 0) >= ts) return prev;
-          return { ...prev, [channelId]: ts };
-        });
-      },
-    });
-
-    return unsub;
-  }, [channels.length, communityId]);
-
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-12 shrink-0 items-center border-b border-black/10 px-4 dark:border-white/10">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-black/10 px-4 dark:border-white/10">
         <span className="truncate font-semibold text-black dark:text-white">
           {workspaceName}
         </span>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto py-3">
-        <div className="mb-1 flex items-center px-4">
-          <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-black/40 dark:text-white/40">
-            Channels
-          </span>
+        <div className="flex gap-0.5">
           <button
             type="button"
-            onClick={() => setCreateOpen(true)}
-            aria-label="Create channel"
-            className="rounded p-0.5 text-black/30 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+            onClick={() => setUnreadOnly(false)}
+            className={`rounded px-1.5 py-0.5 text-xs transition-colors ${
+              !unreadOnly
+                ? "bg-black/10 text-black dark:bg-white/15 dark:text-white"
+                : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+            }`}
           >
-            <Plus className="h-3.5 w-3.5" />
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnreadOnly(true)}
+            className={`rounded px-1.5 py-0.5 text-xs transition-colors ${
+              unreadOnly
+                ? "bg-black/10 text-black dark:bg-white/15 dark:text-white"
+                : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+            }`}
+          >
+            Unread
           </button>
         </div>
+      </div>
 
-        {channels.length === 0 && (
-          <div className="px-4 py-2 text-sm text-black/40 dark:text-white/40">
-            No channels yet
-          </div>
-        )}
-
-        {channels.map((ch) => {
-          const isActive = activeChannelId === ch.id;
-          const isUnread = !isActive && hasUnread(ch.id, lastMsgAt[ch.id] ?? 0);
+      <nav className="flex-1 overflow-y-auto py-2">
+        {sections.map((section) => {
+          const isCollapsed = collapsedSections.has(section.id);
           return (
-            <button
-              key={ch.id}
-              type="button"
-              onClick={() => onSelectChannel(ch.id)}
-              className={[
-                "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
-                isActive
-                  ? "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white"
-                  : "text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5",
-              ].join(" ")}
-            >
-              <Hash className="h-3.5 w-3.5 shrink-0 opacity-50" />
-              <span className="truncate">{ch.name}</span>
-              {isUnread && (
-                <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+            <div key={section.id} className="mb-1">
+              <div className="mb-0.5 flex items-center px-2">
+                <button
+                  type="button"
+                  onClick={() => toggleCollapse(section.id)}
+                  className="flex flex-1 items-center gap-1 rounded px-1 py-0.5 text-xs font-semibold uppercase tracking-wider text-black/40 hover:text-black/60 dark:text-white/40 dark:hover:text-white/60"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-3 w-3 shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3 shrink-0" />
+                  )}
+                  {section.label}
+                </button>
+                {section.id === "channels" && (
+                  <button
+                    type="button"
+                    onClick={() => setCreateOpen(true)}
+                    aria-label="Create channel"
+                    className="rounded p-0.5 text-black/30 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {!isCollapsed && (
+                <div>
+                  {section.channels.length === 0 && section.id === "channels" && (
+                    <div className="px-5 py-1 text-xs text-black/30 dark:text-white/30">
+                      No channels yet
+                    </div>
+                  )}
+                  {section.channels.map((ch) => {
+                    const isActive = activeChannelId === ch.id;
+                    const unread = isUnread(ch.id);
+                    const menuOpen = menuOpenFor === ch.id;
+                    const isCurrentlyStarred = section.id === "starred";
+                    const isCurrentlyMuted = section.id === "muted";
+                    return (
+                      <div key={ch.id} className="group relative px-2">
+                        <button
+                          type="button"
+                          onClick={() => onSelectChannel(ch.id)}
+                          className={[
+                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                            isActive
+                              ? "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white"
+                              : "text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5",
+                          ].join(" ")}
+                        >
+                          <Hash className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                          <span className="truncate">{ch.name}</span>
+                          {unread && !isActive && (
+                            <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Channel options"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenFor(menuOpen ? null : ch.id);
+                          }}
+                          className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded p-0.5 text-black/40 hover:bg-black/10 hover:text-black group-hover:flex dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                        {menuOpen && (
+                          <div
+                            ref={menuRef}
+                            className="absolute right-2 top-full z-40 mt-0.5 w-40 rounded-lg border border-black/10 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                toggleStar(ch.id);
+                                setMenuOpenFor(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+                            >
+                              <Star className="h-3.5 w-3.5" />
+                              {isCurrentlyStarred ? "Unstar" : "Star"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                toggleMute(ch.id);
+                                setMenuOpenFor(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+                            >
+                              {isCurrentlyMuted ? "Unmute" : "Mute"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                markRead(ch.id);
+                                setMenuOpenFor(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+                            >
+                              Mark as read
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-            </button>
+            </div>
           );
         })}
+
         <div className="mt-4 pb-2">
           <DmList currentPubkey={currentPubkey} communityId={communityId} />
         </div>
@@ -139,7 +225,7 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
 
       <div className="relative shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">
         {statusPickerOpen && currentPubkey && (
-          <div className="absolute bottom-full left-3 mb-1 z-30">
+          <div className="absolute bottom-full left-3 z-30 mb-1">
             <StatusPicker
               currentPubkey={currentPubkey}
               onClose={() => setStatusPickerOpen(false)}
