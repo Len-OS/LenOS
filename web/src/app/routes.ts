@@ -10,6 +10,7 @@ export const routes = rootRoute("root.tsx", [
     route("/messages/new", "_workspace.messages.new.tsx"),
     route("/messages/$channelId", "_workspace.messages.$channelId.tsx"),
     route("/repos", "_workspace.repos.tsx"),
+    route("/workflows", "_workspace.workflows.tsx"),
   ]),
   route("/invite/$code", "invite.$code.tsx"),
   route("/repos/$repoId", "repos.$repoId.tsx"),

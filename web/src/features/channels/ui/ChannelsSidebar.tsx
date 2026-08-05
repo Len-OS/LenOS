@@ -7,7 +7,9 @@ import {
   Plus,
   Settings,
   Star,
+  Zap,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { SettingsModal } from "@/features/settings/ui/SettingsModal";
 import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
 import { DmList } from "@/features/messages/ui/DmList";
@@ -220,6 +222,17 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
 
         <div className="mt-4 pb-2">
           <DmList currentPubkey={currentPubkey} communityId={communityId} />
+        </div>
+
+        <div className="px-2 pb-1">
+          <Link
+            to="/workflows"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{ className: "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white" }}
+          >
+            <Zap className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            Workflows
+          </Link>
         </div>
       </nav>
 
