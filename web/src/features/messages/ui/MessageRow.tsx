@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
 import { truncatePubkey } from "@/shared/lib/pubkey";
@@ -9,12 +9,40 @@ import { MessageReactions } from "@/features/messages/ui/MessageReactions";
 import { MessageContextMenu } from "@/features/messages/ui/MessageContextMenu";
 import { useMessageActions } from "@/features/messages/useMessageActions";
 
+function renderContent(
+  content: string,
+  customEmoji: Map<string, string>,
+): ReactNode {
+  if (customEmoji.size === 0) return content;
+  const parts = content.split(/:([a-zA-Z0-9_+-]+):/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      const url = customEmoji.get(part);
+      if (url) {
+        return (
+          <img
+            // biome-ignore lint/suspicious/noArrayIndexKey: split tokens have stable positions within immutable message content
+            key={i}
+            src={url}
+            alt={`:${part}:`}
+            title={`:${part}:`}
+            className="inline-block h-5 w-5 align-middle object-contain"
+          />
+        );
+      }
+      return `:${part}:`;
+    }
+    return part;
+  });
+}
+
 interface Props {
   msg: Message;
   isGrouped: boolean;
   channelId: string;
   reactions: Reaction[];
   currentPubkey: string | null;
+  customEmoji?: Map<string, string>;
 }
 
 export function MessageRow({
@@ -23,6 +51,7 @@ export function MessageRow({
   channelId,
   reactions,
   currentPubkey,
+  customEmoji = new Map(),
 }: Props) {
   const profile = useProfile(msg.pubkey);
   const displayName = profile?.name || truncatePubkey(msg.pubkey);
@@ -87,7 +116,7 @@ export function MessageRow({
           />
         ) : (
           <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-black/90 dark:text-white/85">
-            {msg.content}
+            {renderContent(msg.content, customEmoji)}
           </p>
         )}
         <MessageReactions
