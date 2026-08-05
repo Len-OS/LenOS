@@ -17,7 +17,6 @@ name: Docker image
 #
 # Triggers:
 #   - push to main           → :main + :sha-<7>
-#                              + :debug-main + :debug-sha-<7>
 #   - push tags relay-v*.*.* → :{version} + :{major}.{minor} + :{major}
 #                              + matching :debug-* tags
 #                              (+ :latest/:debug-latest for stable releases)
@@ -43,6 +42,20 @@ on:
   push:
     branches: [main]
     tags: ["relay-v[0-9]*"]
+    paths:
+      - "Dockerfile"
+      - "Dockerfile.push-gateway"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "web/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "patches/**"
   pull_request:
     paths:
       - "Dockerfile"
@@ -181,6 +194,7 @@ jobs:
 
       - name: Build and push debug image by digest
         id: build-debug
+        if: github.ref_type == 'tag'
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
         with:
           context: .
@@ -212,7 +226,7 @@ jobs:
           retention-days: 1
 
       - name: Upload debug digest
-        if: github.event_name != 'pull_request'
+        if: github.ref_type == 'tag'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: digests-debug-${{ matrix.arch }}
@@ -222,7 +236,7 @@ jobs:
 
   merge:
     name: Merge ${{ matrix.variant }} multi-arch manifest
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (matrix.variant == 'release' || github.ref_type == 'tag')
     runs-on: ubuntu-24.04
     needs: build
     timeout-minutes: 15

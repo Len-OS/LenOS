@@ -22,6 +22,19 @@
 
 ## Step 1 — Point nostr_adapter at deployed relay ✅ DONE
 
+### Workspace provisioning contract (current)
+
+LenGrowth workspace creation uses the relay's authenticated operator HTTP API,
+not a synthetic Nostr event. `POST /api/workspace` calls
+`POST /operator/communities` with `host=<slug>.lengrowth.com`, `create_only=true`,
+and the configured operator pubkey as `initial_owner_pubkey`, signed with NIP-98.
+If the relay returns `409`, the backend lists communities for that operator and
+accepts only an exact host match. It never chooses the first returned community.
+The workspace document is inserted after relay provisioning and MongoDB unique
+indexes converge concurrent retries. Starter channels and remote LenGrowth
+agents are still a separate authenticated bootstrap capability; the browser
+must not claim those steps succeeded until that capability exists.
+
 nostr_adapter runs as `nostradapter` process on Scalingo `lengrowth-main`.  
 (Underscore in Procfile process names rejected by Scalingo — must be alphanumeric.)
 
