@@ -152,6 +152,7 @@ export function ChannelView() {
         <MembersSidebar
           channelId={channelId}
           onClose={() => setShowMembers(false)}
+          currentPubkey={currentPubkey}
         />
       )}
 

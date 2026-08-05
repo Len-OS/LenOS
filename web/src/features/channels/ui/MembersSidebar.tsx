@@ -5,13 +5,16 @@ import { MemberCard } from "./MemberCard";
 interface Props {
   channelId: string | null;
   onClose: () => void;
+  currentPubkey?: string | null;
 }
 
-export function MembersSidebar({ channelId, onClose }: Props) {
+export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
   const members = useMembers(channelId);
 
   const admins = members.filter((m) => m.role === "admin");
   const others = members.filter((m) => m.role !== "admin");
+  const isCurrentUserAdmin =
+    currentPubkey != null && admins.some((m) => m.pubkey === currentPubkey);
 
   return (
     <div className="flex w-60 shrink-0 flex-col border-l border-black/10 dark:border-white/10">
@@ -41,7 +44,12 @@ export function MembersSidebar({ channelId, onClose }: Props) {
               Admins — {admins.length}
             </p>
             {admins.map((m) => (
-              <MemberCard key={m.pubkey} member={m} />
+              <MemberCard
+                key={m.pubkey}
+                member={m}
+                channelId={channelId ?? ""}
+                isCurrentUserAdmin={isCurrentUserAdmin}
+              />
             ))}
           </div>
         )}
@@ -52,7 +60,12 @@ export function MembersSidebar({ channelId, onClose }: Props) {
               Members — {others.length}
             </p>
             {others.map((m) => (
-              <MemberCard key={m.pubkey} member={m} />
+              <MemberCard
+                key={m.pubkey}
+                member={m}
+                channelId={channelId ?? ""}
+                isCurrentUserAdmin={isCurrentUserAdmin}
+              />
             ))}
           </div>
         )}

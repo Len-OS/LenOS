@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { nip19 } from "nostr-tools";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
+import { useModerationActions } from "@/features/moderation/useModerationActions";
 import type { Member } from "@/features/channels/useMembers";
 
 function truncatePubkey(pk: string): string {
@@ -10,14 +11,17 @@ function truncatePubkey(pk: string): string {
 
 interface Props {
   member: Member;
+  channelId: string;
+  isCurrentUserAdmin?: boolean;
 }
 
-export function MemberCard({ member }: Props) {
+export function MemberCard({ member, channelId, isCurrentUserAdmin }: Props) {
   const profile = useProfile(member.pubkey);
   const displayName = profile?.name || truncatePubkey(member.pubkey);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { muteUser, banUser } = useModerationActions();
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +86,31 @@ export function MemberCard({ member }: Props) {
           >
             {copied ? "Copied!" : "Copy pubkey"}
           </button>
+          {isCurrentUserAdmin && (
+            <>
+              <div className="my-1 border-t border-black/10 dark:border-white/10" />
+              <button
+                type="button"
+                className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-red-500/5"
+                onClick={() => {
+                  void muteUser(member.pubkey, channelId);
+                  setOpen(false);
+                }}
+              >
+                Mute user
+              </button>
+              <button
+                type="button"
+                className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-red-500/5"
+                onClick={() => {
+                  void banUser(member.pubkey, channelId);
+                  setOpen(false);
+                }}
+              >
+                Ban user
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
