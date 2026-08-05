@@ -7,17 +7,20 @@ export function useChannelMutations() {
     id: string,
     name: string,
     description: string,
-    communityId: string,
   ) => {
+    const channelId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+      ? id
+      : crypto.randomUUID();
     const signed = await signNostrEvent(
       {
         kind: 9007,
         content: "",
         tags: [
-          ["d", id],
+          ["h", channelId],
           ["name", name],
+          ["visibility", "open"],
+          ["channel_type", "stream"],
           ["about", description],
-          ["h", communityId],
         ],
       },
       { requireNip07: true },

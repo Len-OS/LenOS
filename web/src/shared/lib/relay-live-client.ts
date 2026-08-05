@@ -15,6 +15,10 @@ class RelayLiveClient {
   private reconnectDelay = 1_000;
   private destroyed = false;
   private authenticated = false;
+  private pendingPublishes = new Map<
+    string,
+    { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
+  >();
 
   constructor(private readonly relayUrl: string) {}
 
@@ -57,6 +61,17 @@ class RelayLiveClient {
         // AUTH response — now send all pending subscriptions
         this.authenticated = true;
         this.sendAllSubs(ws);
+        return;
+      }
+
+      if (type === "OK" && typeof msg[1] === "string") {
+        const pending = this.pendingPublishes.get(msg[1]);
+        if (pending) {
+          this.pendingPublishes.delete(msg[1]);
+          clearTimeout(pending.timer);
+          if (msg[2] === true) pending.resolve();
+          else pending.reject(new Error(typeof msg[3] === "string" ? msg[3] : "Relay rejected event"));
+        }
         return;
       }
 
@@ -104,11 +119,32 @@ class RelayLiveClient {
     }
   }
 
+  publishAndWait(event: Record<string, unknown>): Promise<void> {
+    const eventId = typeof event.id === "string" ? event.id : "";
+    if (!eventId) return Promise.reject(new Error("Signed relay event is missing an id"));
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("Relay connection is not open"));
+    }
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingPublishes.delete(eventId);
+        reject(new Error("Relay did not acknowledge the event within 10 seconds"));
+      }, 10_000);
+      this.pendingPublishes.set(eventId, { resolve, reject, timer });
+      this.ws?.send(JSON.stringify(["EVENT", event]));
+    });
+  }
+
   destroy(): void {
     this.destroyed = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.ws?.close();
     this.ws = null;
+    for (const pending of this.pendingPublishes.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("Relay connection closed"));
+    }
+    this.pendingPublishes.clear();
   }
 
   private sendAllSubs(ws: WebSocket): void {

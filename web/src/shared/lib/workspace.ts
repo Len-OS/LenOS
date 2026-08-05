@@ -13,6 +13,7 @@ const RESERVED_SLUGS = new Set([
 export interface WorkspaceInfo {
   slug: string;
   communityId: string;
+  relayUrl: string;
 }
 
 export class WorkspaceNotFoundError extends Error {
@@ -64,5 +65,9 @@ export async function fetchWorkspace(slug: string): Promise<WorkspaceInfo> {
     relay_url: string;
   };
 
-  return { slug: data.slug, communityId: data.relay_community_id };
+  return {
+    slug: data.slug,
+    communityId: data.relay_community_id,
+    relayUrl: data.relay_url,
+  };
 }

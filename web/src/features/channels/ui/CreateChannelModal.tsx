@@ -5,7 +5,7 @@ import { useChannelMutations } from "@/features/channels/useChannelMutations";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  communityId: string;
+  communityId?: string;
 }
 
 function slugify(s: string): string {
@@ -16,7 +16,7 @@ function slugify(s: string): string {
     .slice(0, 40);
 }
 
-export function CreateChannelModal({ isOpen, onClose, communityId }: Props) {
+export function CreateChannelModal({ isOpen, onClose }: Props) {
   const [name, setName] = useState("");
   const [id, setId] = useState("");
   const [idEdited, setIdEdited] = useState(false);
@@ -58,7 +58,6 @@ export function CreateChannelModal({ isOpen, onClose, communityId }: Props) {
         id.trim(),
         name.trim(),
         description.trim(),
-        communityId,
       );
       onClose();
     } catch (e) {

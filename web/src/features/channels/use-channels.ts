@@ -24,7 +24,6 @@ export function useChannels(communityId: string | null): Channel[] {
       id: subId,
       filter: {
         kinds: [39000],
-        "#h": [communityId],
         limit: 200,
       },
       onEvent: (raw) => {

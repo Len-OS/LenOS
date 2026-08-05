@@ -21,17 +21,27 @@ function parseAgent(raw: {
   created_at: number;
 }): Agent {
   const tags = raw.tags;
+  let content: Record<string, unknown> = {};
+  try {
+    content = JSON.parse((raw as { content?: string }).content ?? "") as Record<string, unknown>;
+  } catch {
+    // Legacy clients publish the display fields as tags only.
+  }
+  const dTag = tags.find((t) => t[0] === "d")?.[1] ?? raw.pubkey;
   const name =
     tags.find((t) => t[0] === "name")?.[1] ??
-    tags.find((t) => t[0] === "d")?.[1] ??
+    (typeof content.name === "string" ? content.name : undefined) ??
+    dTag ??
     "Unknown Agent";
-  const description = tags.find((t) => t[0] === "about")?.[1] ?? "";
-  const agentType = tags.find((t) => t[0] === "agent_type")?.[1] ?? "ai";
+  const description = tags.find((t) => t[0] === "about")?.[1] ??
+    (typeof content.description === "string" ? content.description : "");
+  const agentType = tags.find((t) => t[0] === "agent_type")?.[1] ??
+    (typeof content.agent_type === "string" ? content.agent_type : "remote");
   const status =
     (tags.find((t) => t[0] === "status")?.[1] as Agent["status"]) ?? "offline";
   return {
-    id: raw.id,
-    pubkey: raw.pubkey,
+    id: dTag,
+    pubkey: dTag,
     name,
     description,
     agentType,
@@ -51,7 +61,6 @@ export function useAgents(communityId: string | null): Agent[] {
       id: `agents-list-${communityId}`,
       filter: {
         kinds: [KIND_AGENT_DEFINITION],
-        "#h": [communityId],
         limit: 100,
       },
       onEvent: (raw) => {
