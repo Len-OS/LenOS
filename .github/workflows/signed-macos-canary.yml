@@ -170,6 +170,7 @@ jobs:
 
       - name: Codesign and notarize
         id: codesign
+        if: ${{ secrets.OSX_CODESIGN_ROLE != '' }}
         uses: block/apple-codesign-action@679535d1ab7c5a7c18e6f9afcba3464512cc3dde # v1.1.0
         with:
           osx-codesign-role: ${{ secrets.OSX_CODESIGN_ROLE }}
@@ -179,6 +180,7 @@ jobs:
           artifact-name: lenos-canary-${{ github.sha }}-${{ github.run_id }}-arm64
 
       - name: Verify signed app
+        if: ${{ secrets.OSX_CODESIGN_ROLE != '' }}
         env:
           SIGNED_APP_ZIP: ${{ steps.codesign.outputs.signed-artifact-path }}
         run: |
@@ -191,7 +193,8 @@ jobs:
           desktop/scripts/verify-macos-entitlements.sh "$EXTRACT_DIR/LenOS.app"
 
       - name: Stage signed DMG
-        id: artifact
+        id: artifact_signed
+        if: ${{ secrets.OSX_CODESIGN_ROLE != '' }}
         env:
           SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -202,11 +205,35 @@ jobs:
           echo "path=$RUNNER_TEMP/$NAME" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
+      - name: Stage unsigned DMG (no Apple certs)
+        id: artifact_unsigned
+        if: ${{ secrets.OSX_CODESIGN_ROLE == '' }}
+        env:
+          DMG_PATH: ${{ steps.unsigned.outputs.dmg }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          NAME="LenOS_${VERSION}_aarch64-unsigned.dmg"
+          cp "$DMG_PATH" "$RUNNER_TEMP/$NAME"
+          echo "path=$RUNNER_TEMP/$NAME" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "::warning::No OSX_CODESIGN_ROLE secret — uploading unsigned DMG"
+
       - name: Upload signed canary
+        if: ${{ secrets.OSX_CODESIGN_ROLE != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: lenos-macos-canary-${{ github.sha }}
-          path: ${{ steps.artifact.outputs.path }}
+          path: ${{ steps.artifact_signed.outputs.path }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload unsigned canary
+        if: ${{ secrets.OSX_CODESIGN_ROLE == '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: lenos-macos-canary-unsigned-${{ github.sha }}
+          path: ${{ steps.artifact_unsigned.outputs.path }}
           if-no-files-found: error
           retention-days: 7
 
