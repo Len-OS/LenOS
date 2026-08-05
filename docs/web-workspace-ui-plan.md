@@ -1586,7 +1586,7 @@ Update `use-messages.ts` to handle kind 5 delete events: when a delete event arr
 
 ---
 
-## Phase 17 — Thread / Reply System
+## ✅ Phase 17 — Thread / Reply System
 
 **Goal:** Replies to a message shown in a right-side thread panel; click "X replies" summary row to open it.
 
@@ -1656,6 +1656,8 @@ Below each root message that has replies, show: `"3 replies  last reply 2m ago"`
 ### Update `ChannelView.tsx`
 
 Add `threadRootId` state. Render `<ThreadPanel>` as a sibling to `<MessageTimeline>` in a `flex flex-row` container. Pass `onOpenThread={id => setThreadRootId(id)}` to MessageTimeline.
+
+**Deviations:** `KIND_THREAD_REPLY` not in kinds.ts — LenOS uses `KIND_FORUM_COMMENT` (45003) for thread replies. `MessageThreadSummaryRow` subscribes independently via `useThreadReplies` rather than receiving reply counts as props (avoids threading count data through two layers). Summary row only shown for root (non-grouped) messages.
 
 ---
 
@@ -2713,7 +2715,7 @@ This ensures Cloudflare Pages serves `index.html` for all paths (SPA fallback).
 | 14 | Read state + unread badges in sidebar | ✅ |
 | 15 | Message reactions (kind 7) | ✅ |
 | 16 | Message edit + delete (context menu) | ✅ |
-| 17 | Thread / reply system + `ThreadPanel.tsx` | ⬜ |
+| 17 | Thread / reply system + `ThreadPanel.tsx` | ✅ |
 | 18 | ProseMirror rich text composer | ⬜ |
 | 19 | Typing indicators | ⬜ |
 | 20 | Search modal (Cmd+K) + in-channel find (Ctrl+F) | ⬜ |

@@ -3,6 +3,7 @@ import type { Message } from "@/features/messages/use-messages";
 import type { Reaction } from "@/features/messages/use-reactions";
 import { KIND_SYSTEM_MESSAGE } from "@/shared/constants/kinds";
 import { MessageRow } from "@/features/messages/ui/MessageRow";
+import { MessageThreadSummaryRow } from "@/features/messages/ui/MessageThreadSummaryRow";
 
 interface Props {
   messages: Message[];
@@ -11,6 +12,7 @@ interface Props {
   channelId: string;
   reactions: Reaction[];
   currentPubkey: string | null;
+  onOpenThread: (messageId: string) => void;
 }
 
 const GROUP_GAP_SECONDS = 300;
@@ -22,6 +24,7 @@ export function MessageTimeline({
   channelId,
   reactions,
   currentPubkey,
+  onOpenThread,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -82,14 +85,22 @@ export function MessageTimeline({
           msg.createdAt - prev.createdAt < GROUP_GAP_SECONDS;
 
         return (
-          <MessageRow
-            key={msg.id}
-            msg={msg}
-            isGrouped={isGrouped}
-            channelId={channelId}
-            reactions={reactions}
-            currentPubkey={currentPubkey}
-          />
+          <div key={msg.id}>
+            <MessageRow
+              msg={msg}
+              isGrouped={isGrouped}
+              channelId={channelId}
+              reactions={reactions}
+              currentPubkey={currentPubkey}
+            />
+            {!isGrouped && (
+              <MessageThreadSummaryRow
+                messageId={msg.id}
+                channelId={channelId}
+                onOpenThread={() => onOpenThread(msg.id)}
+              />
+            )}
+          </div>
         );
       })}
       <div ref={bottomRef} />
