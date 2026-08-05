@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "@tanstack/react-router";
+import { Users } from "lucide-react";
 import { useMessages } from "@/features/messages/use-messages";
 import { useChannels } from "@/features/channels/use-channels";
 import { useReactions } from "@/features/messages/use-reactions";
@@ -12,6 +13,7 @@ import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import { useTypingState } from "@/features/messages/useTypingState";
 import { TypingIndicator } from "@/features/messages/ui/TypingIndicator";
 import { ChannelFindBar } from "@/features/search/ui/ChannelFindBar";
+import { MembersSidebar } from "@/features/channels/ui/MembersSidebar";
 
 export function ChannelView() {
   const { channelId } = useParams({
@@ -27,7 +29,11 @@ export function ChannelView() {
   const [threadRootId, setThreadRootId] = useState<string | null>(null);
   const [findQuery, setFindQuery] = useState("");
   const [findOpen, setFindOpen] = useState(false);
-  const { typingPubkeys, notifyTyping } = useTypingState(channelId, currentPubkey);
+  const [showMembers, setShowMembers] = useState(false);
+  const { typingPubkeys, notifyTyping } = useTypingState(
+    channelId,
+    currentPubkey,
+  );
 
   const closeFindBar = useCallback(() => {
     setFindOpen(false);
@@ -60,7 +66,7 @@ export function ChannelView() {
   const channelName = channel?.name ?? channelId;
 
   const threadRootMessage = threadRootId
-    ? messages.find((m) => m.id === threadRootId) ?? null
+    ? (messages.find((m) => m.id === threadRootId) ?? null)
     : null;
 
   const visibleMessages =
@@ -83,6 +89,16 @@ export function ChannelView() {
               {channel.description}
             </span>
           )}
+          <div className="ml-auto flex items-center">
+            <button
+              type="button"
+              onClick={() => setShowMembers((v) => !v)}
+              aria-label="Toggle members panel"
+              className={`rounded p-1.5 ${showMembers ? "text-black dark:text-white" : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"} hover:bg-black/5 dark:hover:bg-white/5`}
+            >
+              <Users className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {findOpen && (
@@ -105,7 +121,11 @@ export function ChannelView() {
         />
 
         <TypingIndicator pubkeys={[...typingPubkeys]} />
-        <MessageComposer channelId={channelId} channelName={channelName} onTyping={notifyTyping} />
+        <MessageComposer
+          channelId={channelId}
+          channelName={channelName}
+          onTyping={notifyTyping}
+        />
       </div>
 
       {/* Thread panel */}
@@ -114,6 +134,14 @@ export function ChannelView() {
           rootMessage={threadRootMessage}
           channelId={channelId}
           onClose={() => setThreadRootId(null)}
+        />
+      )}
+
+      {/* Members panel */}
+      {showMembers && (
+        <MembersSidebar
+          channelId={channelId}
+          onClose={() => setShowMembers(false)}
         />
       )}
     </div>
