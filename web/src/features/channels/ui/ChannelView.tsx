@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "@tanstack/react-router";
-import { Users } from "lucide-react";
+import { Settings, Users } from "lucide-react";
 import { useMessages } from "@/features/messages/use-messages";
 import { useChannels } from "@/features/channels/use-channels";
 import { useReactions } from "@/features/messages/use-reactions";
@@ -14,6 +14,7 @@ import { useTypingState } from "@/features/messages/useTypingState";
 import { TypingIndicator } from "@/features/messages/ui/TypingIndicator";
 import { ChannelFindBar } from "@/features/search/ui/ChannelFindBar";
 import { MembersSidebar } from "@/features/channels/ui/MembersSidebar";
+import { ChannelSettingsModal } from "@/features/channels/ui/ChannelSettingsModal";
 
 export function ChannelView() {
   const { channelId } = useParams({
@@ -30,6 +31,7 @@ export function ChannelView() {
   const [findQuery, setFindQuery] = useState("");
   const [findOpen, setFindOpen] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
   const { typingPubkeys, notifyTyping } = useTypingState(
     channelId,
     currentPubkey,
@@ -89,7 +91,15 @@ export function ChannelView() {
               {channel.description}
             </span>
           )}
-          <div className="ml-auto flex items-center">
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setChannelSettingsOpen(true)}
+              aria-label="Channel settings"
+              className="rounded p-1.5 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
             <button
               type="button"
               onClick={() => setShowMembers((v) => !v)}
@@ -144,6 +154,14 @@ export function ChannelView() {
           onClose={() => setShowMembers(false)}
         />
       )}
+
+      <ChannelSettingsModal
+        isOpen={channelSettingsOpen}
+        onClose={() => setChannelSettingsOpen(false)}
+        channelId={channelId}
+        channelName={channelName}
+        channelDescription={channel?.description ?? ""}
+      />
     </div>
   );
 }

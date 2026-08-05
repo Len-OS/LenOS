@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Hash, Settings } from "lucide-react";
+import { Hash, Plus, Settings } from "lucide-react";
 import { SettingsModal } from "@/features/settings/ui/SettingsModal";
+import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
 import { useChannels } from "@/features/channels/use-channels";
 import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
@@ -29,6 +30,7 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const workspace = useWorkspace();
   const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const workspaceName =
     workspace.status === "found" ? workspace.workspace.slug : "Workspace";
@@ -74,8 +76,18 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3">
-        <div className="mb-1 px-4 text-xs font-semibold uppercase tracking-wider text-black/40 dark:text-white/40">
-          Channels
+        <div className="mb-1 flex items-center px-4">
+          <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-black/40 dark:text-white/40">
+            Channels
+          </span>
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            aria-label="Create channel"
+            className="rounded p-0.5 text-black/30 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {channels.length === 0 && (
@@ -123,6 +135,11 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+      <CreateChannelModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        communityId={communityId ?? ""}
       />
     </div>
   );

@@ -46,28 +46,26 @@ function WorkspaceLayout() {
 
   return (
     <OnboardingGate>
-      <>
-        <WorkspaceShell
-          sidebar={
-            <ChannelsSidebar
-              activeChannelId={activeChannelId}
-              onSelectChannel={(id) =>
-                void navigate({
-                  to: "/channels/$channelId",
-                  params: { channelId: id },
-                })
-              }
-            />
-          }
-        >
-          <Outlet />
-        </WorkspaceShell>
-        <SearchModal
-          isOpen={searchOpen}
-          onClose={() => setSearchOpen(false)}
-          channels={channels}
-        />
-      </>
+      <WorkspaceShell
+        sidebar={
+          <ChannelsSidebar
+            activeChannelId={activeChannelId}
+            onSelectChannel={(id) =>
+              void navigate({
+                to: "/channels/$channelId",
+                params: { channelId: id },
+              })
+            }
+          />
+        }
+      >
+        <Outlet />
+      </WorkspaceShell>
+      <SearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        channels={channels}
+      />
     </OnboardingGate>
   );
 }
