@@ -1801,7 +1801,7 @@ Add `<TypingIndicator>` above the composer in `ChannelView.tsx`. Pass `notifyTyp
 
 ---
 
-## Phase 20 — Search (Global + In-Channel)
+## ✅ Phase 20 — Search (Global + In-Channel)
 
 **Goal:** Cmd+K global search modal; Ctrl+F in-channel find bar.
 

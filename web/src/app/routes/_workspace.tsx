@@ -4,9 +4,12 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { WorkspaceShell } from "@/features/workspace/ui/WorkspaceShell";
 import { ChannelsSidebar } from "@/features/channels/ui/ChannelsSidebar";
-import { useWorkspace } from "@/shared/lib/workspace-context";
+import { useWorkspace, useCommunityId } from "@/shared/lib/workspace-context";
+import { useChannels } from "@/features/channels/use-channels";
+import { SearchModal } from "@/features/search/ui/SearchModal";
 import {
   WorkspaceNotFound,
   WorkspaceLoadError,
@@ -18,6 +21,20 @@ function WorkspaceLayout() {
   const navigate = useNavigate();
   const params = useParams({ strict: false }) as { channelId?: string };
   const activeChannelId = params.channelId ?? null;
+  const communityId = useCommunityId();
+  const channels = useChannels(communityId);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   if (workspace.status === "loading") return <WorkspaceLoading />;
   if (workspace.status === "not_found")
@@ -27,21 +44,28 @@ function WorkspaceLayout() {
   if (workspace.status === "no_subdomain") return <Outlet />;
 
   return (
-    <WorkspaceShell
-      sidebar={
-        <ChannelsSidebar
-          activeChannelId={activeChannelId}
-          onSelectChannel={(id) =>
-            void navigate({
-              to: "/channels/$channelId",
-              params: { channelId: id },
-            })
-          }
-        />
-      }
-    >
-      <Outlet />
-    </WorkspaceShell>
+    <>
+      <WorkspaceShell
+        sidebar={
+          <ChannelsSidebar
+            activeChannelId={activeChannelId}
+            onSelectChannel={(id) =>
+              void navigate({
+                to: "/channels/$channelId",
+                params: { channelId: id },
+              })
+            }
+          />
+        }
+      >
+        <Outlet />
+      </WorkspaceShell>
+      <SearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        channels={channels}
+      />
+    </>
   );
 }
 
