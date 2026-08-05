@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Hash, Plus, Settings } from "lucide-react";
 import { SettingsModal } from "@/features/settings/ui/SettingsModal";
 import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
+import { DmList } from "@/features/messages/ui/DmList";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import { useChannels } from "@/features/channels/use-channels";
 import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
@@ -31,6 +33,13 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentPubkey()
+      .then(setCurrentPubkey)
+      .catch(() => {});
+  }, []);
 
   const workspaceName =
     workspace.status === "found" ? workspace.workspace.slug : "Workspace";
@@ -119,6 +128,9 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
             </button>
           );
         })}
+        <div className="mt-4 pb-2">
+          <DmList currentPubkey={currentPubkey} communityId={communityId} />
+        </div>
       </nav>
 
       <div className="shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">

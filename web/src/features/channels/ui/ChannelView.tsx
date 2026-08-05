@@ -17,9 +17,8 @@ import { MembersSidebar } from "@/features/channels/ui/MembersSidebar";
 import { ChannelSettingsModal } from "@/features/channels/ui/ChannelSettingsModal";
 
 export function ChannelView() {
-  const { channelId } = useParams({
-    from: "/_workspace/channels/$channelId",
-  });
+  const params = useParams({ strict: false }) as { channelId?: string };
+  const channelId = params.channelId ?? "";
   const communityId = useCommunityId();
   const channels = useChannels(communityId);
   const { messages, isLoading } = useMessages(channelId);
