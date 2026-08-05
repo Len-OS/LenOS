@@ -4,6 +4,8 @@ import { SettingsModal } from "@/features/settings/ui/SettingsModal";
 import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
 import { DmList } from "@/features/messages/ui/DmList";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { useUserStatus } from "@/features/profile/useUserStatus";
+import { StatusPicker } from "@/features/profile/ui/StatusPicker";
 import { useChannels } from "@/features/channels/use-channels";
 import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
@@ -34,6 +36,8 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const currentStatus = useUserStatus(currentPubkey ?? "");
 
   useEffect(() => {
     getCurrentPubkey()
@@ -133,15 +137,37 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
         </div>
       </nav>
 
-      <div className="shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">
-        <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white"
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </button>
+      <div className="relative shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">
+        {statusPickerOpen && currentPubkey && (
+          <div className="absolute bottom-full left-3 mb-1 z-30">
+            <StatusPicker
+              currentPubkey={currentPubkey}
+              onClose={() => setStatusPickerOpen(false)}
+            />
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setStatusPickerOpen((v) => !v)}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <span className="text-base leading-none">
+              {currentStatus?.emoji ?? "😶"}
+            </span>
+            <span className="truncate text-xs text-black/60 dark:text-white/60">
+              {currentStatus?.text || "Set a status"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
+            className="rounded-md p-1.5 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <SettingsModal
