@@ -1374,7 +1374,7 @@ In `ChannelView.tsx`, call `markRead(messages[messages.length - 1]?.createdAt)` 
 
 ---
 
-## Phase 15 — Message Reactions
+## ✅ Phase 15 — Message Reactions
 
 **Goal:** Display emoji reactions on messages; allow adding/removing reactions via kind 7 events.
 
@@ -1499,6 +1499,8 @@ export function MessageReactions({ messageId, channelId, reactions, currentPubke
 ```
 
 Update `MessageRow.tsx` to accept and render `<MessageReactions />`. Pass reactions from the parent; parent calls `useReactions(channelId, messageIds)` once and passes the full array down.
+
+**Deviations:** Added `getCurrentPubkey()` to `nostr-signer.ts` (not in plan) — needed to source `currentPubkey` for the reaction highlight. Biome `noAssignInExpressions` rejected `??=` inside `.reduce` — replaced with explicit `if (!acc[r.content]) acc[r.content] = []`.
 
 ---
 
@@ -2707,7 +2709,7 @@ This ensures Cloudflare Pages serves `index.html` for all paths (SPA fallback).
 | 12 | `use-profile.ts` — Nostr profile fetching | ✅ Done |
 | 13 | `Avatar.tsx` + `MessageRow.tsx` — avatars in timeline | ✅ |
 | 14 | Read state + unread badges in sidebar | ✅ |
-| 15 | Message reactions (kind 7) | ⬜ |
+| 15 | Message reactions (kind 7) | ✅ |
 | 16 | Message edit + delete (context menu) | ⬜ |
 | 17 | Thread / reply system + `ThreadPanel.tsx` | ⬜ |
 | 18 | ProseMirror rich text composer | ⬜ |

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Message } from "@/features/messages/use-messages";
+import type { Reaction } from "@/features/messages/use-reactions";
 import { KIND_SYSTEM_MESSAGE } from "@/shared/constants/kinds";
 import { MessageRow } from "@/features/messages/ui/MessageRow";
 
@@ -7,11 +8,21 @@ interface Props {
   messages: Message[];
   isLoading: boolean;
   channelName: string;
+  channelId: string;
+  reactions: Reaction[];
+  currentPubkey: string | null;
 }
 
 const GROUP_GAP_SECONDS = 300;
 
-export function MessageTimeline({ messages, isLoading, channelName }: Props) {
+export function MessageTimeline({
+  messages,
+  isLoading,
+  channelName,
+  channelId,
+  reactions,
+  currentPubkey,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to bottom when new messages arrive
@@ -70,7 +81,16 @@ export function MessageTimeline({ messages, isLoading, channelName }: Props) {
           prev.kind !== KIND_SYSTEM_MESSAGE &&
           msg.createdAt - prev.createdAt < GROUP_GAP_SECONDS;
 
-        return <MessageRow key={msg.id} msg={msg} isGrouped={isGrouped} />;
+        return (
+          <MessageRow
+            key={msg.id}
+            msg={msg}
+            isGrouped={isGrouped}
+            channelId={channelId}
+            reactions={reactions}
+            currentPubkey={currentPubkey}
+          />
+        );
       })}
       <div ref={bottomRef} />
     </div>

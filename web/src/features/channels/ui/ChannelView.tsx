@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useMessages } from "@/features/messages/use-messages";
 import { useChannels } from "@/features/channels/use-channels";
+import { useReactions } from "@/features/messages/use-reactions";
 import { useCommunityId } from "@/shared/lib/workspace-context";
 import { MessageTimeline } from "@/features/messages/ui/MessageTimeline";
 import { MessageComposer } from "@/features/messages/ui/MessageComposer";
 import { useReadState } from "@/features/channels/readState/useReadState";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 
 export function ChannelView() {
   const { channelId } = useParams({
@@ -15,6 +17,13 @@ export function ChannelView() {
   const channels = useChannels(communityId);
   const { messages, isLoading } = useMessages(channelId);
   const { markRead } = useReadState(channelId);
+  const messageIds = messages.map((m) => m.id);
+  const reactions = useReactions(channelId, messageIds);
+  const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentPubkey().then(setCurrentPubkey).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const last = messages[messages.length - 1];
@@ -41,6 +50,9 @@ export function ChannelView() {
         messages={messages}
         isLoading={isLoading}
         channelName={channelName}
+        channelId={channelId}
+        reactions={reactions}
+        currentPubkey={currentPubkey}
       />
 
       <MessageComposer channelId={channelId} channelName={channelName} />

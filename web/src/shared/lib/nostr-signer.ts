@@ -48,6 +48,18 @@ export function hasNip07Provider(): boolean {
   return typeof window !== "undefined" && window.nostr != null;
 }
 
+export async function getCurrentPubkey(): Promise<string | null> {
+  if (hasNip07Provider()) {
+    try {
+      // biome-ignore lint/style/noNonNullAssertion: guarded by hasNip07Provider()
+      return await window.nostr!.getPublicKey();
+    } catch {
+      return null;
+    }
+  }
+  return getPublicKey(getEphemeralSecretKey());
+}
+
 function sameUnsignedEvent(
   expected: UnsignedNostrEvent,
   actual: SignedNostrEvent,
