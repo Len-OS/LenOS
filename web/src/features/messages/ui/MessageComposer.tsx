@@ -13,9 +13,10 @@ import { RichComposer } from "@/features/messages/ui/RichComposer";
 interface Props {
   channelId: string;
   channelName: string;
+  onTyping?: () => void;
 }
 
-export function MessageComposer({ channelId, channelName }: Props) {
+export function MessageComposer({ channelId, channelName, onTyping }: Props) {
   const [pendingText, setPendingText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function MessageComposer({ channelId, channelName }: Props) {
           placeholder={`Message #${channelName}`}
           disabled={sending}
           onSubmit={(text) => void send(text)}
-          onTextChange={setPendingText}
+          onTextChange={(t) => { setPendingText(t); if (t) onTyping?.(); }}
           clearSignal={clearCount}
         />
         <button

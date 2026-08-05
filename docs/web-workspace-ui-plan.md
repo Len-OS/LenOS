@@ -1700,7 +1700,7 @@ Small toolbar above composer (only visible on focus or when text is selected). B
 
 ---
 
-## Phase 19 — Typing Indicators
+## ✅ Phase 19 — Typing Indicators
 
 **Goal:** Show "Alice is typing…" below the composer when someone else is typing.
 

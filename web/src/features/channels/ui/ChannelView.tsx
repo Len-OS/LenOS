@@ -9,6 +9,8 @@ import { MessageComposer } from "@/features/messages/ui/MessageComposer";
 import { ThreadPanel } from "@/features/messages/ui/ThreadPanel";
 import { useReadState } from "@/features/channels/readState/useReadState";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { useTypingState } from "@/features/messages/useTypingState";
+import { TypingIndicator } from "@/features/messages/ui/TypingIndicator";
 
 export function ChannelView() {
   const { channelId } = useParams({
@@ -22,6 +24,7 @@ export function ChannelView() {
   const reactions = useReactions(channelId, messageIds);
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
   const [threadRootId, setThreadRootId] = useState<string | null>(null);
+  const { typingPubkeys, notifyTyping } = useTypingState(channelId, currentPubkey);
 
   useEffect(() => {
     getCurrentPubkey()
@@ -66,7 +69,8 @@ export function ChannelView() {
           onOpenThread={setThreadRootId}
         />
 
-        <MessageComposer channelId={channelId} channelName={channelName} />
+        <TypingIndicator pubkeys={[...typingPubkeys]} />
+        <MessageComposer channelId={channelId} channelName={channelName} onTyping={notifyTyping} />
       </div>
 
       {/* Thread panel */}
