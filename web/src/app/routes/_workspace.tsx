@@ -5,12 +5,14 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import { WorkspaceShell } from "@/features/workspace/ui/WorkspaceShell";
 import { ChannelsSidebar } from "@/features/channels/ui/ChannelsSidebar";
 import { useWorkspace, useCommunityId } from "@/shared/lib/workspace-context";
 import { useChannels } from "@/features/channels/use-channels";
 import { SearchModal } from "@/features/search/ui/SearchModal";
 import { OnboardingGate } from "@/features/onboarding/ui/OnboardingGate";
+import { useFeedBrowserNotifications } from "@/features/notifications/useFeedBrowserNotifications";
 import {
   WorkspaceNotFound,
   WorkspaceLoadError,
@@ -25,6 +27,15 @@ function WorkspaceLayout() {
   const communityId = useCommunityId();
   const channels = useChannels(communityId);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentPubkey()
+      .then(setCurrentPubkey)
+      .catch(() => {});
+  }, []);
+
+  useFeedBrowserNotifications({ channels, currentPubkey, communityId });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
