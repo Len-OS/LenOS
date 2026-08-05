@@ -10,6 +10,7 @@ import { ChannelsSidebar } from "@/features/channels/ui/ChannelsSidebar";
 import { useWorkspace, useCommunityId } from "@/shared/lib/workspace-context";
 import { useChannels } from "@/features/channels/use-channels";
 import { SearchModal } from "@/features/search/ui/SearchModal";
+import { OnboardingGate } from "@/features/onboarding/ui/OnboardingGate";
 import {
   WorkspaceNotFound,
   WorkspaceLoadError,
@@ -44,28 +45,30 @@ function WorkspaceLayout() {
   if (workspace.status === "no_subdomain") return <Outlet />;
 
   return (
-    <>
-      <WorkspaceShell
-        sidebar={
-          <ChannelsSidebar
-            activeChannelId={activeChannelId}
-            onSelectChannel={(id) =>
-              void navigate({
-                to: "/channels/$channelId",
-                params: { channelId: id },
-              })
-            }
-          />
-        }
-      >
-        <Outlet />
-      </WorkspaceShell>
-      <SearchModal
-        isOpen={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        channels={channels}
-      />
-    </>
+    <OnboardingGate>
+      <>
+        <WorkspaceShell
+          sidebar={
+            <ChannelsSidebar
+              activeChannelId={activeChannelId}
+              onSelectChannel={(id) =>
+                void navigate({
+                  to: "/channels/$channelId",
+                  params: { channelId: id },
+                })
+              }
+            />
+          }
+        >
+          <Outlet />
+        </WorkspaceShell>
+        <SearchModal
+          isOpen={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          channels={channels}
+        />
+      </>
+    </OnboardingGate>
   );
 }
 
