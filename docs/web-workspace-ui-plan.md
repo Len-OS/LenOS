@@ -1504,7 +1504,7 @@ Update `MessageRow.tsx` to accept and render `<MessageReactions />`. Pass reacti
 
 ---
 
-## Phase 16 — Message Edit & Delete
+## ✅ Phase 16 — Message Edit & Delete
 
 **Goal:** Allow editing and deleting own messages via hover context menu.
 
@@ -1581,6 +1581,8 @@ export function useMessageActions() {
 Update `MessageRow.tsx` to be a `relative group` container, render `<MessageContextMenu />`, and handle inline edit mode (replace `<p>` with `<textarea>` when editing).
 
 Update `use-messages.ts` to handle kind 5 delete events: when a delete event arrives for a known message id, remove it from state.
+
+**Deviations:** `deleteMessage` takes `channelId` as second arg (not in plan) so the kind-5 event carries `["h", channelId]` — needed for the relay's channel-scoped subscription to deliver it. Live subscription extended to `LIVE_KINDS` = history kinds + `KIND_DELETION` so arriving kind-5 events are processed in real-time.
 
 ---
 
@@ -2710,7 +2712,7 @@ This ensures Cloudflare Pages serves `index.html` for all paths (SPA fallback).
 | 13 | `Avatar.tsx` + `MessageRow.tsx` — avatars in timeline | ✅ |
 | 14 | Read state + unread badges in sidebar | ✅ |
 | 15 | Message reactions (kind 7) | ✅ |
-| 16 | Message edit + delete (context menu) | ⬜ |
+| 16 | Message edit + delete (context menu) | ✅ |
 | 17 | Thread / reply system + `ThreadPanel.tsx` | ⬜ |
 | 18 | ProseMirror rich text composer | ⬜ |
 | 19 | Typing indicators | ⬜ |

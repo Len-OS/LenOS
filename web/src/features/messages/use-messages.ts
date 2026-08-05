@@ -6,6 +6,7 @@ import {
   KIND_STREAM_MESSAGE,
   KIND_STREAM_MESSAGE_V2,
   KIND_SYSTEM_MESSAGE,
+  KIND_DELETION,
 } from "@/shared/constants/kinds";
 
 export interface Message {
@@ -22,6 +23,7 @@ const HISTORY_KINDS = [
   KIND_STREAM_MESSAGE_V2,
   KIND_SYSTEM_MESSAGE,
 ];
+const LIVE_KINDS = [...HISTORY_KINDS, KIND_DELETION];
 const HISTORY_LIMIT = 50;
 
 export function useMessages(channelId: string | null): {
@@ -34,6 +36,19 @@ export function useMessages(channelId: string | null): {
 
   const addEvent = useCallback((raw: Record<string, unknown>) => {
     const id = raw.id as string;
+    const kind = (raw.kind as number) ?? 9;
+
+    // Handle kind 5 (NIP-09 deletion) — remove referenced messages from state
+    if (kind === KIND_DELETION) {
+      const tags = (raw.tags as string[][]) ?? [];
+      const deletedIds = tags.filter((t) => t[0] === "e").map((t) => t[1]);
+      if (deletedIds.length > 0) {
+        setMessages((prev) => prev.filter((m) => !deletedIds.includes(m.id)));
+        for (const did of deletedIds) seen.current.delete(did);
+      }
+      return;
+    }
+
     if (!id || seen.current.has(id)) return;
     seen.current.add(id);
     const msg: Message = {
@@ -41,7 +56,7 @@ export function useMessages(channelId: string | null): {
       pubkey: (raw.pubkey as string) ?? "",
       content: (raw.content as string) ?? "",
       createdAt: (raw.created_at as number) ?? 0,
-      kind: (raw.kind as number) ?? 9,
+      kind,
       tags: (raw.tags as string[][]) ?? [],
     };
     setMessages((prev) =>
@@ -78,7 +93,7 @@ export function useMessages(channelId: string | null): {
     const unsub = client.subscribe({
       id: subId,
       filter: {
-        kinds: HISTORY_KINDS,
+        kinds: LIVE_KINDS,
         "#h": [channelId],
         since,
       },
