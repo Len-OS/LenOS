@@ -1879,7 +1879,7 @@ Add a `useEffect` in `WorkspaceShell.tsx` (or `_workspace.tsx`) that listens for
 
 ---
 
-## Phase 21 — Settings Screen
+## ✅ Phase 21 — Settings Screen
 
 **Goal:** Settings modal (accessible via gear icon in sidebar footer) covering all web-relevant config sections.
 

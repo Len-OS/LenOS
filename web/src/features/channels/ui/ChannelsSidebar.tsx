@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Hash } from "lucide-react";
+import { Hash, Settings } from "lucide-react";
+import { SettingsModal } from "@/features/settings/ui/SettingsModal";
 import { useChannels } from "@/features/channels/use-channels";
 import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
@@ -27,6 +28,7 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const channels = useChannels(communityId);
   const workspace = useWorkspace();
   const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const workspaceName =
     workspace.status === "found" ? workspace.workspace.slug : "Workspace";
@@ -84,8 +86,7 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
 
         {channels.map((ch) => {
           const isActive = activeChannelId === ch.id;
-          const isUnread =
-            !isActive && hasUnread(ch.id, lastMsgAt[ch.id] ?? 0);
+          const isUnread = !isActive && hasUnread(ch.id, lastMsgAt[ch.id] ?? 0);
           return (
             <button
               key={ch.id}
@@ -107,6 +108,22 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
           );
         })}
       </nav>
+
+      <div className="shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white"
+        >
+          <Settings className="h-4 w-4" />
+          Settings
+        </button>
+      </div>
+
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 }

@@ -39,7 +39,14 @@ let ephemeralSecretKey: Uint8Array | null = null;
 
 function getEphemeralSecretKey(): Uint8Array {
   if (!ephemeralSecretKey) {
-    ephemeralSecretKey = generateSecretKey();
+    const stored = localStorage.getItem("lenos_privkey");
+    if (stored) {
+      // biome-ignore lint/style/noNonNullAssertion: hex string always matches /.{2}/g
+      const bytes = new Uint8Array(stored.match(/.{2}/g)!.map((b) => parseInt(b, 16)));
+      ephemeralSecretKey = bytes;
+    } else {
+      ephemeralSecretKey = generateSecretKey();
+    }
   }
   return ephemeralSecretKey;
 }

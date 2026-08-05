@@ -22,14 +22,17 @@ function getSystemDark(): boolean {
 }
 
 function getInitialTheme(): Theme {
-  if (!import.meta.env.DEV) return "system";
-
-  const previewTheme = new URLSearchParams(window.location.search).get(
-    "previewTheme",
-  );
-  return previewTheme === "light" || previewTheme === "dark"
-    ? previewTheme
-    : "system";
+  const stored = localStorage.getItem("lenos_theme") as Theme | null;
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored;
+  }
+  if (import.meta.env.DEV) {
+    const previewTheme = new URLSearchParams(window.location.search).get(
+      "previewTheme",
+    );
+    if (previewTheme === "light" || previewTheme === "dark") return previewTheme;
+  }
+  return "system";
 }
 
 function applyClass(isDark: boolean) {
@@ -67,6 +70,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {
+    localStorage.setItem("lenos_theme", t);
     setThemeState(t);
   }, []);
 
