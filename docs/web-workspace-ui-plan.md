@@ -1280,7 +1280,7 @@ Replace the per-message render in `MessageTimeline.tsx` with `<MessageRow msg={m
 
 ---
 
-## Phase 14 — Read State + Unread Badges
+## ✅ Phase 14 — Read State + Unread Badges
 
 **Goal:** Track which messages the user has read per channel; show unread dot badge in sidebar.
 
@@ -1369,6 +1369,8 @@ export function getUnreadCount(channelId: string, messages: Message[]): number {
 ### Auto-mark read
 
 In `ChannelView.tsx`, call `markRead(messages[messages.length - 1]?.createdAt)` when the channel is open and messages change. Use a `useEffect` with `[messages, channelId]`.
+
+**Deviations:** `ChannelsSidebar` uses a single `sidebar-unread` subscription (filter `#h: all channel ids`) rather than per-channel subscriptions, to avoid N WebSocket subscriptions. Biome correctly flagged the dep-array suppression as unused — removed it (deps are exhaustive).
 
 ---
 
@@ -2704,7 +2706,7 @@ This ensures Cloudflare Pages serves `index.html` for all paths (SPA fallback).
 | 11 | Wire + test + initial deploy | ✅ Done |
 | 12 | `use-profile.ts` — Nostr profile fetching | ✅ Done |
 | 13 | `Avatar.tsx` + `MessageRow.tsx` — avatars in timeline | ✅ |
-| 14 | Read state + unread badges in sidebar | ⬜ |
+| 14 | Read state + unread badges in sidebar | ✅ |
 | 15 | Message reactions (kind 7) | ⬜ |
 | 16 | Message edit + delete (context menu) | ⬜ |
 | 17 | Thread / reply system + `ThreadPanel.tsx` | ⬜ |
