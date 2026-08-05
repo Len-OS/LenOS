@@ -214,6 +214,8 @@ resource "aws_ecs_task_definition" "relay" {
       { name = "LENOS_MEDIA_BASE_URL",      value = "https://${var.domain_name}/media" },
       { name = "LENOS_RELAY_PRIVATE_KEY",   value = var.relay_private_key_hex },
       { name = "LENOS_AUTO_MIGRATE",        value = "true" },
+      { name = "RELAY_OPERATOR_PUBKEYS",    value = "ce928671e149874e5eb96078fe6c3dd0c485c90c26ba05cad98cc948550f9b78" },
+      { name = "RELAY_OPERATOR_API_ORIGIN", value = "https://relay.lengrowth.com" },
     ]
     logConfiguration = {
       logDriver = "awslogs"
