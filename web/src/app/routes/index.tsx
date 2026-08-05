@@ -5,7 +5,7 @@ import { ReposPage } from "@/features/repos/ui/ReposPage";
 export const Route = createFileRoute("/")({
   beforeLoad: () => {
     if (extractSlug()) {
-      throw redirect({ to: "/channels" });
+      throw redirect({ to: "/home" });
     }
   },
   component: ReposPage,

@@ -14,6 +14,7 @@ export const routes = rootRoute("root.tsx", [
     route("/messages/$channelId", "_workspace.messages.$channelId.tsx"),
     route("/repos", "_workspace.repos.tsx"),
     route("/workflows", "_workspace.workflows.tsx"),
+    route("/home", "_workspace.home.tsx"),
     route("/pulse", "_workspace.pulse.tsx"),
     route("/agents", "_workspace.agents.tsx"),
   ]),
