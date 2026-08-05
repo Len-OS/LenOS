@@ -187,11 +187,13 @@ In `LenOS/web/src/`:
 2. Build command: `pnpm build` (root of `/web`)
 3. Output dir: `web/dist`
 4. Add wildcard DNS in Cloudflare: `*.lengrowth.com` CNAME to Pages hostname (proxy ON)
-5. Web app reads subdomain at runtime → looks up community on relay → connects WebSocket
+5. Keep relay traffic separate from the Pages wildcard. The relay resolves tenants from the WebSocket `Host`, so browser relay URLs need a dedicated host family such as `<slug>.relay.lengrowth.com`, with DNS-only wildcard routing to the AWS ALB and an ACM certificate covering `*.relay.lengrowth.com`.
+6. Configure provisioning and the adapter to use that relay host family, then migrate existing community host rows before enabling it in production.
+7. Web app reads subdomain at runtime → looks up community on relay → connects WebSocket
 
 ### Alternative — Second ECS service
 
-Add a second Fargate service to the existing `lenos` cluster serving `web/dist/`, add ALB host-header routing rule for `*.lengrowth.com`.
+Add a second Fargate service to the existing `lenos` cluster serving `web/dist/`, add ALB host-header routing for the workspace web wildcard, and keep the relay host family on the relay target group.
 
 ---
 
