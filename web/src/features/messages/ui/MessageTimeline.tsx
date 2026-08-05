@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Message } from "@/features/messages/use-messages";
-import { truncatePubkey } from "@/shared/lib/pubkey";
-import { relativeTime } from "@/shared/lib/relative-time";
 import { KIND_SYSTEM_MESSAGE } from "@/shared/constants/kinds";
+import { MessageRow } from "@/features/messages/ui/MessageRow";
 
 interface Props {
   messages: Message[];
@@ -66,28 +65,12 @@ export function MessageTimeline({ messages, isLoading, channelName }: Props) {
 
         const prev = messages[i - 1];
         const isGrouped =
-          prev &&
+          !!prev &&
           prev.pubkey === msg.pubkey &&
           prev.kind !== KIND_SYSTEM_MESSAGE &&
           msg.createdAt - prev.createdAt < GROUP_GAP_SECONDS;
 
-        return (
-          <div key={msg.id} className={isGrouped ? "pl-0" : "mt-4"}>
-            {!isGrouped && (
-              <div className="mb-0.5 flex items-baseline gap-2">
-                <span className="text-sm font-semibold text-black dark:text-white">
-                  {truncatePubkey(msg.pubkey)}
-                </span>
-                <span className="text-xs text-black/40 dark:text-white/40">
-                  {relativeTime(msg.createdAt)}
-                </span>
-              </div>
-            )}
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-black/90 dark:text-white/85">
-              {msg.content}
-            </p>
-          </div>
-        );
+        return <MessageRow key={msg.id} msg={msg} isGrouped={isGrouped} />;
       })}
       <div ref={bottomRef} />
     </div>
