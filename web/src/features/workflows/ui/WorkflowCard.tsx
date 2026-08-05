@@ -44,7 +44,9 @@ export function WorkflowCard({ workflow, communityId }: Props) {
           <Zap className="h-4 w-4 text-black/50 dark:text-white/50" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-black dark:text-white">{workflow.name}</p>
+          <p className="font-semibold text-black dark:text-white">
+            {workflow.name}
+          </p>
           {workflow.description && (
             <p className="mt-0.5 text-sm text-black/50 dark:text-white/50">
               {workflow.description}

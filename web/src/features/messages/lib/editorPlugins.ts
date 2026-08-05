@@ -45,24 +45,48 @@ export function buildPlugins(schema: Schema, onSubmit: () => void) {
     keymap(baseKeymap),
     inputRules({
       rules: [
-        new InputRule(/\*\*(.+)\*\*$/, (state: EditorState, match: RegExpMatchArray, start: number, end: number): Transaction => {
-          const mark = boldMark.create();
-          return state.tr
-            .replaceWith(start, end, schema.text(match[1], [mark]))
-            .removeStoredMark(boldMark);
-        }),
-        new InputRule(/_(.+)_$/, (state: EditorState, match: RegExpMatchArray, start: number, end: number): Transaction => {
-          const mark = italicMark.create();
-          return state.tr
-            .replaceWith(start, end, schema.text(match[1], [mark]))
-            .removeStoredMark(italicMark);
-        }),
-        new InputRule(/`([^`]+)`$/, (state: EditorState, match: RegExpMatchArray, start: number, end: number): Transaction => {
-          const mark = codeMark.create();
-          return state.tr
-            .replaceWith(start, end, schema.text(match[1], [mark]))
-            .removeStoredMark(codeMark);
-        }),
+        new InputRule(
+          /\*\*(.+)\*\*$/,
+          (
+            state: EditorState,
+            match: RegExpMatchArray,
+            start: number,
+            end: number,
+          ): Transaction => {
+            const mark = boldMark.create();
+            return state.tr
+              .replaceWith(start, end, schema.text(match[1], [mark]))
+              .removeStoredMark(boldMark);
+          },
+        ),
+        new InputRule(
+          /_(.+)_$/,
+          (
+            state: EditorState,
+            match: RegExpMatchArray,
+            start: number,
+            end: number,
+          ): Transaction => {
+            const mark = italicMark.create();
+            return state.tr
+              .replaceWith(start, end, schema.text(match[1], [mark]))
+              .removeStoredMark(italicMark);
+          },
+        ),
+        new InputRule(
+          /`([^`]+)`$/,
+          (
+            state: EditorState,
+            match: RegExpMatchArray,
+            start: number,
+            end: number,
+          ): Transaction => {
+            const mark = codeMark.create();
+            return state.tr
+              .replaceWith(start, end, schema.text(match[1], [mark]))
+              .removeStoredMark(codeMark);
+          },
+        ),
       ],
     }),
   ];

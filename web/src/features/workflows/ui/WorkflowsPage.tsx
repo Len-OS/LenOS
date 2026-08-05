@@ -10,7 +10,9 @@ export function WorkflowsPage() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex h-12 shrink-0 items-center border-b border-black/10 px-4 dark:border-white/10">
-        <span className="font-semibold text-black dark:text-white">Workflows</span>
+        <span className="font-semibold text-black dark:text-white">
+          Workflows
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         {workflows.length === 0 ? (

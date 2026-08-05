@@ -82,9 +82,7 @@ export function useHomeInbox(currentPubkey: string | null): {
         const id = raw.id as string;
         const tags = (raw.tags as string[][]) ?? [];
         const channelId = tags.find((t) => t[0] === "h")?.[1] ?? "";
-        const replyTag = tags.find(
-          (t) => t[0] === "e" && t[3] === "reply",
-        );
+        const replyTag = tags.find((t) => t[0] === "e" && t[3] === "reply");
         const type: InboxItem["type"] = replyTag ? "thread_reply" : "mention";
         const item: InboxItem = {
           type,

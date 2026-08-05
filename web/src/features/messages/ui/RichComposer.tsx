@@ -1,4 +1,10 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  type MutableRefObject,
+} from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "@/features/messages/lib/editorSchema";
@@ -11,6 +17,7 @@ interface Props {
   onSubmit: (text: string) => void;
   onTextChange?: (text: string) => void;
   clearSignal?: number;
+  insertRef?: MutableRefObject<((text: string) => void) | null>;
 }
 
 function docToText(doc: EditorState["doc"]): string {
@@ -30,6 +37,7 @@ export function RichComposer({
   onSubmit,
   onTextChange,
   clearSignal,
+  insertRef,
 }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -39,6 +47,26 @@ export function RichComposer({
   const [focused, setFocused] = useState(false);
   onSubmitRef.current = onSubmit;
   onTextChangeRef.current = onTextChange;
+
+  // Expose imperative insert for emoji / autocomplete injection
+  useEffect(() => {
+    if (!insertRef) return;
+    insertRef.current = (text: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { state } = view;
+      const tr = state.tr.insertText(
+        text,
+        state.selection.from,
+        state.selection.to,
+      );
+      view.dispatch(tr);
+      view.focus();
+    };
+    return () => {
+      if (insertRef) insertRef.current = null;
+    };
+  }, [insertRef]);
 
   const handleSubmit = useCallback(() => {
     const view = viewRef.current;
@@ -65,8 +93,15 @@ export function RichComposer({
         }
       },
       handleDOMEvents: {
-        focus: () => { setFocused(true); setToolbarView(view); return false; },
-        blur: () => { setFocused(false); return false; },
+        focus: () => {
+          setFocused(true);
+          setToolbarView(view);
+          return false;
+        },
+        blur: () => {
+          setFocused(false);
+          return false;
+        },
       },
     });
     viewRef.current = view;
@@ -83,7 +118,10 @@ export function RichComposer({
     const view = viewRef.current;
     if (!view || clearSignal === undefined) return;
     view.updateState(
-      EditorState.create({ schema, plugins: buildPlugins(schema, handleSubmit) }),
+      EditorState.create({
+        schema,
+        plugins: buildPlugins(schema, handleSubmit),
+      }),
     );
     view.focus();
   }, [clearSignal, handleSubmit]);

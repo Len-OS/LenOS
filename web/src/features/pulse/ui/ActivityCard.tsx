@@ -66,9 +66,13 @@ export function ActivityCard({ item, channels }: Props) {
               </span>
             </>
           )}
-          <span className="ml-auto shrink-0">{relativeTime(item.createdAt)}</span>
+          <span className="ml-auto shrink-0">
+            {relativeTime(item.createdAt)}
+          </span>
         </div>
-        <p className="text-sm font-medium text-black dark:text-white">{displayName}</p>
+        <p className="text-sm font-medium text-black dark:text-white">
+          {displayName}
+        </p>
         {preview && (
           <p className="mt-0.5 text-sm text-black/60 dark:text-white/60">
             {preview}

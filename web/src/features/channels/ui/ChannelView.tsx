@@ -16,12 +16,14 @@ import { TypingIndicator } from "@/features/messages/ui/TypingIndicator";
 import { ChannelFindBar } from "@/features/search/ui/ChannelFindBar";
 import { MembersSidebar } from "@/features/channels/ui/MembersSidebar";
 import { ChannelSettingsModal } from "@/features/channels/ui/ChannelSettingsModal";
+import { useCustomEmoji } from "@/features/emoji/useCustomEmoji";
 
 export function ChannelView() {
   const params = useParams({ strict: false }) as { channelId?: string };
   const channelId = params.channelId ?? "";
   const communityId = useCommunityId();
   const channels = useChannels(communityId);
+  const customEmoji = useCustomEmoji(communityId);
   const { messages, isLoading } = useMessages(channelId);
   const { markRead } = useReadState(channelId);
   const messageIds = messages.map((m) => m.id);
@@ -136,12 +138,14 @@ export function ChannelView() {
               reactions={reactions}
               currentPubkey={currentPubkey}
               onOpenThread={setThreadRootId}
+              customEmoji={customEmoji}
             />
             <TypingIndicator pubkeys={[...typingPubkeys]} />
             <MessageComposer
               channelId={channelId}
               channelName={channelName}
               onTyping={notifyTyping}
+              customEmoji={customEmoji}
             />
           </>
         )}

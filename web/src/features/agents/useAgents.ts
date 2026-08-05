@@ -77,5 +77,7 @@ export function useAgents(communityId: string | null): Agent[] {
     };
   }, [communityId]);
 
-  return Array.from(agents.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(agents.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 }

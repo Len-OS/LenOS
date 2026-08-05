@@ -1,11 +1,8 @@
 import { useState } from "react";
 
 export function NotificationsSettingsPanel() {
-  const [permission, setPermission] = useState<NotificationPermission>(
-    () =>
-      typeof Notification !== "undefined"
-        ? Notification.permission
-        : "denied",
+  const [permission, setPermission] = useState<NotificationPermission>(() =>
+    typeof Notification !== "undefined" ? Notification.permission : "denied",
   );
 
   const request = async () => {

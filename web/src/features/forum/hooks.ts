@@ -19,9 +19,14 @@ export interface ForumReply {
   createdAt: number;
 }
 
-export function useForumPosts(channelId: string): { posts: ForumPost[]; isLoading: boolean } {
+export function useForumPosts(channelId: string): {
+  posts: ForumPost[];
+  isLoading: boolean;
+} {
   const [posts, setPosts] = useState<Map<string, ForumPost>>(new Map());
-  const [replyCounts, setReplyCounts] = useState<Map<string, number>>(new Map());
+  const [replyCounts, setReplyCounts] = useState<Map<string, number>>(
+    new Map(),
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -119,7 +124,12 @@ export function useForumThread(channelId: string, postId: string | null) {
 
     const unsubReplies = client.subscribe({
       id: `forum-thread-${postId}`,
-      filter: { kinds: [KIND_FORUM_COMMENT], "#e": [postId], "#h": [channelId], limit: 200 },
+      filter: {
+        kinds: [KIND_FORUM_COMMENT],
+        "#e": [postId],
+        "#h": [channelId],
+        limit: 200,
+      },
       onEvent: (raw) => {
         const reply: ForumReply = {
           id: raw.id as string,

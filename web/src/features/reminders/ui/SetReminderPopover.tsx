@@ -27,13 +27,21 @@ function nextWeek(hour = 9): number {
 }
 
 const PRESETS = [
-  { label: "20 minutes", expiry: () => Math.floor(Date.now() / 1000) + 20 * 60 },
+  {
+    label: "20 minutes",
+    expiry: () => Math.floor(Date.now() / 1000) + 20 * 60,
+  },
   { label: "1 hour", expiry: () => Math.floor(Date.now() / 1000) + 3600 },
   { label: "Tomorrow", expiry: () => nextDay() },
   { label: "Next week", expiry: () => nextWeek() },
 ] as const;
 
-export function SetReminderPopover({ messageId, channelId, content, onClose }: Props) {
+export function SetReminderPopover({
+  messageId,
+  channelId,
+  content,
+  onClose,
+}: Props) {
   const [saving, setSaving] = useState(false);
   const [customDate, setCustomDate] = useState("");
 

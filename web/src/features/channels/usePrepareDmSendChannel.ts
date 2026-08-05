@@ -26,12 +26,7 @@ export async function prepareDmSendChannel(
     {
       kind: 9007,
       content: "",
-      tags: [
-        ["d", channelId],
-        ["h", communityId],
-        ["private"],
-        ...pTags,
-      ],
+      tags: [["d", channelId], ["h", communityId], ["private"], ...pTags],
     },
     { requireNip07: false },
   );

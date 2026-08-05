@@ -12,7 +12,12 @@ interface Props {
   parentEventId?: string;
 }
 
-export function ForumComposer({ channelId, onClose, isReply, parentEventId }: Props) {
+export function ForumComposer({
+  channelId,
+  onClose,
+  isReply,
+  parentEventId,
+}: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -31,7 +36,10 @@ export function ForumComposer({ channelId, onClose, isReply, parentEventId }: Pr
         tags.push(["e", parentEventId]);
       }
       const kind = isReply ? KIND_FORUM_COMMENT : KIND_FORUM_POST;
-      const signed = await signNostrEvent({ kind, content: body.trim(), tags }, { requireNip07: true });
+      const signed = await signNostrEvent(
+        { kind, content: body.trim(), tags },
+        { requireNip07: true },
+      );
       getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
       onClose();
     } catch (e) {

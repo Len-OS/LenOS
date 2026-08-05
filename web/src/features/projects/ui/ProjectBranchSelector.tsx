@@ -7,7 +7,11 @@ interface Props {
   onSelectRef: (ref: string) => void;
 }
 
-export function ProjectBranchSelector({ refs, currentRef, onSelectRef }: Props) {
+export function ProjectBranchSelector({
+  refs,
+  currentRef,
+  onSelectRef,
+}: Props) {
   const branches = refs?.branches ?? [];
   if (branches.length === 0) return null;
 

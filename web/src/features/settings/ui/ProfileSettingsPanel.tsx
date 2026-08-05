@@ -12,7 +12,11 @@ interface Profile {
 
 export function ProfileSettingsPanel() {
   const [pubkey, setPubkey] = useState<string | null>(null);
-  const [form, setForm] = useState<Profile>({ name: "", about: "", picture: "" });
+  const [form, setForm] = useState<Profile>({
+    name: "",
+    about: "",
+    picture: "",
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -55,7 +59,10 @@ export function ProfileSettingsPanel() {
   return (
     <div className="max-w-md">
       <div className="mb-4">
-        <label htmlFor="profile-name" className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70">
+        <label
+          htmlFor="profile-name"
+          className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70"
+        >
           Display name
         </label>
         <input
@@ -67,7 +74,10 @@ export function ProfileSettingsPanel() {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="profile-about" className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70">
+        <label
+          htmlFor="profile-about"
+          className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70"
+        >
           About
         </label>
         <textarea
@@ -79,7 +89,10 @@ export function ProfileSettingsPanel() {
         />
       </div>
       <div className="mb-6">
-        <label htmlFor="profile-picture" className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70">
+        <label
+          htmlFor="profile-picture"
+          className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70"
+        >
           Picture URL
         </label>
         <input

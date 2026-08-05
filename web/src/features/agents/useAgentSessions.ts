@@ -13,7 +13,9 @@ export interface AgentSession {
 }
 
 export function useAgentSessions(agentPubkey: string | null): AgentSession[] {
-  const [sessions, setSessions] = useState<Map<string, AgentSession>>(new Map());
+  const [sessions, setSessions] = useState<Map<string, AgentSession>>(
+    new Map(),
+  );
 
   useEffect(() => {
     if (!agentPubkey) return;
@@ -52,5 +54,7 @@ export function useAgentSessions(agentPubkey: string | null): AgentSession[] {
     };
   }, [agentPubkey]);
 
-  return Array.from(sessions.values()).sort((a, b) => b.createdAt - a.createdAt);
+  return Array.from(sessions.values()).sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
 }

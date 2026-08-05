@@ -19,7 +19,10 @@ export function ProfileSetupStep({ onComplete }: Props) {
     try {
       const pubkey = await getCurrentPubkey();
       if (!pubkey) throw new Error("No identity available.");
-      const content = JSON.stringify({ name: name.trim(), picture: picture.trim() });
+      const content = JSON.stringify({
+        name: name.trim(),
+        picture: picture.trim(),
+      });
       const signed = await signNostrEvent(
         { kind: 0, content, tags: [] },
         { requireNip07: false },

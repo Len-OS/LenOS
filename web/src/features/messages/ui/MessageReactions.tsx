@@ -63,7 +63,9 @@ export function MessageReactions({
             ].join(" ")}
           >
             <span>{emoji}</span>
-            <span className="text-black/50 dark:text-white/50">{rs.length}</span>
+            <span className="text-black/50 dark:text-white/50">
+              {rs.length}
+            </span>
           </button>
         );
       })}

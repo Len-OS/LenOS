@@ -2,7 +2,10 @@ const STORAGE_KEY = "lenos_muted_channels";
 
 function load(): Record<string, boolean> {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<string, boolean>;
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<
+      string,
+      boolean
+    >;
   } catch {
     return {};
   }

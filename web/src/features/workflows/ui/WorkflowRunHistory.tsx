@@ -32,7 +32,9 @@ export function WorkflowRunHistory({ workflowId }: Props) {
         };
         setRuns((prev) => {
           if (prev.some((r) => r.id === run.id)) return prev;
-          return [run, ...prev].sort((a, b) => b.createdAt - a.createdAt).slice(0, 10);
+          return [run, ...prev]
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 10);
         });
       },
     });

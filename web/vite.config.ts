@@ -31,16 +31,28 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules/prosemirror") || id.includes("node_modules/@tiptap")) {
+          if (
+            id.includes("node_modules/prosemirror") ||
+            id.includes("node_modules/@tiptap")
+          ) {
             return "editor";
           }
-          if (id.includes("node_modules/emoji-mart") || id.includes("node_modules/@emoji-mart")) {
+          if (
+            id.includes("node_modules/emoji-mart") ||
+            id.includes("node_modules/@emoji-mart")
+          ) {
             return "emoji";
           }
-          if (id.includes("node_modules/nostr-tools") || id.includes("node_modules/@noble")) {
+          if (
+            id.includes("node_modules/nostr-tools") ||
+            id.includes("node_modules/@noble")
+          ) {
             return "nostr";
           }
-          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) {
+          if (
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/react/")
+          ) {
             return "react";
           }
         },

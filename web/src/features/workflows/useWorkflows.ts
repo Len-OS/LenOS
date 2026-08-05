@@ -56,5 +56,7 @@ export function useWorkflows(communityId: string | null): Workflow[] {
     };
   }, [communityId]);
 
-  return Array.from(workflows.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(workflows.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 }

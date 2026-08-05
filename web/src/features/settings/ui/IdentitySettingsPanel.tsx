@@ -9,7 +9,9 @@ export function IdentitySettingsPanel() {
   const [imported, setImported] = useState(false);
 
   useEffect(() => {
-    getCurrentPubkey().then(setPubkey).catch(() => {});
+    getCurrentPubkey()
+      .then(setPubkey)
+      .catch(() => {});
   }, []);
 
   const npub = pubkey ? nip19.npubEncode(pubkey) : null;

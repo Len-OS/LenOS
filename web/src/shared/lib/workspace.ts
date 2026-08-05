@@ -51,7 +51,7 @@ const LENGROWTH_API = "https://growth-api.lenquant.com";
 
 export async function fetchWorkspace(slug: string): Promise<WorkspaceInfo> {
   const response = await fetch(
-    `${LENGROWTH_API}/public/workspace/${encodeURIComponent(slug)}`,
+    `${LENGROWTH_API}/api/public/workspace/${encodeURIComponent(slug)}`,
     { signal: AbortSignal.timeout(8_000) },
   );
 

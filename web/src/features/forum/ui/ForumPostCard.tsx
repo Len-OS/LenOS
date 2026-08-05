@@ -13,7 +13,8 @@ interface Props {
 export function ForumPostCard({ post, onClick }: Props) {
   const profile = useProfile(post.pubkey);
   const displayName = profile?.name || truncatePubkey(post.pubkey);
-  const preview = post.content.length > 200 ? `${post.content.slice(0, 200)}…` : post.content;
+  const preview =
+    post.content.length > 200 ? `${post.content.slice(0, 200)}…` : post.content;
 
   return (
     <button

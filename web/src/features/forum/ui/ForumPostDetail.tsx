@@ -56,7 +56,9 @@ export function ForumPostDetail({ channelId, postId }: Props) {
       <div className="flex h-12 shrink-0 items-center border-b border-black/10 px-4 dark:border-white/10">
         <button
           type="button"
-          onClick={() => void navigate({ to: "/channels/$channelId", params: { channelId } })}
+          onClick={() =>
+            void navigate({ to: "/channels/$channelId", params: { channelId } })
+          }
           aria-label="Back to forum"
           className="mr-3 rounded p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
         >
@@ -81,7 +83,11 @@ export function ForumPostDetail({ channelId, postId }: Props) {
                 </h1>
               )}
               <div className="mb-3 flex items-center gap-2">
-                <Avatar src={authorProfile?.picture} name={authorName} size={24} />
+                <Avatar
+                  src={authorProfile?.picture}
+                  name={authorName}
+                  size={24}
+                />
                 <span className="text-sm font-medium text-black/70 dark:text-white/70">
                   {authorName}
                 </span>
@@ -126,7 +132,9 @@ export function ForumPostDetail({ channelId, postId }: Props) {
             )}
           </>
         ) : (
-          <p className="text-sm text-black/40 dark:text-white/40">Post not found.</p>
+          <p className="text-sm text-black/40 dark:text-white/40">
+            Post not found.
+          </p>
         )}
       </div>
     </div>

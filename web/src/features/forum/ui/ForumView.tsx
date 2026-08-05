@@ -11,7 +11,11 @@ interface Props {
   currentPubkey: string | null;
 }
 
-export function ForumView({ channelId, channelName: _channelName, currentPubkey: _currentPubkey }: Props) {
+export function ForumView({
+  channelId,
+  channelName: _channelName,
+  currentPubkey: _currentPubkey,
+}: Props) {
   const navigate = useNavigate();
   const { posts, isLoading } = useForumPosts(channelId);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -20,7 +24,10 @@ export function ForumView({ channelId, channelName: _channelName, currentPubkey:
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="shrink-0 border-b border-black/10 p-4 dark:border-white/10">
         {composerOpen ? (
-          <ForumComposer channelId={channelId} onClose={() => setComposerOpen(false)} />
+          <ForumComposer
+            channelId={channelId}
+            onClose={() => setComposerOpen(false)}
+          />
         ) : (
           <button
             type="button"

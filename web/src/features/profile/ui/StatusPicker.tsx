@@ -5,7 +5,20 @@ import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 import { KIND_USER_STATUS } from "@/shared/constants/kinds";
 
-const QUICK_EMOJIS = ["😊", "🎯", "🔥", "💡", "🚀", "😴", "🎉", "🤔", "☕", "🏖️", "🏃", "🎵"];
+const QUICK_EMOJIS = [
+  "😊",
+  "🎯",
+  "🔥",
+  "💡",
+  "🚀",
+  "😴",
+  "🎉",
+  "🤔",
+  "☕",
+  "🏖️",
+  "🏃",
+  "🎵",
+];
 
 const EXPIRY_OPTIONS = [
   { label: "30 min", seconds: 30 * 60 },

@@ -28,13 +28,28 @@ export function buildSidebarSections(
   const sections: SidebarSection[] = [];
 
   if (starred.length > 0) {
-    sections.push({ id: "starred", label: "Starred", channels: starred, defaultCollapsed: false });
+    sections.push({
+      id: "starred",
+      label: "Starred",
+      channels: starred,
+      defaultCollapsed: false,
+    });
   }
 
-  sections.push({ id: "channels", label: "Channels", channels: regular, defaultCollapsed: false });
+  sections.push({
+    id: "channels",
+    label: "Channels",
+    channels: regular,
+    defaultCollapsed: false,
+  });
 
   if (muted.length > 0) {
-    sections.push({ id: "muted", label: "Muted", channels: muted, defaultCollapsed: true });
+    sections.push({
+      id: "muted",
+      label: "Muted",
+      channels: muted,
+      defaultCollapsed: true,
+    });
   }
 
   return sections;

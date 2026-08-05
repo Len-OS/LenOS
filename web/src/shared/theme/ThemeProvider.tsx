@@ -30,7 +30,8 @@ function getInitialTheme(): Theme {
     const previewTheme = new URLSearchParams(window.location.search).get(
       "previewTheme",
     );
-    if (previewTheme === "light" || previewTheme === "dark") return previewTheme;
+    if (previewTheme === "light" || previewTheme === "dark")
+      return previewTheme;
   }
   return "system";
 }

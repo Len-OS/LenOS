@@ -15,9 +15,16 @@ import {
   getStarredOrder,
   toggleStar as storageStar,
 } from "./lib/starredChannels";
-import { buildSidebarSections, type SidebarSection } from "./lib/sidebarSections";
+import {
+  buildSidebarSections,
+  type SidebarSection,
+} from "./lib/sidebarSections";
 
-const UNREAD_KINDS = [KIND_STREAM_MESSAGE, KIND_STREAM_MESSAGE_V2, KIND_SYSTEM_MESSAGE];
+const UNREAD_KINDS = [
+  KIND_STREAM_MESSAGE,
+  KIND_STREAM_MESSAGE_V2,
+  KIND_SYSTEM_MESSAGE,
+];
 
 interface Params {
   channels: Channel[];
@@ -36,22 +43,36 @@ interface SidebarState {
   isUnread: (channelId: string) => boolean;
 }
 
-export function useSidebarState({ channels, communityId }: Params): SidebarState {
+export function useSidebarState({
+  channels,
+  communityId,
+}: Params): SidebarState {
   const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
   const [mutedIds, setMutedIds] = useState<Set<string>>(() => getMutedIds());
-  const [starredIds, setStarredIds] = useState<Set<string>>(() => getStarredIds());
-  const [starredOrder, setStarredOrder] = useState<string[]>(() => getStarredOrder());
+  const [starredIds, setStarredIds] = useState<Set<string>>(() =>
+    getStarredIds(),
+  );
+  const [starredOrder, setStarredOrder] = useState<string[]>(() =>
+    getStarredOrder(),
+  );
   const [unreadOnly, setUnreadOnly] = useState(false);
 
-  const rawSections = buildSidebarSections(channels, mutedIds, starredIds, starredOrder);
+  const rawSections = buildSidebarSections(
+    channels,
+    mutedIds,
+    starredIds,
+    starredOrder,
+  );
 
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    const collapsed = new Set<string>();
-    for (const s of rawSections) {
-      if (s.defaultCollapsed) collapsed.add(s.id);
-    }
-    return collapsed;
-  });
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => {
+      const collapsed = new Set<string>();
+      for (const s of rawSections) {
+        if (s.defaultCollapsed) collapsed.add(s.id);
+      }
+      return collapsed;
+    },
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: channels identity changes on every relay event; channels.length+communityId avoids infinite loop
   useEffect(() => {

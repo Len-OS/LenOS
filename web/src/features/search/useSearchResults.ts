@@ -14,10 +14,7 @@ export interface SearchResult {
   channelId: string;
 }
 
-export function useSearchResults(
-  query: string,
-  communityId: string | null,
-) {
+export function useSearchResults(query: string, communityId: string | null) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +39,7 @@ export function useSearchResults(
             content: e.content as string,
             createdAt: e.created_at as number,
             channelId:
-              ((e.tags as string[][])?.find((t) => t[0] === "h")?.[1]) ?? "",
+              (e.tags as string[][])?.find((t) => t[0] === "h")?.[1] ?? "",
           })),
         );
       })

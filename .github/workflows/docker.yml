@@ -329,6 +329,7 @@ jobs:
 
   push-gateway-build:
     name: Build public push gateway (${{ matrix.platform }})
+    if: false # disabled until mobile push notifications are ready
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     permissions:
@@ -406,7 +407,7 @@ jobs:
 
   push-gateway-merge:
     name: Publish public push gateway image
-    if: github.event_name != 'pull_request'
+    if: false # disabled until mobile push notifications are ready
     runs-on: ubuntu-24.04
     needs: push-gateway-build
     timeout-minutes: 15

@@ -72,56 +72,56 @@ export function SettingsModal({ isOpen, onClose }: Props) {
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-        <aside className="flex w-52 shrink-0 flex-col border-r border-black/10 p-3 dark:border-white/10">
-          <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-widest text-black/40 dark:text-white/40">
-            Settings
-          </p>
-          {SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setActive(s.id)}
-              className={`rounded-md px-3 py-1.5 text-left text-sm ${
-                active === s.id
-                  ? "bg-black/[0.08] font-medium text-black dark:bg-white/10 dark:text-white"
-                  : "text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/5"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </aside>
+          <aside className="flex w-52 shrink-0 flex-col border-r border-black/10 p-3 dark:border-white/10">
+            <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-widest text-black/40 dark:text-white/40">
+              Settings
+            </p>
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActive(s.id)}
+                className={`rounded-md px-3 py-1.5 text-left text-sm ${
+                  active === s.id
+                    ? "bg-black/[0.08] font-medium text-black dark:bg-white/10 dark:text-white"
+                    : "text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/5"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </aside>
 
-        <main className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/10">
-            <h2 className="text-base font-semibold text-black dark:text-white">
-              {SECTIONS.find((s) => s.id === active)?.label}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
-              aria-label="Close settings"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-            <Suspense
-              fallback={
-                <p className="text-sm text-black/40 dark:text-white/40">
-                  Loading…
-                </p>
-              }
-            >
-              {active === "profile" && <ProfilePanel />}
-              {active === "identity" && <IdentityPanel />}
-              {active === "appearance" && <AppearancePanel />}
-              {active === "notifications" && <NotificationsPanel />}
-              {active === "relay" && <RelayPanel />}
-            </Suspense>
-          </div>
-        </main>
+          <main className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/10">
+              <h2 className="text-base font-semibold text-black dark:text-white">
+                {SECTIONS.find((s) => s.id === active)?.label}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
+                aria-label="Close settings"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <Suspense
+                fallback={
+                  <p className="text-sm text-black/40 dark:text-white/40">
+                    Loading…
+                  </p>
+                }
+              >
+                {active === "profile" && <ProfilePanel />}
+                {active === "identity" && <IdentityPanel />}
+                {active === "appearance" && <AppearancePanel />}
+                {active === "notifications" && <NotificationsPanel />}
+                {active === "relay" && <RelayPanel />}
+              </Suspense>
+            </div>
+          </main>
         </div>
       </div>
     </>
