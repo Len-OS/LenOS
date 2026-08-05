@@ -5,13 +5,17 @@ export const routes = rootRoute("root.tsx", [
   layout("_workspace.tsx", [
     route("/channels", "_workspace.channels.tsx"),
     route("/channels/$channelId", "_workspace.channels.$channelId.tsx"),
-    route("/channels/$channelId/posts/$postId", "_workspace.channels.$channelId.posts.$postId.tsx"),
+    route(
+      "/channels/$channelId/posts/$postId",
+      "_workspace.channels.$channelId.posts.$postId.tsx",
+    ),
     route("/messages", "_workspace.messages.tsx"),
     route("/messages/new", "_workspace.messages.new.tsx"),
     route("/messages/$channelId", "_workspace.messages.$channelId.tsx"),
     route("/repos", "_workspace.repos.tsx"),
     route("/workflows", "_workspace.workflows.tsx"),
     route("/pulse", "_workspace.pulse.tsx"),
+    route("/agents", "_workspace.agents.tsx"),
   ]),
   route("/invite/$code", "invite.$code.tsx"),
   route("/repos/$repoId", "repos.$repoId.tsx"),

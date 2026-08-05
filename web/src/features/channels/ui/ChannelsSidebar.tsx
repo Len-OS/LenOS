@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Activity,
+  Bot,
   ChevronDown,
   ChevronRight,
   Hash,
@@ -134,11 +135,12 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
 
               {!isCollapsed && (
                 <div>
-                  {section.channels.length === 0 && section.id === "channels" && (
-                    <div className="px-5 py-1 text-xs text-black/30 dark:text-white/30">
-                      No channels yet
-                    </div>
-                  )}
+                  {section.channels.length === 0 &&
+                    section.id === "channels" && (
+                      <div className="px-5 py-1 text-xs text-black/30 dark:text-white/30">
+                        No channels yet
+                      </div>
+                    )}
                   {section.channels.map((ch) => {
                     const isActive = activeChannelId === ch.id;
                     const unread = isUnread(ch.id);
@@ -229,7 +231,10 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
           <Link
             to="/workflows"
             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
-            activeProps={{ className: "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white" }}
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
           >
             <Zap className="h-3.5 w-3.5 shrink-0 opacity-50" />
             Workflows
@@ -237,10 +242,24 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
           <Link
             to="/pulse"
             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
-            activeProps={{ className: "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white" }}
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
           >
             <Activity className="h-3.5 w-3.5 shrink-0 opacity-50" />
             Pulse
+          </Link>
+          <Link
+            to="/agents"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
+          >
+            <Bot className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            Agents
           </Link>
         </div>
       </nav>
