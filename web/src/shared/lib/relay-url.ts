@@ -9,13 +9,8 @@ export function relayHttpUrl(wsUrl: string): string {
   return wsUrl;
 }
 
-/** Read the relay WebSocket URL from environment or derive from window.location. */
 export function relayWsUrl(): string {
-  const envUrl = import.meta.env.VITE_RELAY_URL;
-  if (envUrl) return envUrl;
-  // Same-origin: derive from current page location (works when served from relay)
-  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}`;
+  return import.meta.env.VITE_RELAY_URL ?? "wss://relay.lengrowth.com";
 }
 
 /** HTTP base URL for the relay (derived from the WS URL). */

@@ -45,7 +45,7 @@
 
 ---
 
-## Phase 0 — Pre-work: Bootstrap Source for community_id
+## ✅ Phase 0 — Pre-work: Bootstrap Source for community_id
 
 **ALREADY INVESTIGATED — do not repeat this research.**
 
@@ -132,9 +132,11 @@ VITE_RELAY_URL=wss://relay.lengrowth.com
 
 **Phase 0 is complete. Proceed to Phase 1.**
 
+**Deviations:** Also fixed pre-existing lint error in `workspace-context.tsx` (`slug!` → `slug as string`) required by `pnpm check`. Pre-existing format issues in `lenos-download.ts` and `tests/e2e/smoke.spec.ts` auto-fixed by biome formatter.
+
 ---
 
-## Phase 1 — Persistent Relay Client
+## ✅ Phase 1 — Persistent Relay Client
 
 **File to create:** `web/src/shared/lib/relay-live-client.ts`
 

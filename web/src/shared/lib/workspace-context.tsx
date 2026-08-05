@@ -22,7 +22,7 @@ const slug = extractSlug();
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["workspace", slug],
-    queryFn: () => fetchWorkspace(slug!),
+    queryFn: () => fetchWorkspace(slug as string),
     enabled: slug !== null,
     retry: (failureCount, err) => {
       if (err instanceof WorkspaceNotFoundError) return false;

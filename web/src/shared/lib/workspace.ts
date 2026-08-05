@@ -1,5 +1,3 @@
-import { relayHttpBaseUrl } from "./relay-url";
-
 const PRODUCTION_DOMAIN = "lengrowth.com";
 const RESERVED_SLUGS = new Set([
   "www",
@@ -49,22 +47,22 @@ export function extractSlug(): string | null {
   return slug;
 }
 
+const LENGROWTH_API = "https://growth-api.lenquant.com";
 
 export async function fetchWorkspace(slug: string): Promise<WorkspaceInfo> {
-  // The relay maps the subdomain host to a community automatically on WebSocket
-  // connect. Verify existence via NIP-11 relay info (public, no auth needed).
-  const base = relayHttpBaseUrl().replace(/\/+$/, "");
-  const url = `${base}/`;
+  const response = await fetch(
+    `${LENGROWTH_API}/public/workspace/${encodeURIComponent(slug)}`,
+    { signal: AbortSignal.timeout(8_000) },
+  );
 
-  const response = await fetch(url, {
-    headers: { Accept: "application/nostr+json" },
-    signal: AbortSignal.timeout(8_000),
-  });
-
-  // NIP-11 returns 200 with relay metadata when the host is valid.
-  // A 404 means no community is configured for this subdomain.
   if (response.status === 404) throw new WorkspaceNotFoundError(slug);
   if (!response.ok) throw new WorkspaceNotFoundError(slug);
 
-  return { slug, communityId: "" };
+  const data = (await response.json()) as {
+    slug: string;
+    relay_community_id: string;
+    relay_url: string;
+  };
+
+  return { slug: data.slug, communityId: data.relay_community_id };
 }

@@ -1,4 +1,5 @@
-export const LENOS_RELEASES_URL = "https://github.com/BuildGrowthNow/LenOS/releases";
+export const LENOS_RELEASES_URL =
+  "https://github.com/BuildGrowthNow/LenOS/releases";
 const LENOS_RELEASES_API_URL =
   "https://api.github.com/repos/BuildGrowthNow/LenOS/releases?per_page=10";
 const CACHE_KEY = "lenos.latestDownload.v1";
