@@ -13,6 +13,8 @@ export const routes = rootRoute("root.tsx", [
     route("/messages/new", "_workspace.messages.new.tsx"),
     route("/messages/$channelId", "_workspace.messages.$channelId.tsx"),
     route("/repos", "_workspace.repos.tsx"),
+    route("/repos/$repoId", "_workspace.repos.$repoId.tsx"),
+    route("/repos/$repoId/blob/$", "_workspace.repos.$repoId.blob.$.tsx"),
     route("/workflows", "_workspace.workflows.tsx"),
     route("/home", "_workspace.home.tsx"),
     route("/reminders", "_workspace.reminders.tsx"),
@@ -20,6 +22,4 @@ export const routes = rootRoute("root.tsx", [
     route("/agents", "_workspace.agents.tsx"),
   ]),
   route("/invite/$code", "invite.$code.tsx"),
-  route("/repos/$repoId", "repos.$repoId.tsx"),
-  route("/repos/$repoId/blob/$", "repos.$repoId.blob.$.tsx"),
 ]);

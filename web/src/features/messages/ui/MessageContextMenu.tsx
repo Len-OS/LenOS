@@ -1,22 +1,43 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Message } from "@/features/messages/use-messages";
 import { ReportDialog } from "@/features/moderation/ui/ReportDialog";
+import { SetReminderPopover } from "@/features/reminders/ui/SetReminderPopover";
 
 interface Props {
   msg: Message;
+  channelId: string;
   currentPubkey: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  onReply?: () => void;
 }
 
 export function MessageContextMenu({
   msg,
+  channelId,
   currentPubkey,
   onEdit,
   onDelete,
+  onReply,
 }: Props) {
   const isOwn = currentPubkey !== null && msg.pubkey === currentPubkey;
   const [reportOpen, setReportOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const reminderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!reminderOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        reminderRef.current &&
+        !reminderRef.current.contains(e.target as Node)
+      ) {
+        setReminderOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [reminderOpen]);
 
   return (
     <>
@@ -27,6 +48,22 @@ export function MessageContextMenu({
           className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
         >
           Copy
+        </button>
+        {onReply && (
+          <button
+            type="button"
+            onClick={onReply}
+            className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            Reply
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setReminderOpen((v) => !v)}
+          className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          Remind
         </button>
         {isOwn && (
           <button
@@ -56,6 +93,16 @@ export function MessageContextMenu({
           </button>
         )}
       </div>
+      {reminderOpen && (
+        <div ref={reminderRef} className="absolute right-2 top-7 z-50">
+          <SetReminderPopover
+            messageId={msg.id}
+            channelId={channelId}
+            content={msg.content}
+            onClose={() => setReminderOpen(false)}
+          />
+        </div>
+      )}
       <ReportDialog
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}

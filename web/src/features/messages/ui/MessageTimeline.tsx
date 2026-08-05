@@ -13,6 +13,7 @@ interface Props {
   reactions: Reaction[];
   currentPubkey: string | null;
   onOpenThread: (messageId: string) => void;
+  customEmoji?: Map<string, string>;
 }
 
 const GROUP_GAP_SECONDS = 300;
@@ -25,6 +26,7 @@ export function MessageTimeline({
   reactions,
   currentPubkey,
   onOpenThread,
+  customEmoji,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +94,8 @@ export function MessageTimeline({
               channelId={channelId}
               reactions={reactions}
               currentPubkey={currentPubkey}
+              customEmoji={customEmoji}
+              onOpenThread={onOpenThread}
             />
             {!isGrouped && (
               <MessageThreadSummaryRow

@@ -157,13 +157,23 @@ function RepoTabs({
               onClick={() => setTab(t)}
               className={tabClass(t)}
             >
-              {t === "code" ? "Code" : t === "commits" ? "Commits" : t === "prs" ? "Pull Requests" : "Branches"}
+              {t === "code"
+                ? "Code"
+                : t === "commits"
+                  ? "Commits"
+                  : t === "prs"
+                    ? "Pull Requests"
+                    : "Branches"}
             </button>
           ))}
         </div>
         {tab === "code" && (
           <div className="mb-1">
-            <ProjectBranchSelector refs={refs} currentRef={currentRef} onSelectRef={onSelectRef} />
+            <ProjectBranchSelector
+              refs={refs}
+              currentRef={currentRef}
+              onSelectRef={onSelectRef}
+            />
           </div>
         )}
       </div>
@@ -204,7 +214,9 @@ function RepoTabs({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-black/40 dark:text-white/40">No branches found.</p>
+            <p className="text-sm text-black/40 dark:text-white/40">
+              No branches found.
+            </p>
           )}
         </div>
       )}
@@ -213,7 +225,7 @@ function RepoTabs({
 }
 
 export function RepoDetailPage() {
-  const { repoId } = useParams({ from: "/repos/$repoId" });
+  const { repoId } = useParams({ from: "/_workspace/repos/$repoId" });
   const preview =
     import.meta.env.DEV &&
     new URLSearchParams(window.location.search).get("preview") ===
@@ -347,6 +359,12 @@ export function RepoDetailPage() {
               : String(browseError)}
           </div>
         )}
+
+        {/* Read-only banner */}
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-black/10 bg-black/5 px-3 py-2 text-sm text-black/60 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
+          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+          Read-only view — clone locally to make changes
+        </div>
 
         {/* Tabs */}
         <RepoTabs

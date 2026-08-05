@@ -220,7 +220,7 @@ function ViewerBody({
 }
 
 export function RepoBlobPage() {
-  const { repoId, _splat } = useParams({ from: "/repos/$repoId/blob/$" });
+  const { repoId, _splat } = useParams({ from: "/_workspace/repos/$repoId/blob/$" });
   const filepath = _splat ?? "";
   const preview =
     import.meta.env.DEV &&

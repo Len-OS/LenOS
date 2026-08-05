@@ -43,6 +43,7 @@ interface Props {
   reactions: Reaction[];
   currentPubkey: string | null;
   customEmoji?: Map<string, string>;
+  onOpenThread?: (messageId: string) => void;
 }
 
 export function MessageRow({
@@ -52,6 +53,7 @@ export function MessageRow({
   reactions,
   currentPubkey,
   customEmoji = new Map(),
+  onOpenThread,
 }: Props) {
   const profile = useProfile(msg.pubkey);
   const displayName = profile?.name || truncatePubkey(msg.pubkey);
@@ -129,12 +131,14 @@ export function MessageRow({
       {!editing && (
         <MessageContextMenu
           msg={msg}
+          channelId={channelId}
           currentPubkey={currentPubkey}
           onEdit={() => {
             setEditText(msg.content);
             setEditing(true);
           }}
           onDelete={handleDelete}
+          onReply={onOpenThread ? () => onOpenThread(msg.id) : undefined}
         />
       )}
     </div>

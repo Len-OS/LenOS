@@ -27,4 +27,24 @@ export default defineConfig({
     port: parseInt(process.env.VITE_PORT || "5173", 10),
     strictPort: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/prosemirror") || id.includes("node_modules/@tiptap")) {
+            return "editor";
+          }
+          if (id.includes("node_modules/emoji-mart") || id.includes("node_modules/@emoji-mart")) {
+            return "emoji";
+          }
+          if (id.includes("node_modules/nostr-tools") || id.includes("node_modules/@noble")) {
+            return "nostr";
+          }
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) {
+            return "react";
+          }
+        },
+      },
+    },
+  },
 });
