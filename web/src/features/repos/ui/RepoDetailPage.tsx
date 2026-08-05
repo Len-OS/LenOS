@@ -30,6 +30,8 @@ import { RepoRefsSection } from "./RepoRefsSection";
 import { RepoTreeSection } from "./RepoTreeSection";
 import { RepoCommitsSection } from "./RepoCommitsSection";
 import { RepoReadmeSection } from "./RepoReadmeSection";
+import { ProjectPullRequestsPanel } from "@/features/projects/ui/ProjectPullRequestsPanel";
+import { ProjectBranchSelector } from "@/features/projects/ui/ProjectBranchSelector";
 
 function CopyableUrl({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
@@ -108,7 +110,7 @@ function BackToRepositories({
   );
 }
 
-type Tab = "code" | "commits";
+type Tab = "code" | "commits" | "prs" | "branches";
 
 function RepoTabs({
   repoId,
@@ -119,6 +121,9 @@ function RepoTabs({
   readme,
   readmeLoading,
   preview,
+  refs,
+  currentRef,
+  onSelectRef,
 }: {
   repoId: string;
   treeEntries: TreeEntry[] | undefined;
@@ -128,38 +133,41 @@ function RepoTabs({
   readme: ReadmeResult | null | undefined;
   readmeLoading: boolean;
   preview: boolean;
+  refs: import("../use-repo-refs").RepoRefs | undefined;
+  currentRef: string;
+  onSelectRef: (ref: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("code");
 
+  const tabClass = (t: Tab) =>
+    `px-4 py-2 text-sm font-medium transition-colors ${
+      tab === t
+        ? "border-b-2 border-black text-black dark:border-white dark:text-white"
+        : "text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+    }`;
+
   return (
     <div className="mt-6">
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b border-black/10 dark:border-white/10">
-        <button
-          type="button"
-          onClick={() => setTab("code")}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "code"
-              ? "border-b-2 border-black text-black dark:border-white dark:text-white"
-              : "text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-          }`}
-        >
-          Code
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("commits")}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "commits"
-              ? "border-b-2 border-black text-black dark:border-white dark:text-white"
-              : "text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-          }`}
-        >
-          Commits
-        </button>
+      <div className="flex items-end justify-between border-b border-black/10 dark:border-white/10">
+        <div className="flex gap-1">
+          {(["code", "commits", "prs", "branches"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={tabClass(t)}
+            >
+              {t === "code" ? "Code" : t === "commits" ? "Commits" : t === "prs" ? "Pull Requests" : "Branches"}
+            </button>
+          ))}
+        </div>
+        {tab === "code" && (
+          <div className="mb-1">
+            <ProjectBranchSelector refs={refs} currentRef={currentRef} onSelectRef={onSelectRef} />
+          </div>
+        )}
       </div>
 
-      {/* Tab content */}
       {tab === "code" && (
         <>
           <RepoTreeSection
@@ -173,6 +181,32 @@ function RepoTabs({
       )}
       {tab === "commits" && (
         <RepoCommitsSection commits={commits} isLoading={commitsLoading} />
+      )}
+      {tab === "prs" && <ProjectPullRequestsPanel repoId={repoId} />}
+      {tab === "branches" && (
+        <div className="mt-6">
+          {refs && refs.branches.length > 0 ? (
+            <div className="overflow-hidden rounded-lg border border-black/10 bg-white/50 dark:border-white/10 dark:bg-white/5">
+              {refs.branches.map((branch) => (
+                <div
+                  key={branch}
+                  className="flex items-center gap-3 border-b border-black/10 px-3 py-2.5 last:border-b-0 dark:border-white/10"
+                >
+                  <span className="font-mono text-sm text-black dark:text-white">
+                    {branch}
+                  </span>
+                  {branch === (refs.head?.ref ?? "") && (
+                    <span className="rounded-full bg-black/10 px-2 py-0.5 text-xs text-black/60 dark:bg-white/10 dark:text-white/60">
+                      default
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-black/40 dark:text-white/40">No branches found.</p>
+          )}
+        </div>
       )}
     </div>
   );
@@ -198,6 +232,8 @@ export function RepoDetailPage() {
   });
 
   const defaultRef = refs?.head?.ref ?? "main";
+  const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const activeRef = selectedRef ?? defaultRef;
   const owner = repo?.owner ?? "";
   const repoName = repo?.id ?? "";
   const browseOwner = showMockRepo ? "" : owner;
@@ -206,16 +242,16 @@ export function RepoDetailPage() {
     data: fetchedTreeEntries,
     isLoading: isTreeLoading,
     error: treeError,
-  } = useGitTree(browseOwner, repoName, defaultRef);
+  } = useGitTree(browseOwner, repoName, activeRef);
   const {
     data: fetchedCommits,
     isLoading: areCommitsLoading,
     error: commitsError,
-  } = useGitLog(browseOwner, repoName, defaultRef);
+  } = useGitLog(browseOwner, repoName, activeRef);
   const { data: fetchedReadme, isLoading: isReadmeLoading } = useGitReadme(
     browseOwner,
     repoName,
-    defaultRef,
+    activeRef,
   );
   const treeEntries = showMockRepo ? mockRepoTree : fetchedTreeEntries;
   const commits = showMockRepo ? mockRepoCommits : fetchedCommits;
@@ -322,6 +358,9 @@ export function RepoDetailPage() {
           readme={readme}
           readmeLoading={readmeLoading}
           preview={showMockRepo}
+          refs={refs}
+          currentRef={activeRef}
+          onSelectRef={setSelectedRef}
         />
 
         {/* Clone URLs */}
