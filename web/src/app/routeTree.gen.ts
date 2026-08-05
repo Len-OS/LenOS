@@ -11,6 +11,7 @@ import { Route as reposDotrepoIdRouteImport } from "./routes/repos.$repoId";
 import { Route as inviteDotcodeRouteImport } from "./routes/invite.$code";
 import { Route as workspaceDotworkflowsRouteImport } from "./routes/_workspace.workflows";
 import { Route as workspaceDotreposRouteImport } from "./routes/_workspace.repos";
+import { Route as workspaceDotpulseRouteImport } from "./routes/_workspace.pulse";
 import { Route as workspaceDotmessagesRouteImport } from "./routes/_workspace.messages";
 import { Route as workspaceDotchannelsRouteImport } from "./routes/_workspace.channels";
 import { Route as workspaceDotmessagesDotnewRouteImport } from "./routes/_workspace.messages.new";
@@ -46,6 +47,11 @@ const workspaceDotworkflowsRoute = workspaceDotworkflowsRouteImport.update({
 const workspaceDotreposRoute = workspaceDotreposRouteImport.update({
   id: "/repos",
   path: "/repos",
+  getParentRoute: () => workspaceRoute,
+} as any);
+const workspaceDotpulseRoute = workspaceDotpulseRouteImport.update({
+  id: "/pulse",
+  path: "/pulse",
   getParentRoute: () => workspaceRoute,
 } as any);
 const workspaceDotmessagesRoute = workspaceDotmessagesRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   "/": typeof indexRoute;
   "/channels": typeof workspaceDotchannelsRoute;
   "/messages": typeof workspaceDotmessagesRoute;
+  "/pulse": typeof workspaceDotpulseRoute;
   "/repos": typeof workspaceDotreposRoute;
   "/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   "/": typeof indexRoute;
   "/channels": typeof workspaceDotchannelsRoute;
   "/messages": typeof workspaceDotmessagesRoute;
+  "/pulse": typeof workspaceDotpulseRoute;
   "/repos": typeof workspaceDotreposRoute;
   "/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   "/_workspace": typeof workspaceRouteWithChildren;
   "/_workspace/channels": typeof workspaceDotchannelsRoute;
   "/_workspace/messages": typeof workspaceDotmessagesRoute;
+  "/_workspace/pulse": typeof workspaceDotpulseRoute;
   "/_workspace/repos": typeof workspaceDotreposRoute;
   "/_workspace/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | "/"
     | "/channels"
     | "/messages"
+    | "/pulse"
     | "/repos"
     | "/workflows"
     | "/invite/$code"
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | "/"
     | "/channels"
     | "/messages"
+    | "/pulse"
     | "/repos"
     | "/workflows"
     | "/invite/$code"
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | "/_workspace"
     | "/_workspace/channels"
     | "/_workspace/messages"
+    | "/_workspace/pulse"
     | "/_workspace/repos"
     | "/_workspace/workflows"
     | "/invite/$code"
@@ -231,6 +243,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof workspaceDotreposRouteImport;
       parentRoute: typeof workspaceRoute;
     };
+    "/_workspace/pulse": {
+      id: "/_workspace/pulse";
+      path: "/pulse";
+      fullPath: "/pulse";
+      preLoaderRoute: typeof workspaceDotpulseRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
     "/_workspace/messages": {
       id: "/_workspace/messages";
       path: "/messages";
@@ -286,6 +305,7 @@ declare module "@tanstack/react-router" {
 interface workspaceRouteChildren {
   workspaceDotchannelsRoute: typeof workspaceDotchannelsRoute;
   workspaceDotmessagesRoute: typeof workspaceDotmessagesRoute;
+  workspaceDotpulseRoute: typeof workspaceDotpulseRoute;
   workspaceDotreposRoute: typeof workspaceDotreposRoute;
   workspaceDotworkflowsRoute: typeof workspaceDotworkflowsRoute;
   workspaceDotchannelsDotchannelIdRoute: typeof workspaceDotchannelsDotchannelIdRoute;
@@ -297,6 +317,7 @@ interface workspaceRouteChildren {
 const workspaceRouteChildren: workspaceRouteChildren = {
   workspaceDotchannelsRoute: workspaceDotchannelsRoute,
   workspaceDotmessagesRoute: workspaceDotmessagesRoute,
+  workspaceDotpulseRoute: workspaceDotpulseRoute,
   workspaceDotreposRoute: workspaceDotreposRoute,
   workspaceDotworkflowsRoute: workspaceDotworkflowsRoute,
   workspaceDotchannelsDotchannelIdRoute: workspaceDotchannelsDotchannelIdRoute,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Activity,
   ChevronDown,
   ChevronRight,
   Hash,
@@ -232,6 +233,14 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
           >
             <Zap className="h-3.5 w-3.5 shrink-0 opacity-50" />
             Workflows
+          </Link>
+          <Link
+            to="/pulse"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{ className: "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white" }}
+          >
+            <Activity className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            Pulse
           </Link>
         </div>
       </nav>
