@@ -242,9 +242,20 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
   `6c096fa2-3ba5-4b18-8b12-238eab502b11`.
 - LenOS main: `b9c9df141` is pushed to GitHub; browser Agents now identify
   remote LenGrowth agents and the desktop Virtua integration typechecks.
-- LenGrowth backend: `648546b` is pushed to `master`; Scalingo auto-deploy is
-  expected from the connected app, but release confirmation must come from the
-  Scalingo dashboard because the CLI is not installed in this workspace.
+- LenGrowth backend: `e499a62` is pushed to `master` and deployed successfully
+  to Scalingo; the server-side relay gateway is configured.
+
+## Final runtime verification — 2026-08-06
+
+- Scalingo deployment `3adf86be-c21a-446f-904a-5f872ad782a6` succeeded for
+  backend commit `e499a62`; web, worker, beat, and nostradapter are running.
+- `LENOS_RELAY_GATEWAY_URL=wss://relay.lengrowth.com` is configured for the
+  server-side adapter. Logs confirm successful gateway connections and tenant
+  subscriptions for `e2etest26` and `acmen-teste`.
+- Browser WebSocket routing remains the final infrastructure gate: direct
+  `wss://e2etest26.lengrowth.com` still returns HTTP 200 instead of 101. The
+  wildcard edge route must forward workspace WebSocket upgrades to the relay
+  load balancer with the workspace Host preserved.
 - Relay health: `https://relay.lengrowth.com/health` returns `ok`.
 - Public lookup: `https://growth-api.lenquant.com/api/public/workspace/e2etest26`
   returns the workspace community and tenant WebSocket host.
@@ -252,6 +263,22 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
   dispatch, agent completion callback, and failure callback.
 
 ## Troubleshooting
+
+## Production verification update — 2026-08-06
+
+- Scalingo CLI account is authenticated and `lengrowth-main` is running web,
+  worker, beat, and nostradapter processes.
+- The latest successful Scalingo deployment is `d3fd33d8f7bd63cb79a5791f9757542469e189ee`.
+- `/api/health` and `/api/public/workspace/e2etest26` return HTTP 200.
+- `wss://relay.lengrowth.com` accepts WebSocket connections.
+- Tenant workspace hosts currently do not complete WebSocket upgrades through
+  the deployed Worker: `wss://e2etest26.lengrowth.com` returns HTTP 200. Scalingo
+  logs show the same failure as repeated `server rejected WebSocket connection:
+  HTTP 200` warnings from `nostradapter`.
+- Production gate: configure the `*.lengrowth.com` WebSocket route/DNS so each
+  workspace hostname reaches the relay load balancer while preserving the
+  original Host header. Re-run the adapter log check and signed workspace E2E
+  after that routing change.
 
 **nostr_adapter crashes on start**
 ```bash
