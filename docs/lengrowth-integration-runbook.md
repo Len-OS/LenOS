@@ -170,7 +170,7 @@ Requires building `lenos-acp` from `crates/lenos-acp/` with Rust toolchain.
 
 ## Step 5 — E2E testing 🔲 PENDING (blocked on web app deploy)
 
-**Current state:** LenOS web is deployed and the shell, relay health, and public workspace lookup have been verified. The remaining blocker is an authenticated durable identity for testing signed writes and LenGrowth linking.
+**Current state:** LenOS web is deployed and the shell, relay health, and public workspace lookup have been verified. The remaining blocker is an authenticated durable identity for testing signed writes, LenGrowth linking, task dispatch, and callbacks.
 
 Once web app is live at `company.lengrowth.com`:
 
@@ -183,9 +183,9 @@ curl -s https://relay.lengrowth.com/health
 
 ### 5.2 Web app loads
 
-- [ ] Visit `company.lengrowth.com` (or test subdomain)
-- [ ] Page loads, WebSocket connects to relay
-- [ ] No console errors
+- [x] Visit `e2etest26.lengrowth.com` (test workspace)
+- [x] Page loads and serves the LenOS shell
+- [x] Relay health and public workspace lookup return 200
 
 ### 5.3 Post-login workspace entry
 
@@ -238,7 +238,13 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
 ## Current deployment status
 
 - Browser Worker: deployed as `lenos`; shell and empty-workspace onboarding are
-  live on `e2etest26.lengrowth.com`.
+  live on `e2etest26.lengrowth.com`; latest verified Worker version is
+  `6c096fa2-3ba5-4b18-8b12-238eab502b11`.
+- LenOS main: `b9c9df141` is pushed to GitHub; browser Agents now identify
+  remote LenGrowth agents and the desktop Virtua integration typechecks.
+- LenGrowth backend: `648546b` is pushed to `master`; Scalingo auto-deploy is
+  expected from the connected app, but release confirmation must come from the
+  Scalingo dashboard because the CLI is not installed in this workspace.
 - Relay health: `https://relay.lengrowth.com/health` returns `ok`.
 - Public lookup: `https://growth-api.lenquant.com/api/public/workspace/e2etest26`
   returns the workspace community and tenant WebSocket host.
