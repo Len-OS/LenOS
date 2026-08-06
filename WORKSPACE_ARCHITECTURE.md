@@ -1,7 +1,7 @@
 # LenOS / LenGrowth Workspace Architecture
 
 **Status:** implementation snapshot and operational source of truth
-**Updated:** 2026-08-05
+**Updated:** 2026-08-06
 
 ## Live verification snapshot
 
@@ -92,7 +92,7 @@ The Welcome channel supports a chat-first agent setup path: the UI can send `@Fi
 
 ### Browser
 
-The browser now opens the shell without blocking on NIP-07. It can use an ephemeral identity for open/read-only relay browsing. Durable membership and identity-linked actions still need a durable identity. Starter-channel and remote-agent provisioning are not yet exposed as a browser bootstrap API.
+The browser now opens the shell without blocking on NIP-07. It can use an ephemeral identity for open/read-only relay browsing. Durable membership and identity-linked actions still need a durable identity. Once a NIP-07 identity is available, Inbox onboarding publishes starter channels and role-based remote-agent definitions directly to the workspace relay; this is a signed relay bootstrap, not a LenGrowth backend provisioning API.
 
 ### LenGrowth bridge
 
@@ -109,16 +109,23 @@ the MongoDB `lenos_workspaces` record. It calls the relay operator API over HTTP
 - no fallback to an unrelated community is allowed.
 
 The MongoDB `user_id` and `slug` unique indexes are the final idempotency fence.
-Concurrent requests converge to the winning workspace document; starter channel
-and remote-agent records remain a separate authenticated bootstrap step and are
-not claimed as provisioned by the browser UI.
+Concurrent requests converge to the winning workspace document. Starter resources
+are a separate authenticated browser bootstrap step: after a durable NIP-07
+identity is available, the browser publishes deterministic `kind:9007` channel
+creation events and owner-authored `kind:30177` managed-agent definitions over
+the workspace WebSocket. The four channel slugs are `general`,
+`welcome-everyone`, `lengrowth`, and `tasks`; retries use the same channel UUID
+or agent `d` tag, and an acknowledged relay duplicate is treated as success.
+The relay WebSocket must be authenticated before publishing, so the UI surfaces
+connection or relay rejection errors instead of claiming success.
 
 ### Verification state
 
 - Implemented: exact-host relay lookup, concurrent workspace insert convergence, and
   path-filtered relay image CI with debug images restricted to relay tags.
-- Tested locally: backend Python compilation; focused test/build checks are pending
-  for this change set.
+- Tested locally: 12 focused LenGrowth backend tests and the LenOS browser
+  TypeScript/Vite production build pass. Browser bootstrap now waits for relay
+  authentication before publishing and converges on duplicate channel retries.
 - Verified live: browser shell and public workspace lookup were verified earlier on
   `e2etest26.lengrowth.com`; on 2026-08-05 the deployed shell also showed the
   expected empty-workspace onboarding copy. Starter channels, agents, task

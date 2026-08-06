@@ -19,6 +19,7 @@ function parseAgent(raw: {
   pubkey: string;
   tags: string[][];
   created_at: number;
+  content?: string;
 }): Agent {
   const tags = raw.tags;
   let content: Record<string, unknown> = {};
@@ -69,6 +70,7 @@ export function useAgents(communityId: string | null): Agent[] {
           pubkey: raw.pubkey as string,
           tags: (raw.tags as string[][]) ?? [],
           created_at: raw.created_at as number,
+          content: raw.content as string | undefined,
         });
         setAgents((prev) => {
           const existing = prev.get(agent.pubkey);

@@ -120,11 +120,21 @@ class RelayLiveClient {
   }
 
   publishAndWait(event: Record<string, unknown>): Promise<void> {
+    return this.publishAndWaitWhenReady(event);
+  }
+
+  private async publishAndWaitWhenReady(event: Record<string, unknown>): Promise<void> {
     const eventId = typeof event.id === "string" ? event.id : "";
     if (!eventId) return Promise.reject(new Error("Signed relay event is missing an id"));
-    if (this.ws?.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error("Relay connection is not open"));
+
+    const deadline = Date.now() + 10_000;
+    while (this.ws?.readyState !== WebSocket.OPEN || !this.authenticated) {
+      if (Date.now() >= deadline) {
+        throw new Error("Relay connection was not ready within 10 seconds");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
+
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pendingPublishes.delete(eventId);

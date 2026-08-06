@@ -44,7 +44,13 @@ export async function provisionStarterWorkspace(
       content: "",
       tags: [["h", id], ["name", channel.name], ["visibility", "open"], ["channel_type", "stream"], ["about", channel.description]],
     }, { requireNip07: true });
-    await client.publishAndWait(event as Record<string, unknown>);
+    try {
+      await client.publishAndWait(event as Record<string, unknown>);
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes("duplicate: channel already exists")) {
+        throw error;
+      }
+    }
   }
 
   for (const agent of STARTER_AGENTS) {
