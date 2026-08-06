@@ -19,6 +19,7 @@ import {
 } from "@/shared/lib/nostr-signer";
 import {
   provisionStarterWorkspace,
+  publishLenGrowthCommand,
   STARTER_AGENTS,
   STARTER_CHANNELS,
 } from "@/features/onboarding/starterWorkspace";
@@ -70,6 +71,10 @@ export function LenGrowthWorkspaceWelcome() {
   const [pubkey, setPubkey] = useState<string | null>(null);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [commandStatus, setCommandStatus] = useState<string | null>(null);
+  const [commandSending, setCommandSending] = useState(false);
 
   useEffect(() => {
     if (!hasDurableIdentity()) {
@@ -83,6 +88,7 @@ export function LenGrowthWorkspaceWelcome() {
 
   const channelNames = new Set(channels.map((channel) => channel.name.trim().toLowerCase()));
   const agentNames = new Set(agents.map((agent) => agent.name.trim().toLowerCase()));
+  const growthChannel = channels.find((channel) => channel.name.trim().toLowerCase() === "lengrowth");
   const hasChannels = STARTER_CHANNELS.every((channel) => channelNames.has(channel.name));
   const hasAgents = STARTER_AGENTS.every((agent) => agentNames.has(agent.name.toLowerCase()));
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
@@ -106,6 +112,42 @@ export function LenGrowthWorkspaceWelcome() {
       setProvisionError(error instanceof Error ? error.message : "Relay provisioning failed");
     } finally {
       setProvisioning(false);
+    }
+  };
+
+  const sendTask = async () => {
+    if (!growthChannel || !taskTitle.trim() || !taskDescription.trim()) return;
+    setCommandSending(true);
+    setCommandStatus(null);
+    try {
+      await publishLenGrowthCommand(
+        growthChannel.id,
+        `create task: ${taskTitle.trim()} | ${taskDescription.trim()}`,
+      );
+      setCommandStatus("Task request sent to LenGrowth in #lengrowth.");
+      setTaskTitle("");
+      setTaskDescription("");
+    } catch (error) {
+      setCommandStatus(error instanceof Error ? error.message : "Could not send the task request.");
+    } finally {
+      setCommandSending(false);
+    }
+  };
+
+  const runAgent = async (role: string) => {
+    if (!growthChannel || !taskDescription.trim()) return;
+    setCommandSending(true);
+    setCommandStatus(null);
+    try {
+      await publishLenGrowthCommand(
+        growthChannel.id,
+        `run agent ${role}: ${taskDescription.trim()}`,
+      );
+      setCommandStatus(`${role} request sent to LenGrowth in #lengrowth.`);
+    } catch (error) {
+      setCommandStatus(error instanceof Error ? error.message : "Could not send the agent request.");
+    } finally {
+      setCommandSending(false);
     }
   };
 
@@ -186,6 +228,54 @@ export function LenGrowthWorkspaceWelcome() {
           <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
             Provisioning failed: {provisionError}
           </p>
+        )}
+
+        {hasChannels && (
+          <div className="mt-5 rounded-lg border border-black/10 bg-white/50 p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-sm font-medium text-black dark:text-white">Start with LenGrowth</p>
+            <p className="mt-1 text-xs leading-5 text-black/50 dark:text-white/50">
+              Create a task or ask a remote growth role from here. Requests are
+              sent to the workspace #lengrowth channel and require a linked identity.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <input
+                value={taskTitle}
+                onChange={(event) => setTaskTitle(event.target.value)}
+                placeholder="Task title"
+                disabled={!pubkey || !growthChannel || commandSending}
+                className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-white/10"
+              />
+              <input
+                value={taskDescription}
+                onChange={(event) => setTaskDescription(event.target.value)}
+                placeholder="What should LenGrowth work on?"
+                disabled={!pubkey || !growthChannel || commandSending}
+                className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-white/10"
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void sendTask()}
+                disabled={!pubkey || !growthChannel || !taskTitle.trim() || !taskDescription.trim() || commandSending}
+                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Create task
+              </button>
+              {(["guide", "analyst", "execution"] as const).map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => void runAgent(role)}
+                  disabled={!pubkey || !growthChannel || !taskDescription.trim() || commandSending}
+                  className="rounded-md border border-black/10 px-3 py-1.5 text-xs font-medium text-black/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white/70"
+                >
+                  Run {role}
+                </button>
+              ))}
+            </div>
+            {commandStatus && <p className="mt-2 text-xs text-black/60 dark:text-white/60">{commandStatus}</p>}
+          </div>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-black/50 dark:text-white/50">

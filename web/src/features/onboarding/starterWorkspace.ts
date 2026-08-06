@@ -70,3 +70,19 @@ export async function provisionStarterWorkspace(
     await client.publishAndWait(event as Record<string, unknown>);
   }
 }
+
+/** Publish a compatibility command to the workspace LenGrowth channel. */
+export async function publishLenGrowthCommand(
+  channelId: string,
+  command: string,
+): Promise<void> {
+  const event = await signNostrEvent(
+    {
+      kind: 9,
+      content: `@lengrowth ${command}`,
+      tags: [["h", channelId]],
+    },
+    { requireNip07: true },
+  );
+  await getRelayClient(relayWsUrl()).publishAndWait(event as Record<string, unknown>);
+}

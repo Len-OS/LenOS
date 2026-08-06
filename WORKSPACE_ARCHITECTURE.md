@@ -118,6 +118,9 @@ the workspace WebSocket. The four channel slugs are `general`,
 or agent `d` tag, and an acknowledged relay duplicate is treated as success.
 The relay WebSocket must be authenticated before publishing, so the UI surfaces
 connection or relay rejection errors instead of claiming success.
+Inbox also exposes typed LenGrowth actions for task creation and the three
+role-based starter agents. These actions publish the compatibility commands to
+`#lengrowth`; `@lengrowth` remains available for power users.
 
 ### Verification state
 
