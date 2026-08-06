@@ -64,6 +64,11 @@ export function AgentCard({ agent, onClick }: Props) {
           {agent.status}
         </span>
       </div>
+      {agent.remote && (
+        <span className="w-fit rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+          Remote LenGrowth agent
+        </span>
+      )}
       {agent.description && (
         <p className="line-clamp-2 text-sm text-black/60 dark:text-white/60">
           {agent.description}

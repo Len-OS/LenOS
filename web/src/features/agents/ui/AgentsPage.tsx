@@ -31,10 +31,11 @@ export function AgentsPage() {
               <Bot className="h-10 w-10 text-black/20 dark:text-white/20" />
               <div>
                 <p className="text-sm font-medium text-black/50 dark:text-white/50">
-                  No agents deployed
+                  No agents in this workspace yet
                 </p>
                 <p className="mt-1 text-xs text-black/30 dark:text-white/30">
-                  Deploy agents from the LenOS desktop app.
+                  Add the LenGrowth team from the workspace welcome panel, or
+                  use the desktop app to run local agents.
                 </p>
               </div>
             </div>

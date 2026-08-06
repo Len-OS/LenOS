@@ -10,6 +10,8 @@ export interface Agent {
   name: string;
   description: string;
   agentType: string;
+  /** Managed LenGrowth agents execute outside the browser/desktop process. */
+  remote: boolean;
   status: "online" | "away" | "offline";
   createdAt: number;
 }
@@ -38,6 +40,10 @@ function parseAgent(raw: {
     (typeof content.description === "string" ? content.description : "");
   const agentType = tags.find((t) => t[0] === "agent_type")?.[1] ??
     (typeof content.agent_type === "string" ? content.agent_type : "remote");
+  const remote =
+    tags.find((t) => t[0] === "remote")?.[1] === "true" ||
+    content.remote === true ||
+    agentType !== "local";
   const status =
     (tags.find((t) => t[0] === "status")?.[1] as Agent["status"]) ?? "offline";
   return {
@@ -46,6 +52,7 @@ function parseAgent(raw: {
     name,
     description,
     agentType,
+    remote,
     status,
     createdAt: raw.created_at,
   };
