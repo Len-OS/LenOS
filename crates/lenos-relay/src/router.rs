@@ -81,6 +81,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(api::operator::archive_community),
         )
         .route(
+            "/operator/communities/rename-host",
+            post(api::operator::rename_community_host),
+        )
+        .route(
             "/operator/communities/unarchive",
             post(api::operator::unarchive_community),
         )

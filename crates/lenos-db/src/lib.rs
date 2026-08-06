@@ -1482,6 +1482,38 @@ impl Db {
         ))
     }
 
+    /// Rename an active community host without changing its stable id or data.
+    ///
+    /// The expected old host makes migrations idempotent and prevents an
+    /// operator retry from accidentally renaming a newer mapping.
+    pub async fn rename_community_host(
+        &self,
+        community_id: CommunityId,
+        expected_old_host: &str,
+        new_host: &str,
+    ) -> Result<Option<CommunityRecord>> {
+        let row = sqlx::query(
+            r#"UPDATE communities
+               SET host = $3
+               WHERE id = $1
+                 AND lower(host) = lower($2)
+                 AND archived_at IS NULL
+               RETURNING id, host"#,
+        )
+        .bind(community_id.as_uuid())
+        .bind(expected_old_host)
+        .bind(new_host)
+        .fetch_optional(&self.pool)
+        .await?;
+        row.map(|row| {
+            Ok(CommunityRecord {
+                id: CommunityId::from_uuid(row.try_get("id")?),
+                host: row.try_get("host")?,
+            })
+        })
+        .transpose()
+    }
+
     /// Idempotently archives a community when the asserted pubkey is its current owner.
     pub async fn archive_community_owned_by(
         &self,

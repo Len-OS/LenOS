@@ -43,6 +43,13 @@ struct TransferCommunityRequest {
     expected_owner_pubkey: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct RenameCommunityHostRequest {
+    community_id: String,
+    expected_old_host: String,
+    new_host: String,
+}
+
 #[derive(Debug, Serialize)]
 struct TransferCommunityResponse {
     community_id: String,
@@ -258,6 +265,65 @@ pub async fn archive_community(
         "host": record.host,
         "archived_at": record.archived_at,
         "status": "archived",
+    })))
+}
+
+/// Rename a community host while preserving its stable community id and data.
+/// This is used for controlled DNS/host-family migrations.
+pub async fn rename_community_host(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    body: axum::body::Bytes,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    const PATH: &str = "/operator/communities/rename-host";
+    authorize_operator_request(&state, &headers, "POST", PATH, None, Some(&body)).await?;
+    let request: RenameCommunityHostRequest = serde_json::from_slice(&body).map_err(|e| {
+        api_error(
+            StatusCode::BAD_REQUEST,
+            &format!("invalid rename-community JSON: {e}"),
+        )
+    })?;
+    let community_id = Uuid::parse_str(&request.community_id)
+        .map(CommunityId::from_uuid)
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid community_id"))?;
+    let expected_old_host = normalize_candidate_host(&request.expected_old_host)
+        .map_err(|msg| api_error(StatusCode::BAD_REQUEST, &msg))?;
+    let new_host = normalize_candidate_host(&request.new_host)
+        .map_err(|msg| api_error(StatusCode::BAD_REQUEST, &msg))?;
+    if expected_old_host == new_host {
+        return Ok(Json(serde_json::json!({
+            "community_id": community_id.to_string(),
+            "host": new_host,
+            "status": "already_current",
+        })));
+    }
+    let record = state
+        .db
+        .rename_community_host(community_id, &expected_old_host, &new_host)
+        .await
+        .map_err(|e| {
+            if e.to_string().to_ascii_lowercase().contains("duplicate") {
+                api_error(StatusCode::CONFLICT, "new host is already registered")
+            } else {
+                internal_error(&format!("rename community host: {e}"))
+            }
+        })?
+        .ok_or_else(|| {
+            api_error(
+                StatusCode::CONFLICT,
+                "community id or expected host did not match",
+            )
+        })?;
+    tracing::info!(
+        community = %record.id,
+        old_host = %expected_old_host,
+        new_host = %record.host,
+        "community host renamed"
+    );
+    Ok(Json(serde_json::json!({
+        "community_id": record.id.to_string(),
+        "host": record.host,
+        "status": "renamed",
     })))
 }
 
