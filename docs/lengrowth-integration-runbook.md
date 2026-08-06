@@ -1,6 +1,6 @@
 # LenOS + LenGrowth Integration Runbook
 
-**Last updated:** 2026-08-04  
+**Last updated:** 2026-08-06
 **Status legend:** ✅ Done · 🔲 Pending · ⚠️ Partial
 
 ---
@@ -32,8 +32,12 @@ If the relay returns `409`, the backend lists communities for that operator and
 accepts only an exact host match. It never chooses the first returned community.
 The workspace document is inserted after relay provisioning and MongoDB unique
 indexes converge concurrent retries. Starter channels and remote LenGrowth
-agents are still a separate authenticated bootstrap capability; the browser
-must not claim those steps succeeded until that capability exists.
+agents are a separate authenticated browser bootstrap capability. With a durable
+NIP-07 identity, the browser publishes deterministic `kind:9007` events for
+`general`, `welcome-everyone`, `lengrowth`, and `tasks`, plus owner-authored
+`kind:30177` role definitions for Growth Guide, Market Analyst, and Execution
+Partner. Relay acknowledgements are required; duplicate channel responses are
+treated as idempotent success and other failures remain visible to the user.
 
 nostr_adapter runs as `nostradapter` process on Scalingo `lengrowth-main`.  
 (Underscore in Procfile process names rejected by Scalingo — must be alphanumeric.)
@@ -133,12 +137,18 @@ After creating, update `lengrowth.toml` with new UUID.
 
 File: `LenGrowth/backend/nostr_adapter/relay_connection.py`
 
-- Subscribes to HQ channel (`#h` filter on kind:9)
+- Loads workspace relay hosts and community IDs from `lenos_workspaces`
+- Subscribes to kind:9 chat events in each workspace tenant; the WebSocket host
+  is the tenant boundary
 - Dispatches `@lengrowth get tasks` → calls `get_tasks()` from `lengrowth_mcp.tools`
 - Dispatches `@lengrowth get metrics [type]` → calls `get_metrics()` from `lengrowth_mcp.tools`
 - Falls back to help text for unknown commands
 - Ignores own pubkey to prevent loops
-- Replies as kind:9 with `["e", ..., "reply"]` and `["p", sender]` tags
+- Replies as kind:9 with `["e", ..., "reply"]`, `["p", sender]`, workspace,
+  community, channel, adapter, and correlation tags
+- Creates valid LenGrowth tasks with `companyId`, `taskType`, `stepId`, and
+  `agentInputData`, then invokes `/api/tasks/{task_id}/complete-with-agent`
+  for agent requests
 
 ### MCP HTTP endpoint (future lenos-acp or external use)
 
@@ -160,7 +170,7 @@ Requires building `lenos-acp` from `crates/lenos-acp/` with Rust toolchain.
 
 ## Step 5 — E2E testing 🔲 PENDING (blocked on web app deploy)
 
-**Blocker:** LenOS web app (`LenOS/web/`) not deployed yet. See `DEPLOYMENT.md` Part 4.
+**Current state:** LenOS web is deployed and the shell, relay health, and public workspace lookup have been verified. The remaining blocker is an authenticated durable identity for testing signed writes and LenGrowth linking.
 
 Once web app is live at `company.lengrowth.com`:
 
@@ -193,10 +203,16 @@ curl -s https://relay.lengrowth.com/health
 
 ### 5.5 HQ channel commands
 
-- [ ] Open LenGrowth HQ channel in workspace
+- [ ] Open the workspace `#lengrowth` channel
 - [ ] Send `@lengrowth get tasks` → task list reply within 5s
 - [ ] Send `@lengrowth get metrics north_star` → metrics reply within 5s
 - [ ] Send `@lengrowth create task: SEO brief` → (if implemented) task ID in reply
+
+Additional workspace-agent checks:
+
+- [ ] `@lengrowth create task: SEO brief` returns a task ID.
+- [ ] `@lengrowth run agent seo: audit organic search` returns a queued task.
+- [ ] Completion callback returns to the originating channel/thread.
 
 ### 5.6 Disconnect / reconnect
 
@@ -219,6 +235,16 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
 
 ---
 
+## Current deployment status
+
+- Browser Worker: deployed as `lenos`; shell and empty-workspace onboarding are
+  live on `e2etest26.lengrowth.com`.
+- Relay health: `https://relay.lengrowth.com/health` returns `ok`.
+- Public lookup: `https://growth-api.lenquant.com/api/public/workspace/e2etest26`
+  returns the workspace community and tenant WebSocket host.
+- Still pending: authenticated starter writes, LenGrowth link/revoke, task
+  dispatch, agent completion callback, and failure callback.
+
 ## Troubleshooting
 
 **nostr_adapter crashes on start**
@@ -230,7 +256,9 @@ scalingo --app lengrowth-main logs --filter nostradapter -n 200
 
 **Commands time out with no reply**
 - Confirm `nostradapter` process running: Scalingo dashboard → Processes
-- Confirm HQ channel UUID matches in `relay_connection.py` `HQ_CHANNEL_ID`
+- Confirm `lenos_workspaces` contains the expected slug, relay host, and
+  community ID; the adapter subscribes per workspace rather than relying on
+  one HQ channel UUID.
 - Confirm relay is up: `curl https://relay.lengrowth.com/health`
 - Confirm Cloudflare proxy OFF on `relay.lengrowth.com`
 
