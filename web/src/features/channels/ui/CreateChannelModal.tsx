@@ -54,11 +54,7 @@ export function CreateChannelModal({ isOpen, onClose }: Props) {
     setSaving(true);
     setError("");
     try {
-      await createChannel(
-        id.trim(),
-        name.trim(),
-        description.trim(),
-      );
+      await createChannel(id.trim(), name.trim(), description.trim());
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create channel.");

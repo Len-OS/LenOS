@@ -17,7 +17,11 @@ class RelayLiveClient {
   private authenticated = false;
   private pendingPublishes = new Map<
     string,
-    { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
+    {
+      resolve: () => void;
+      reject: (error: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
 
   constructor(private readonly relayUrl: string) {}
@@ -70,7 +74,12 @@ class RelayLiveClient {
           this.pendingPublishes.delete(msg[1]);
           clearTimeout(pending.timer);
           if (msg[2] === true) pending.resolve();
-          else pending.reject(new Error(typeof msg[3] === "string" ? msg[3] : "Relay rejected event"));
+          else
+            pending.reject(
+              new Error(
+                typeof msg[3] === "string" ? msg[3] : "Relay rejected event",
+              ),
+            );
         }
         return;
       }
@@ -123,9 +132,12 @@ class RelayLiveClient {
     return this.publishAndWaitWhenReady(event);
   }
 
-  private async publishAndWaitWhenReady(event: Record<string, unknown>): Promise<void> {
+  private async publishAndWaitWhenReady(
+    event: Record<string, unknown>,
+  ): Promise<void> {
     const eventId = typeof event.id === "string" ? event.id : "";
-    if (!eventId) return Promise.reject(new Error("Signed relay event is missing an id"));
+    if (!eventId)
+      return Promise.reject(new Error("Signed relay event is missing an id"));
 
     const deadline = Date.now() + 10_000;
     while (this.ws?.readyState !== WebSocket.OPEN || !this.authenticated) {
@@ -138,7 +150,9 @@ class RelayLiveClient {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pendingPublishes.delete(eventId);
-        reject(new Error("Relay did not acknowledge the event within 10 seconds"));
+        reject(
+          new Error("Relay did not acknowledge the event within 10 seconds"),
+        );
       }, 10_000);
       this.pendingPublishes.set(eventId, { resolve, reject, timer });
       this.ws?.send(JSON.stringify(["EVENT", event]));

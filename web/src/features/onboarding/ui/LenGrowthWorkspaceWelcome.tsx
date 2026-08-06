@@ -47,7 +47,9 @@ function Step({
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-black dark:text-white">{title}</p>
+        <p className="text-sm font-medium text-black dark:text-white">
+          {title}
+        </p>
         <p className="mt-0.5 text-xs leading-5 text-black/50 dark:text-white/50">
           {description}
         </p>
@@ -81,16 +83,28 @@ export function LenGrowthWorkspaceWelcome() {
       setPubkey(null);
       return;
     }
-    getCurrentPubkey().then(setPubkey).catch(() => setPubkey(null));
+    getCurrentPubkey()
+      .then(setPubkey)
+      .catch(() => setPubkey(null));
   }, []);
 
   if (workspace.status !== "found") return null;
 
-  const channelNames = new Set(channels.map((channel) => channel.name.trim().toLowerCase()));
-  const agentNames = new Set(agents.map((agent) => agent.name.trim().toLowerCase()));
-  const growthChannel = channels.find((channel) => channel.name.trim().toLowerCase() === "lengrowth");
-  const hasChannels = STARTER_CHANNELS.every((channel) => channelNames.has(channel.name));
-  const hasAgents = STARTER_AGENTS.every((agent) => agentNames.has(agent.name.toLowerCase()));
+  const channelNames = new Set(
+    channels.map((channel) => channel.name.trim().toLowerCase()),
+  );
+  const agentNames = new Set(
+    agents.map((agent) => agent.name.trim().toLowerCase()),
+  );
+  const growthChannel = channels.find(
+    (channel) => channel.name.trim().toLowerCase() === "lengrowth",
+  );
+  const hasChannels = STARTER_CHANNELS.every((channel) =>
+    channelNames.has(channel.name),
+  );
+  const hasAgents = STARTER_AGENTS.every((agent) =>
+    agentNames.has(agent.name.toLowerCase()),
+  );
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
   const linkUrl = pubkey
     ? `https://app.lengrowth.com/auth/nostr-link?pubkey=${encodeURIComponent(pubkey)}&relay=${encodeURIComponent(workspace.workspace.relayUrl)}&state=${encodeURIComponent(`lenos-workspace:${workspace.workspace.slug}`)}`
@@ -103,13 +117,11 @@ export function LenGrowthWorkspaceWelcome() {
     setProvisioning(true);
     setProvisionError(null);
     try {
-      await provisionStarterWorkspace(
-        communityId,
-        channelNames,
-        agentNames,
-      );
+      await provisionStarterWorkspace(communityId, channelNames, agentNames);
     } catch (error) {
-      setProvisionError(error instanceof Error ? error.message : "Relay provisioning failed");
+      setProvisionError(
+        error instanceof Error ? error.message : "Relay provisioning failed",
+      );
     } finally {
       setProvisioning(false);
     }
@@ -128,7 +140,11 @@ export function LenGrowthWorkspaceWelcome() {
       setTaskTitle("");
       setTaskDescription("");
     } catch (error) {
-      setCommandStatus(error instanceof Error ? error.message : "Could not send the task request.");
+      setCommandStatus(
+        error instanceof Error
+          ? error.message
+          : "Could not send the task request.",
+      );
     } finally {
       setCommandSending(false);
     }
@@ -145,7 +161,11 @@ export function LenGrowthWorkspaceWelcome() {
       );
       setCommandStatus(`${role} request sent to LenGrowth in #lengrowth.`);
     } catch (error) {
-      setCommandStatus(error instanceof Error ? error.message : "Could not send the agent request.");
+      setCommandStatus(
+        error instanceof Error
+          ? error.message
+          : "Could not send the agent request.",
+      );
     } finally {
       setCommandSending(false);
     }
@@ -180,7 +200,9 @@ export function LenGrowthWorkspaceWelcome() {
               !pubkey ? (
                 <button
                   type="button"
-                  onClick={() => window.dispatchEvent(new Event("open-settings"))}
+                  onClick={() =>
+                    window.dispatchEvent(new Event("open-settings"))
+                  }
                   className="mt-2 text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
                 >
                   Open Settings <ArrowRight className="ml-1 inline h-3 w-3" />
@@ -201,7 +223,10 @@ export function LenGrowthWorkspaceWelcome() {
                   disabled={!pubkey || provisioning}
                   className="mt-2 text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
                 >
-                  {provisioning ? "Provisioning…" : "Provision starter workspace"} <ArrowRight className="ml-1 inline h-3 w-3" />
+                  {provisioning
+                    ? "Provisioning…"
+                    : "Provision starter workspace"}{" "}
+                  <ArrowRight className="ml-1 inline h-3 w-3" />
                 </button>
               ) : undefined
             }
@@ -212,14 +237,17 @@ export function LenGrowthWorkspaceWelcome() {
             title="Add the growth team"
             description="Remote LenGrowth roles run without local ACP runtime or provider setup."
             action={
-              !hasAgents ? <button
-                type="button"
-                onClick={() => void provision()}
-                disabled={!pubkey || provisioning}
-                className="mt-2 text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
-              >
-                {provisioning ? "Provisioning…" : "Provision growth team"} <ArrowRight className="ml-1 inline h-3 w-3" />
-              </button> : undefined
+              !hasAgents ? (
+                <button
+                  type="button"
+                  onClick={() => void provision()}
+                  disabled={!pubkey || provisioning}
+                  className="mt-2 text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
+                >
+                  {provisioning ? "Provisioning…" : "Provision growth team"}{" "}
+                  <ArrowRight className="ml-1 inline h-3 w-3" />
+                </button>
+              ) : undefined
             }
           />
         </div>
@@ -232,10 +260,13 @@ export function LenGrowthWorkspaceWelcome() {
 
         {hasChannels && (
           <div className="mt-5 rounded-lg border border-black/10 bg-white/50 p-4 dark:border-white/10 dark:bg-white/5">
-            <p className="text-sm font-medium text-black dark:text-white">Start with LenGrowth</p>
+            <p className="text-sm font-medium text-black dark:text-white">
+              Start with LenGrowth
+            </p>
             <p className="mt-1 text-xs leading-5 text-black/50 dark:text-white/50">
               Create a task or ask a remote growth role from here. Requests are
-              sent to the workspace #lengrowth channel and require a linked identity.
+              sent to the workspace #lengrowth channel and require a linked
+              identity.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <input
@@ -257,7 +288,13 @@ export function LenGrowthWorkspaceWelcome() {
               <button
                 type="button"
                 onClick={() => void sendTask()}
-                disabled={!pubkey || !growthChannel || !taskTitle.trim() || !taskDescription.trim() || commandSending}
+                disabled={
+                  !pubkey ||
+                  !growthChannel ||
+                  !taskTitle.trim() ||
+                  !taskDescription.trim() ||
+                  commandSending
+                }
                 className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Create task
@@ -267,14 +304,23 @@ export function LenGrowthWorkspaceWelcome() {
                   key={role}
                   type="button"
                   onClick={() => void runAgent(role)}
-                  disabled={!pubkey || !growthChannel || !taskDescription.trim() || commandSending}
+                  disabled={
+                    !pubkey ||
+                    !growthChannel ||
+                    !taskDescription.trim() ||
+                    commandSending
+                  }
                   className="rounded-md border border-black/10 px-3 py-1.5 text-xs font-medium text-black/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white/70"
                 >
                   Run {role}
                 </button>
               ))}
             </div>
-            {commandStatus && <p className="mt-2 text-xs text-black/60 dark:text-white/60">{commandStatus}</p>}
+            {commandStatus && (
+              <p className="mt-2 text-xs text-black/60 dark:text-white/60">
+                {commandStatus}
+              </p>
+            )}
           </div>
         )}
 
@@ -291,7 +337,9 @@ export function LenGrowthWorkspaceWelcome() {
           </a>
           <span className="inline-flex items-center gap-1">
             <Circle className="h-2.5 w-2.5 fill-current" />
-            {pubkey ? "Identity connected" : "Read-only until identity is connected"}
+            {pubkey
+              ? "Identity connected"
+              : "Read-only until identity is connected"}
           </span>
         </div>
       </div>

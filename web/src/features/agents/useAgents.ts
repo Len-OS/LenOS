@@ -26,7 +26,10 @@ function parseAgent(raw: {
   const tags = raw.tags;
   let content: Record<string, unknown> = {};
   try {
-    content = JSON.parse((raw as { content?: string }).content ?? "") as Record<string, unknown>;
+    content = JSON.parse((raw as { content?: string }).content ?? "") as Record<
+      string,
+      unknown
+    >;
   } catch {
     // Legacy clients publish the display fields as tags only.
   }
@@ -36,9 +39,11 @@ function parseAgent(raw: {
     (typeof content.name === "string" ? content.name : undefined) ??
     dTag ??
     "Unknown Agent";
-  const description = tags.find((t) => t[0] === "about")?.[1] ??
+  const description =
+    tags.find((t) => t[0] === "about")?.[1] ??
     (typeof content.description === "string" ? content.description : "");
-  const agentType = tags.find((t) => t[0] === "agent_type")?.[1] ??
+  const agentType =
+    tags.find((t) => t[0] === "agent_type")?.[1] ??
     (typeof content.agent_type === "string" ? content.agent_type : "remote");
   const remote =
     tags.find((t) => t[0] === "remote")?.[1] === "true" ||

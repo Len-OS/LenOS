@@ -345,10 +345,7 @@ test("invite download falls back for mobile and non-desktop devices", async ({
     await expect(
       page.getByRole("link", { name: "Download it now" }),
       device.name,
-    ).toHaveAttribute(
-      "href",
-      "https://github.com/Lengrowth/LenOS/releases",
-    );
+    ).toHaveAttribute("href", "https://github.com/Lengrowth/LenOS/releases");
     await context.close();
   }
 });

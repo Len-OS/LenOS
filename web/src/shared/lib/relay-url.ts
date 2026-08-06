@@ -11,14 +11,18 @@ export function relayHttpUrl(wsUrl: string): string {
 
 export function relayWsUrl(): string {
   const configured = import.meta.env.VITE_RELAY_URL;
-  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
-  const isWorkspaceHost = hostname.endsWith(".lengrowth.com") &&
+  const hostname =
+    typeof window !== "undefined" ? window.location.hostname : "";
+  const isWorkspaceHost =
+    hostname.endsWith(".lengrowth.com") &&
     hostname.split(".").length >= 3 &&
-    !["www", "app", "api", "relay", "growth-api", "lenos"].includes(hostname.split(".")[0]);
-    if (isWorkspaceHost) {
-      const suffix = import.meta.env.VITE_RELAY_HOST_SUFFIX ?? ".lengrowth.com";
-      return `wss://${hostname.replace(/\.lengrowth\.com$/, suffix)}`;
-    }
+    !["www", "app", "api", "relay", "growth-api", "lenos"].includes(
+      hostname.split(".")[0],
+    );
+  if (isWorkspaceHost) {
+    const suffix = import.meta.env.VITE_RELAY_HOST_SUFFIX ?? ".lengrowth.com";
+    return `wss://${hostname.replace(/\.lengrowth\.com$/, suffix)}`;
+  }
   return configured ?? "wss://relay.lengrowth.com";
 }
 

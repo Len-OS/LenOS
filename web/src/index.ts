@@ -5,8 +5,9 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const isWebSocket = request.headers.get("Upgrade")?.toLowerCase() === "websocket"
-      || request.headers.get("Connection")?.toLowerCase().includes("upgrade");
+    const isWebSocket =
+      request.headers.get("Upgrade")?.toLowerCase() === "websocket" ||
+      request.headers.get("Connection")?.toLowerCase().includes("upgrade");
     if (isWebSocket) {
       const origin = new URL(env.RELAY_ORIGIN);
       origin.pathname = new URL(request.url).pathname;

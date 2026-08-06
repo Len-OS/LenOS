@@ -3,6 +3,7 @@ import { Copy, Plus, Settings, Trash2, X } from "lucide-react";
 import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 import { useMembers } from "@/features/channels/useMembers";
 import { useInvites } from "../useInvites";
 import { useCreateInvite } from "../useCreateInvite";
@@ -189,7 +190,7 @@ export function CommunitySettingsModal({
                     className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5"
                   >
                     <span className="font-mono text-xs text-black/60 dark:text-white/60">
-                      {m.pubkey.slice(0, 16)}…
+                      {truncatePubkey(m.pubkey)}
                     </span>
                     <span className="rounded-full bg-black/10 px-2 py-0.5 text-xs capitalize dark:bg-white/10">
                       {m.role ?? "member"}
