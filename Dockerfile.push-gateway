@@ -23,7 +23,7 @@ RUN cargo build --release --locked -p lenos-push-gateway --bin lenos-push-gatewa
 FROM debian:${DEBIAN_VERSION}-slim AS runtime
 LABEL org.opencontainers.image.title="LenOS Push Gateway" \
       org.opencontainers.image.description="Capability-gated APNs last hop for LenOS" \
-      org.opencontainers.image.source="https://github.com/BuildGrowthNow/LenOS" \
+      org.opencontainers.image.source="https://github.com/Lengrowth/LenOS" \
       org.opencontainers.image.licenses="Apache-2.0"
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \

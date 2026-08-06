@@ -11,12 +11,12 @@ require_canonical_repository() {
   local origin_url
 
   origin_url="$(git config --get remote.origin.url 2>/dev/null)" || \
-    fail_release_ruleset "origin is required and must point to BuildGrowthNow/LenOS" || return 1
+    fail_release_ruleset "origin is required and must point to Lengrowth/LenOS" || return 1
   case "$origin_url" in
-    git@github.com:BuildGrowthNow/LenOS.git|ssh://git@github.com/BuildGrowthNow/LenOS.git|https://github.com/BuildGrowthNow/LenOS.git|https://github.com/BuildGrowthNow/LenOS)
+    git@github.com:Lengrowth/LenOS.git|ssh://git@github.com/Lengrowth/LenOS.git|https://github.com/Lengrowth/LenOS.git|https://github.com/Lengrowth/LenOS)
       ;;
     *)
-      fail_release_ruleset "origin must point to canonical BuildGrowthNow/LenOS, not '$origin_url'" || return 1
+      fail_release_ruleset "origin must point to canonical Lengrowth/LenOS, not '$origin_url'" || return 1
       ;;
   esac
 }
@@ -25,7 +25,7 @@ require_release_tag_ruleset() {
   local ruleset_endpoint state can_bypass rule_types includes excludes
 
   command -v gh >/dev/null 2>&1 || fail_release_ruleset "gh is required" || return 1
-  ruleset_endpoint="repos/BuildGrowthNow/LenOS/rulesets/$RELEASE_TAG_RULESET_ID"
+  ruleset_endpoint="repos/Lengrowth/LenOS/rulesets/$RELEASE_TAG_RULESET_ID"
 
   state="$(gh api "$ruleset_endpoint" --jq .enforcement)" || \
     fail_release_ruleset "could not verify Release tag ruleset $RELEASE_TAG_RULESET_ID" || return 1

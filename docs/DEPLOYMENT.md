@@ -39,7 +39,7 @@ Secrets (`relay_private_key_hex`, `postgres_password`) live only in `infra/terra
 - RDS Postgres 17 (db.t3.micro) in private subnets
 - ElastiCache Redis (cache.t3.micro) in private subnets
 - S3 bucket for Blossom media
-- ECS Fargate service running `ghcr.io/buildgrowthnow/lenos:main`
+- ECS Fargate service running `ghcr.io/lengrowth/lenos:main`
 - ALB with HTTPS listener (ACM cert above), HTTP→HTTPS redirect
 - IAM task role with S3 read/write
 - CloudWatch log group `/ecs/lenos` (14-day retention)
@@ -100,7 +100,7 @@ curl -s -H "Accept: application/nostr+json" https://relay.lengrowth.com/info | p
 
 ## Part 2 — LenGrowth backend integration ✅ DONE
 
-All changes in `BuildGrowthNow/backend` repo, auto-deployed to `lengrowth-main` on Scalingo on push to `master`.
+All changes in `Lengrowth/backend` repo, auto-deployed to `lengrowth-main` on Scalingo on push to `master`.
 
 ### What was deployed
 
@@ -183,7 +183,7 @@ In `LenOS/web/src/`:
 
 ### Deployment plan — Cloudflare Pages (recommended)
 
-1. Connect `BuildGrowthNow/LenOS` to Cloudflare Pages
+1. Connect `Lengrowth/LenOS` to Cloudflare Pages
 2. Build command: `pnpm build` (root of `/web`)
 3. Output dir: `web/dist`
 4. Add wildcard DNS in Cloudflare: `*.lengrowth.com` CNAME to Pages hostname (proxy ON)
@@ -207,7 +207,7 @@ After login/signup at `app.lengrowth.com`, users need two options:
 
 ### Changes required
 
-**LenGrowth frontend** (`BuildGrowthNow/frontend` → `lengrowth-web` on Scalingo):
+**LenGrowth frontend** (`Lengrowth/frontend` → `lengrowth-web` on Scalingo):
 - Post-login page currently routes directly to `/dashboard`
 - Add workspace selection step (page or modal): show both options
 - "Enter workspace" button: `https://<company-slug>.lengrowth.com`

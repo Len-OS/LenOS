@@ -1,43 +1,14 @@
-import { useState, type ReactNode } from "react";
-import { hasNip07Provider } from "@/shared/lib/nostr-signer";
-import { IdentityStep } from "./IdentityStep";
-import { ProfileSetupStep } from "./ProfileSetupStep";
-
-function hasIdentity(): boolean {
-  return hasNip07Provider() || !!localStorage.getItem("lenos_privkey");
-}
-
-type Step = "identity" | "profile" | "done";
-
-function getInitialStep(): Step {
-  return hasIdentity() ? "done" : "identity";
-}
+import type { ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
 }
 
 export function OnboardingGate({ children }: Props) {
-  const [step, setStep] = useState<Step>(getInitialStep);
-
-  if (step === "done") return <>{children}</>;
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-8 dark:bg-[#111]">
-      <div className="w-full max-w-md">
-        {step === "identity" && (
-          <IdentityStep
-            onComplete={() => {
-              if (hasIdentity()) {
-                setStep("profile");
-              }
-            }}
-          />
-        )}
-        {step === "profile" && (
-          <ProfileSetupStep onComplete={() => setStep("done")} />
-        )}
-      </div>
-    </div>
-  );
+  // The relay client has an ephemeral-key fallback for open/read-only browsing.
+  // Do not block the whole workspace on NIP-07: users arriving from the
+  // LenGrowth web app must be able to see the Slack-like workspace immediately.
+  // Operations that create durable membership still pass `requireNip07` and
+  // remain protected by the signer.
+  return <>{children}</>;
 }

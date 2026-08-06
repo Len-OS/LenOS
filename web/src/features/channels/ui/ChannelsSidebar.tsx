@@ -67,6 +67,12 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   }, []);
 
   useEffect(() => {
+    const openSettings = () => setSettingsOpen(true);
+    window.addEventListener("open-settings", openSettings);
+    return () => window.removeEventListener("open-settings", openSettings);
+  }, []);
+
+  useEffect(() => {
     if (!menuOpenFor) return;
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {

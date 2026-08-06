@@ -317,7 +317,7 @@ Expected: `lengrowth-icon-*.png` listed (Vite hashes filename)
 
 After all tasks complete, configure via Cloudflare Pages dashboard:
 
-1. Connect `BuildGrowthNow/LenOS` repo, branch `main`
+1. Connect `Lengrowth/LenOS` repo, branch `main`
 2. Build command: `cd web && pnpm install && pnpm build`
 3. Output directory: `web/dist`
 4. Environment variable: `VITE_RELAY_URL` = `wss://relay.lengrowth.com`

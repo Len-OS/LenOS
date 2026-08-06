@@ -7276,7 +7276,7 @@ async function handleDiscoverAcpRuntimes(
       default_args: [],
       mcp_command: "lenos-dev-mcp",
       install_hint: "Ships with the LenOS desktop app.",
-      install_instructions_url: "https://github.com/BuildGrowthNow/LenOS",
+      install_instructions_url: "https://github.com/Lengrowth/LenOS",
       can_auto_install: false,
       requires_external_cli: false,
       underlying_cli_path: null,

@@ -8,18 +8,18 @@ code style, PR process, architecture), see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Ecosystem
 
-LenOS spans five repos. This one (`BuildGrowthNow/LenOS`) is the OSS source for the relay, desktop, mobile, and CLI. The others handle internal builds and deployment:
+LenOS spans five repos. This one (`Lengrowth/LenOS`) is the OSS source for the relay, desktop, mobile, and CLI. The others handle internal builds and deployment:
 
 | Repo | Purpose |
 |------|---------|
-| [BuildGrowthNow/LenOS](https://github.com/BuildGrowthNow/LenOS) | OSS source — relay, desktop app, mobile app, CLI, agent harness |
-| [BuildGrowthNow/LenOS](https://github.com/BuildGrowthNow/LenOS) | Buildkite pipeline producing Block-signed macOS + iOS builds with `-block` version suffix |
-| [BuildGrowthNow/LenOS](https://github.com/BuildGrowthNow/LenOS) | CI pipeline building the relay Docker image and pushing to internal ECR |
-| [BuildGrowthNow/LenOS](https://github.com/BuildGrowthNow/LenOS) | Terraform + ArgoCD deploying the relay to the staging Kubernetes cluster |
-| [BuildGrowthNow/LenOS](https://github.com/BuildGrowthNow/LenOS) | Desktop backend provider script connecting Blox workstation agents to the relay |
+| [Lengrowth/LenOS](https://github.com/Lengrowth/LenOS) | OSS source — relay, desktop app, mobile app, CLI, agent harness |
+| [Lengrowth/LenOS](https://github.com/Lengrowth/LenOS) | Buildkite pipeline producing Block-signed macOS + iOS builds with `-block` version suffix |
+| [Lengrowth/LenOS](https://github.com/Lengrowth/LenOS) | CI pipeline building the relay Docker image and pushing to internal ECR |
+| [Lengrowth/LenOS](https://github.com/Lengrowth/LenOS) | Terraform + ArgoCD deploying the relay to the staging Kubernetes cluster |
+| [Lengrowth/LenOS](https://github.com/Lengrowth/LenOS) | Desktop backend provider script connecting Blox workstation agents to the relay |
 
 ```
-BuildGrowthNow/LenOS (source)
+Lengrowth/LenOS (source)
   ├─► sprout-releases    (desktop + mobile builds → Artifactory, GitHub, Mobile Releases)
   ├─► sprout-oss         (relay Docker image → ECR)
   │     └─► block-coder-tf-stacks  (Helm chart → ArgoCD → staging cluster)
@@ -332,9 +332,9 @@ only the current set remains, otherwise reviewers still see the stale images:
 
 ```bash
 # List screenshot comments to find the stale one's id
-gh pr view <pr> --repo BuildGrowthNow/LenOS --json comments \
+ gh pr view <pr> --repo Lengrowth/LenOS --json comments \
   --jq '.comments[] | select(.body | test("pr-<pr>--")) | {id, url}'
-gh api -X DELETE repos/BuildGrowthNow/LenOS/issues/comments/<stale-comment-id>
+ gh api -X DELETE repos/Lengrowth/LenOS/issues/comments/<stale-comment-id>
 ```
 
 Branch cleanup when fully done: `git push origin --delete agent-screenshots/<username>`.
@@ -418,7 +418,7 @@ not post. This catches the most common screenshot regression.
 
 **PR comments:** Use a body template (3rd arg to `post-screenshots.sh`) with
 `{{filename}}` placeholders. Each screenshot gets a `###` heading + one-line
-description. See [PR #803](https://github.com/BuildGrowthNow/LenOS/pull/803).
+description. See [PR #803](https://github.com/Lengrowth/LenOS/pull/803).
 
 ---
 

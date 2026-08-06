@@ -9,9 +9,9 @@ description: |
 type: application
 version: 0.1.7
 appVersion: "0.1.0"
-home: https://github.com/BuildGrowthNow/LenOS
+home: https://github.com/Lengrowth/LenOS
 sources:
-  - https://github.com/BuildGrowthNow/LenOS
+  - https://github.com/Lengrowth/LenOS
 keywords:
   - nostr
   - relay

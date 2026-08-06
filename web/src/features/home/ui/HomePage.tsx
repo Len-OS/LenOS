@@ -6,6 +6,7 @@ import { useChannels } from "@/features/channels/use-channels";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import { useHomeInbox } from "../useHomeInbox";
 import { InboxItemRow } from "./InboxItemRow";
+import { LenGrowthWorkspaceWelcome } from "@/features/onboarding/ui/LenGrowthWorkspaceWelcome";
 
 function dateLabel(unix: number): string {
   const d = new Date(unix * 1000);
@@ -76,6 +77,7 @@ export function HomePage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        <LenGrowthWorkspaceWelcome />
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <Inbox className="h-10 w-10 text-black/20 dark:text-white/20" />

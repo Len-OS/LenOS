@@ -50,7 +50,7 @@ Swap primary from Catppuccin mauve to emerald. Touch only `--primary`, `--primar
 ## Deploy
 
 - Platform: Cloudflare Pages
-- Repo: `BuildGrowthNow/LenOS`, branch: `main`
+- Repo: `Lengrowth/LenOS`, branch: `main`
 - Build command: `cd web && pnpm install && pnpm build`
 - Output dir: `web/dist`
 - Env vars: `VITE_RELAY_URL=wss://relay.lengrowth.com`

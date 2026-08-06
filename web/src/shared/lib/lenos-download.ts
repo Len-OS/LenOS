@@ -1,7 +1,7 @@
 export const LENOS_RELEASES_URL =
-  "https://github.com/BuildGrowthNow/LenOS/releases";
+  "https://github.com/Lengrowth/LenOS/releases";
 const LENOS_RELEASES_API_URL =
-  "https://api.github.com/repos/BuildGrowthNow/LenOS/releases?per_page=10";
+  "https://api.github.com/repos/Lengrowth/LenOS/releases?per_page=10";
 const CACHE_KEY = "lenos.latestDownload.v1";
 const CACHE_TTL_MS = 60 * 60 * 1000;
 

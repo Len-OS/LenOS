@@ -2,7 +2,7 @@ name: lenos-prod
 
 services:
   relay:
-    image: ${LENOS_IMAGE:-ghcr.io/buildgrowthnow/lenos:main}
+    image: ${LENOS_IMAGE:-ghcr.io/lengrowth/lenos:main}
     env_file:
       - .env
     environment:

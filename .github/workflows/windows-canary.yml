@@ -16,7 +16,7 @@ permissions:
 jobs:
   build:
     name: Build Windows canary
-    if: github.repository == 'BuildGrowthNow/LenOS'
+    if: github.repository == 'Lengrowth/LenOS'
     runs-on: windows-latest
     timeout-minutes: 60
     permissions:
