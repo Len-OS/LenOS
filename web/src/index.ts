@@ -10,16 +10,15 @@ export default {
       request.headers.get("Connection")?.toLowerCase().includes("upgrade");
     if (isWebSocket) {
       const origin = new URL(env.RELAY_ORIGIN);
-      origin.pathname = new URL(request.url).pathname;
-      origin.search = new URL(request.url).search;
 
-      // The relay selects the tenant from Host. Keep the workspace hostname
-      // while using the stable relay origin for TLS and load-balancer routing.
-      const headers = new Headers(request.headers);
-      headers.set("Upgrade", "websocket");
-      headers.set("Connection", "Upgrade");
-      headers.set("Host", new URL(request.url).host);
-      return fetch(origin, { method: "GET", headers });
+      // Keep the workspace hostname as the request Host so the relay can bind
+      // the socket to the correct tenant. resolveOverride changes only DNS
+      // routing to the stable relay origin; constructing a new URL here would
+      // replace Host with relay.lengrowth.com and break NIP-42's tenant-bound
+      // relay URL verification.
+      return fetch(request, {
+        cf: { resolveOverride: origin.hostname },
+      } as RequestInit & { cf: { resolveOverride: string } });
     }
 
     const assetUrl = new URL(request.url);
