@@ -73,7 +73,6 @@ jobs:
               - 'scripts/test-mobile-release-candidate-publisher.sh'
               - 'scripts/test-mobile-worktree-overrides.sh'
               - '.github/workflows/mobile-release-candidate.yml'
-              - '.github/workflows/ci.yml'
       - name: Release workflow source contract
         run: scripts/test-release-ref-contract.sh
       - name: Desktop release candidate contract
