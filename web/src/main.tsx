@@ -8,6 +8,9 @@ import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { Toaster } from "@/shared/ui/sonner";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 import { WorkspaceProvider } from "@/shared/lib/workspace-context";
+import { consumeManagedSignerSessionFromUrl } from "@/shared/lib/nostr-signer";
+
+consumeManagedSignerSessionFromUrl();
 
 const queryClient = new QueryClient({
   defaultOptions: {

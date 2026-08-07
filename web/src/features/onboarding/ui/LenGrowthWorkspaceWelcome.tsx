@@ -117,9 +117,13 @@ export function LenGrowthWorkspaceWelcome() {
     agentNames.has(agent.name.toLowerCase()),
   );
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
-  const linkUrl = pubkey
-    ? `https://lengrowth.com/auth/nostr-link?pubkey=${encodeURIComponent(pubkey)}&relay=${encodeURIComponent(workspace.workspace.relayUrl)}&state=${encodeURIComponent(`lenos-workspace:${workspace.workspace.slug}`)}`
-    : "https://lengrowth.com/auth/login";
+  const returnTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  const linkUrl = `https://lengrowth.com/auth/nostr-link?${new URLSearchParams({
+    ...(pubkey ? { pubkey } : {}),
+    relay: workspace.workspace.relayUrl,
+    state: `lenos-workspace:${workspace.workspace.slug}`,
+    return_to: returnTo,
+  }).toString()}`;
 
   if (complete) return null;
 

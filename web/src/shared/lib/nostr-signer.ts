@@ -30,12 +30,15 @@ declare global {
 
 export class Nip07UnavailableError extends Error {
   constructor() {
-    super("A NIP-07 browser extension is required to join in the browser.");
+    super("A durable LenOS signer is required for this action.");
     this.name = "Nip07UnavailableError";
   }
 }
 
 export const IDENTITY_STATE_CHANGE_EVENT = "lenos-identity-state-change";
+const MANAGED_SIGNER_TOKEN_KEY = "lenos_managed_signer_token";
+const MANAGED_SIGNER_PUBKEY_KEY = "lenos_managed_signer_pubkey";
+const MANAGED_SIGNER_API = "https://growth-api.lenquant.com";
 
 let ephemeralSecretKey: Uint8Array | null = null;
 
@@ -50,9 +53,43 @@ export function hasNip07Provider(): boolean {
   return typeof window !== "undefined" && window.nostr != null;
 }
 
+function getManagedSignerSession(): { token: string; pubkey: string } | null {
+  if (typeof window === "undefined") return null;
+  const token = window.sessionStorage.getItem(MANAGED_SIGNER_TOKEN_KEY);
+  const pubkey = window.sessionStorage.getItem(MANAGED_SIGNER_PUBKEY_KEY);
+  return token && pubkey ? { token, pubkey } : null;
+}
+
+export function setManagedSignerSession(token: string, pubkey: string): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(MANAGED_SIGNER_TOKEN_KEY, token);
+  window.sessionStorage.setItem(MANAGED_SIGNER_PUBKEY_KEY, pubkey);
+  window.dispatchEvent(new Event(IDENTITY_STATE_CHANGE_EVENT));
+}
+
+export function clearManagedSignerSession(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(MANAGED_SIGNER_TOKEN_KEY);
+  window.sessionStorage.removeItem(MANAGED_SIGNER_PUBKEY_KEY);
+  window.dispatchEvent(new Event(IDENTITY_STATE_CHANGE_EVENT));
+}
+
+export function consumeManagedSignerSessionFromUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  const url = new URL(window.location.href);
+  const token = url.searchParams.get("managed_signer_token");
+  const pubkey = url.searchParams.get("managed_signer_pubkey");
+  if (!token || !pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) return false;
+  setManagedSignerSession(token, pubkey);
+  url.searchParams.delete("managed_signer_token");
+  url.searchParams.delete("managed_signer_pubkey");
+  window.history.replaceState({}, document.title, url.toString());
+  return true;
+}
+
 /** True only for an identity that survives a page reload. */
 export function hasDurableIdentity(): boolean {
-  return hasNip07Provider();
+  return hasNip07Provider() || getManagedSignerSession() !== null;
 }
 
 export async function getCurrentPubkey(): Promise<string | null> {
@@ -64,6 +101,8 @@ export async function getCurrentPubkey(): Promise<string | null> {
       return null;
     }
   }
+  const managed = getManagedSignerSession();
+  if (managed) return managed.pubkey;
   return getPublicKey(getEphemeralSecretKey());
 }
 
@@ -108,6 +147,42 @@ export async function signNostrEvent(
       typeof signed.sig !== "string"
     ) {
       throw new Error("The NIP-07 extension returned an invalid signed event.");
+    }
+    return signed;
+  }
+
+  const managed = getManagedSignerSession();
+  if (managed) {
+    const response = await fetch(
+      `${MANAGED_SIGNER_API}/api/auth/managed-nostr/sign`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${managed.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(unsigned),
+      },
+    );
+    if (!response.ok) {
+      if (response.status === 401) clearManagedSignerSession();
+      const payload = (await response.json().catch(() => null)) as {
+        detail?: string;
+      } | null;
+      throw new Error(
+        payload?.detail ?? "Managed LenOS signer rejected the event.",
+      );
+    }
+    const payload = (await response.json()) as { event?: SignedNostrEvent };
+    const signed = payload.event;
+    if (
+      !signed ||
+      signed.pubkey !== managed.pubkey ||
+      !sameUnsignedEvent(unsigned, signed) ||
+      typeof signed.id !== "string" ||
+      typeof signed.sig !== "string"
+    ) {
+      throw new Error("Managed LenOS signer returned an invalid signed event.");
     }
     return signed;
   }

@@ -73,11 +73,10 @@ export function IdentitySettingsPanel() {
           writes are available after the signer grants access.
         </p>
       ) : (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
-          Install or unlock a NIP-07 browser signer, or connect this workspace
-          from the LenOS desktop app. Browser provisioning and membership writes
-          stay disabled until a durable signer is available. LenOS does not
-          accept raw secret keys in browser storage.
+        <div className="rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm leading-6 text-blue-800 dark:text-blue-200">
+          Connect LenOS from your LenGrowth account to use a managed signer.
+          Browser provisioning does not require an extension or private-key
+          entry. The signing key stays encrypted on the LenGrowth backend.
         </div>
       )}
     </div>
