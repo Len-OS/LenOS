@@ -56,10 +56,15 @@ export function IdentitySettingsPanel() {
           </div>
         ) : (
           <p className="text-sm text-black/40 dark:text-white/40">
-            Not connected yet. Open LenOS from your LenGrowth workspace to connect automatically.
+            Not connected yet. Open LenOS from your LenGrowth workspace to
+            connect automatically.
           </p>
         )}
-        {pubkey && <p className="mt-2 text-xs text-black/40 dark:text-white/40">Connected and ready to use.</p>}
+        {pubkey && (
+          <p className="mt-2 text-xs text-black/40 dark:text-white/40">
+            Connected and ready to use.
+          </p>
+        )}
       </div>
       <p className="rounded-md bg-black/5 px-3 py-2 text-sm text-black/60 dark:bg-white/5 dark:text-white/60">
         Your connection is managed securely for you. No extra setup is needed.

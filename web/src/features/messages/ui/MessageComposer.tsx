@@ -173,7 +173,9 @@ export function MessageComposer({
       setPendingText("");
     } catch (err) {
       if (err instanceof Nip07UnavailableError) {
-        setError("Your workspace connection is still being prepared. Reopen LenOS from LenGrowth and try again.");
+        setError(
+          "Your workspace connection is still being prepared. Reopen LenOS from LenGrowth and try again.",
+        );
       } else {
         setError("Failed to send. Try again.");
       }
