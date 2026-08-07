@@ -29,10 +29,10 @@ const RelayPanel = lazy(() =>
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
-  { id: "identity", label: "Identity" },
+  { id: "identity", label: "Workspace" },
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
-  { id: "relay", label: "Relay" },
+  { id: "relay", label: "Connection" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
