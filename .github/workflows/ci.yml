@@ -79,10 +79,12 @@ jobs:
       - name: Desktop release candidate contract
         run: scripts/test-desktop-release-candidate.sh
       - name: Mobile release contract
+        if: steps.filter.outputs.mobile == 'true'
         run: |
           scripts/test-mobile-release-contract.sh
           scripts/test-mobile-release-candidate-publisher.sh
       - name: Mobile worktree identity contract
+        if: steps.filter.outputs.mobile == 'true'
         run: scripts/test-mobile-worktree-overrides.sh
       - name: File size ratchet unit tests
         run: node --test scripts/check-file-sizes-core.test.mjs
