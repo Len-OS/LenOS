@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 test("home page loads with LenOS branding", async ({ page }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("main").getByRole("img", { name: "LenOS" }),
+    page.getByRole("main").getByRole("img", { name: "LenGrowth" }),
   ).toBeVisible();
 });
 
@@ -77,7 +77,7 @@ test("invite requires age and legal consent before opening LenOS", async ({
 
   const ageConfirmation = page.getByLabel("I am 18 years of age or older.");
   const agreementConfirmation = page.getByLabel(
-    "I agree to the LenOS Terms of Service and Privacy Policy.",
+    "I agree to the LenGrowth Terms of Service and Privacy Policy.",
   );
   const acceptInvite = page.getByRole("button", {
     name: "Accept invite in LenOS",
@@ -106,7 +106,7 @@ test("invite requires age and legal consent before opening LenOS", async ({
   await page
     .locator("label")
     .filter({
-      hasText: "I agree to the LenOS Terms of Service and Privacy Policy.",
+      hasText: "I agree to the LenGrowth Terms of Service and Privacy Policy.",
     })
     .click({ position: { x: 8, y: 8 } });
   await expect(agreementConfirmation).toBeChecked();
