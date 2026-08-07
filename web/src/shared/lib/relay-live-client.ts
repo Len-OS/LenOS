@@ -15,6 +15,7 @@ class RelayLiveClient {
   private reconnectDelay = 1_000;
   private destroyed = false;
   private authenticated = false;
+  private authFailure: string | null = null;
   private authEventId: string | null = null;
   private pendingPublishes = new Map<
     string,
@@ -30,6 +31,7 @@ class RelayLiveClient {
   connect(): void {
     if (this.ws) return;
     this.authenticated = false;
+    this.authFailure = null;
     this.authEventId = null;
     const ws = new WebSocket(this.relayUrl);
     this.ws = ws;
@@ -76,12 +78,22 @@ class RelayLiveClient {
         // AUTH response — now send all pending subscriptions
         if (msg[2] === true) {
           this.authenticated = true;
+          this.authFailure = null;
           this.sendAllSubs(ws);
         } else {
           this.authenticated = false;
+          this.authFailure =
+            typeof msg[3] === "string"
+              ? msg[3]
+              : "Relay authentication rejected";
+          console.warn(
+            "[LenOS relay] authentication rejected",
+            this.authFailure,
+          );
           this.authEventId = null;
-          // Keep open-relay browsing usable when the relay rejects AUTH.
-          this.sendAllSubs(ws);
+          // Do not resubmit subscriptions while unauthenticated. This would
+          // create a challenge/rejection loop and hide the actual admission
+          // failure behind a publish timeout.
         }
         return;
       }
@@ -119,6 +131,7 @@ class RelayLiveClient {
     ws.addEventListener("close", () => {
       this.ws = null;
       this.authenticated = false;
+      this.authFailure = null;
       this.authEventId = null;
       if (!this.destroyed) this.scheduleReconnect();
     });
@@ -162,6 +175,9 @@ class RelayLiveClient {
 
     const deadline = Date.now() + 10_000;
     while (this.ws?.readyState !== WebSocket.OPEN || !this.authenticated) {
+      if (this.authFailure) {
+        throw new Error(`Workspace connection rejected: ${this.authFailure}`);
+      }
       if (Date.now() >= deadline) {
         throw new Error("Relay connection was not ready within 10 seconds");
       }

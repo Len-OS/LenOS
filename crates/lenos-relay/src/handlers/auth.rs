@@ -183,8 +183,13 @@ pub async fn handle_auth(event: nostr::Event, conn: Arc<ConnectionState>, state:
                 }
             }
 
-            // Pubkey allowlist gate — only for pubkey-only auth.
+            // Pubkey allowlist gate — only for pubkey-only auth on legacy
+            // allowlist relays. On a closed NIP-43 relay, relay_members is
+            // the authoritative roster; requiring both tables would make
+            // newly provisioned managed identities fail before membership
+            // authorization can admit them.
             if state.config.pubkey_allowlist_enabled
+                && !state.config.require_relay_membership
                 && auth_ctx.auth_method == lenos_auth::AuthMethod::Nip42
             {
                 let allowed = match state
