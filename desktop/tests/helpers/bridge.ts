@@ -565,7 +565,8 @@ type BridgeOptions = {
 
 const WELCOME_CHANNEL_ENSURED_STORAGE_KEY_PREFIX =
   "lenos-welcome-channel-ensured.v2:";
-const ONBOARDING_COMPLETION_STORAGE_KEY_PREFIX = "lenos-onboarding-complete.v1:";
+const ONBOARDING_COMPLETION_STORAGE_KEY_PREFIX =
+  "lenos-onboarding-complete.v1:";
 const DEFAULT_MOCK_PUBKEY = "deadbeef".repeat(8);
 // The relay HTTP/WS URLs follow LENOS_E2E_RELAY_URL (same env var seed.ts reads),
 // so a suite pointed at an isolated relay (e.g. the read-model harness on :3030)

@@ -28,9 +28,13 @@
     "Source Code Pro", Menlo, Consolas, monospace;
   --diff-selection-background-color: hsl(var(--accent) / 0.9);
   --diff-selection-text-color: hsl(var(--accent-foreground));
-  --diff-gutter-insert-background-color: hsl(var(--lenos-diff-insert-gutter-bg));
+  --diff-gutter-insert-background-color: hsl(
+    var(--lenos-diff-insert-gutter-bg)
+  );
   --diff-gutter-insert-text-color: hsl(var(--lenos-diff-insert-text));
-  --diff-gutter-delete-background-color: hsl(var(--lenos-diff-delete-gutter-bg));
+  --diff-gutter-delete-background-color: hsl(
+    var(--lenos-diff-delete-gutter-bg)
+  );
   --diff-gutter-delete-text-color: hsl(var(--lenos-diff-delete-text));
   --diff-gutter-selected-background-color: hsl(var(--accent) / 0.45);
   --diff-gutter-selected-text-color: hsl(var(--foreground));

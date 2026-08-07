@@ -925,14 +925,18 @@ test("first-community owner can connect an existing hosted community", async ({
   await expect
     .poll(() =>
       page.evaluate(() =>
-        window.localStorage.getItem("lenos-community-onboarding-transaction.v1"),
+        window.localStorage.getItem(
+          "lenos-community-onboarding-transaction.v1",
+        ),
       ),
     )
     .toContain('"source":"first-community"');
   await expect
     .poll(() =>
       page.evaluate(() =>
-        window.localStorage.getItem("lenos-community-onboarding-transaction.v1"),
+        window.localStorage.getItem(
+          "lenos-community-onboarding-transaction.v1",
+        ),
       ),
     )
     .toContain("wss://north-star.communities.lenos.xyz");
@@ -947,7 +951,9 @@ test("first-community owner can connect an existing hosted community", async ({
   await expect
     .poll(() =>
       page.evaluate(() =>
-        window.localStorage.getItem("lenos-community-onboarding-transaction.v1"),
+        window.localStorage.getItem(
+          "lenos-community-onboarding-transaction.v1",
+        ),
       ),
     )
     .toBeNull();
@@ -1021,7 +1027,9 @@ test("first-community owner can create and connect a hosted community", async ({
   await expect
     .poll(() =>
       page.evaluate(() =>
-        window.localStorage.getItem("lenos-community-onboarding-transaction.v1"),
+        window.localStorage.getItem(
+          "lenos-community-onboarding-transaction.v1",
+        ),
       ),
     )
     .toContain("wss://bee-lab.communities.lenos.xyz");

@@ -92,7 +92,10 @@ export function applyLegacyCommunityStorage(
     legacyStorage.activeWorkspaceId &&
     (!currentActiveCommunityId || shouldWriteCommunities)
   ) {
-    storage.setItem(LENOS_ACTIVE_COMMUNITY_KEY, legacyStorage.activeWorkspaceId);
+    storage.setItem(
+      LENOS_ACTIVE_COMMUNITY_KEY,
+      legacyStorage.activeWorkspaceId,
+    );
   }
 
   for (const completion of legacyStorage.onboardingCompletions) {
@@ -116,8 +119,9 @@ export async function migrateLegacyCommunityStorageBeforeRender(): Promise<void>
   }
 
   migrateLegacyCommunityStorage(window.localStorage);
-  const currentCommunitiesRaw =
-    window.localStorage.getItem(LENOS_COMMUNITIES_KEY);
+  const currentCommunitiesRaw = window.localStorage.getItem(
+    LENOS_COMMUNITIES_KEY,
+  );
   const hasCurrentActiveCommunity = window.localStorage.getItem(
     LENOS_ACTIVE_COMMUNITY_KEY,
   );

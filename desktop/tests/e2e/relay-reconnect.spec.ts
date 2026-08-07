@@ -193,7 +193,9 @@ test("routine traffic cannot bypass outage backoff and recovery stays automatic"
   await expect
     .poll(
       () =>
-        page.evaluate(() => window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.()),
+        page.evaluate(() =>
+          window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.(),
+        ),
       { timeout: 10_000 },
     )
     .toBe("connected");
@@ -223,7 +225,9 @@ test("authenticated reconnect reports connected while replay is rate-limited", a
   await expect
     .poll(
       () =>
-        page.evaluate(() => window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.()),
+        page.evaluate(() =>
+          window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.(),
+        ),
       { timeout: 3_000 },
     )
     .toBe("connected");
@@ -244,7 +248,9 @@ test("service restart close resets accumulated backoff", async ({ page }) => {
   await expect
     .poll(
       () =>
-        page.evaluate(() => window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.()),
+        page.evaluate(() =>
+          window.__LENOS_E2E_GET_RELAY_CONNECTION_STATE__?.(),
+        ),
       { timeout: 2_500 },
     )
     .toBe("connected");

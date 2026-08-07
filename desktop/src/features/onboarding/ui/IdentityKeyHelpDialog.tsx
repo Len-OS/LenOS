@@ -82,8 +82,9 @@ export function IdentityKeyHelpDialog() {
           >
             <div>
               <p>
-                LenOS uses an identity key instead of a traditional account. It’s
-                created on your device and represents you whenever you use LenOS.
+                LenOS uses an identity key instead of a traditional account.
+                It’s created on your device and represents you whenever you use
+                LenOS.
               </p>
               <p>
                 Your identity belongs to you, not LenOS. There’s no password to
@@ -92,8 +93,8 @@ export function IdentityKeyHelpDialog() {
                 can act as you.
               </p>
               <p>
-                If you’re new to LenOS, create a new identity key. If you already
-                have a Nostr identity, use your existing key.
+                If you’re new to LenOS, create a new identity key. If you
+                already have a Nostr identity, use your existing key.
               </p>
             </div>
           </DialogDescription>

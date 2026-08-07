@@ -9,6 +9,7 @@ import {
   KeyRound,
   Link2,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { useAgents } from "@/features/agents/useAgents";
 import { useChannels } from "@/features/channels/use-channels";
@@ -16,6 +17,7 @@ import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 import {
   getCurrentPubkey,
   hasDurableIdentity,
+  IDENTITY_STATE_CHANGE_EVENT,
 } from "@/shared/lib/nostr-signer";
 import {
   provisionStarterWorkspace,
@@ -79,13 +81,22 @@ export function LenGrowthWorkspaceWelcome() {
   const [commandSending, setCommandSending] = useState(false);
 
   useEffect(() => {
-    if (!hasDurableIdentity()) {
-      setPubkey(null);
-      return;
-    }
-    getCurrentPubkey()
-      .then(setPubkey)
-      .catch(() => setPubkey(null));
+    const refreshIdentity = () => {
+      if (!hasDurableIdentity()) {
+        setPubkey(null);
+        return;
+      }
+      getCurrentPubkey()
+        .then(setPubkey)
+        .catch(() => setPubkey(null));
+    };
+    refreshIdentity();
+    window.addEventListener(IDENTITY_STATE_CHANGE_EVENT, refreshIdentity);
+    window.addEventListener("focus", refreshIdentity);
+    return () => {
+      window.removeEventListener(IDENTITY_STATE_CHANGE_EVENT, refreshIdentity);
+      window.removeEventListener("focus", refreshIdentity);
+    };
   }, []);
 
   if (workspace.status !== "found") return null;
@@ -200,9 +211,10 @@ export function LenGrowthWorkspaceWelcome() {
               !pubkey ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    window.dispatchEvent(new Event("open-settings"))
-                  }
+                  onClick={() => {
+                    window.dispatchEvent(new Event("open-settings"));
+                    window.dispatchEvent(new Event("open-settings-identity"));
+                  }}
                   className="mt-2 text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
                 >
                   Open Settings <ArrowRight className="ml-1 inline h-3 w-3" />
@@ -333,6 +345,16 @@ export function LenGrowthWorkspaceWelcome() {
           >
             <Link2 className="h-3.5 w-3.5" />
             Link this workspace in LenGrowth
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <a
+            href="https://lengrowth.com/settings/company?tab=team"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 hover:text-black dark:hover:text-white"
+          >
+            <Users className="h-3.5 w-3.5" />
+            Open Team Hub
             <ExternalLink className="h-3 w-3" />
           </a>
           <span className="inline-flex items-center gap-1">

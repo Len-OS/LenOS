@@ -58,7 +58,10 @@ export function resolveAgentReadiness(
     };
   }
 
-  if (preferredRuntime.id !== "lenos-agent" && preferredRuntime.id !== "goose") {
+  if (
+    preferredRuntime.id !== "lenos-agent" &&
+    preferredRuntime.id !== "goose"
+  ) {
     return { ready: false };
   }
 

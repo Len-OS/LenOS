@@ -120,9 +120,10 @@ test.describe("agents everywhere live two-relay gate", () => {
     const harness = await TwoRelayHarness.create(specs);
     try {
       await harness.startRelays(required("LENOS_E2E_RELAY_BIN", relayBin));
-      const senderOutput = await run(required("LENOS_E2E_ADMIN_BIN", adminBin), [
-        "generate-key",
-      ]);
+      const senderOutput = await run(
+        required("LENOS_E2E_ADMIN_BIN", adminBin),
+        ["generate-key"],
+      );
       const agentOutput = await run(required("LENOS_E2E_ADMIN_BIN", adminBin), [
         "generate-key",
       ]);

@@ -35,19 +35,13 @@ export class Nip07UnavailableError extends Error {
   }
 }
 
+export const IDENTITY_STATE_CHANGE_EVENT = "lenos-identity-state-change";
+
 let ephemeralSecretKey: Uint8Array | null = null;
 
 function getEphemeralSecretKey(): Uint8Array {
   if (!ephemeralSecretKey) {
-    const stored = localStorage.getItem("lenos_privkey");
-    if (stored) {
-      const bytes = new Uint8Array(
-        (stored.match(/.{2}/g) ?? []).map((b) => parseInt(b, 16)),
-      );
-      ephemeralSecretKey = bytes;
-    } else {
-      ephemeralSecretKey = generateSecretKey();
-    }
+    ephemeralSecretKey = generateSecretKey();
   }
   return ephemeralSecretKey;
 }
@@ -58,7 +52,7 @@ export function hasNip07Provider(): boolean {
 
 /** True only for an identity that survives a page reload. */
 export function hasDurableIdentity(): boolean {
-  return hasNip07Provider() || Boolean(localStorage.getItem("lenos_privkey"));
+  return hasNip07Provider();
 }
 
 export async function getCurrentPubkey(): Promise<string | null> {

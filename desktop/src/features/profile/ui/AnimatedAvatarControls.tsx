@@ -239,7 +239,10 @@ export function AvatarFramingSlider({
           ))}
         </div>
         <div aria-hidden="true" className="lenos-avatar-framing-slider-fill" />
-        <div aria-hidden="true" className="lenos-avatar-framing-slider-handle" />
+        <div
+          aria-hidden="true"
+          className="lenos-avatar-framing-slider-handle"
+        />
       </div>
       <button
         aria-label="Reset avatar size"

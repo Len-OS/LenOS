@@ -720,7 +720,10 @@ test.describe("community rail", () => {
     await page.addInitScript(
       ({ list, active }) => {
         if (!window.localStorage.getItem("lenos-communities")) {
-          window.localStorage.setItem("lenos-communities", JSON.stringify(list));
+          window.localStorage.setItem(
+            "lenos-communities",
+            JSON.stringify(list),
+          );
         }
         if (!window.localStorage.getItem("lenos-active-community-id")) {
           window.localStorage.setItem("lenos-active-community-id", active);

@@ -53,6 +53,13 @@ export function SettingsModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  useEffect(() => {
+    const openIdentity = () => setActive("identity");
+    window.addEventListener("open-settings-identity", openIdentity);
+    return () =>
+      window.removeEventListener("open-settings-identity", openIdentity);
+  }, []);
+
   if (!isOpen) return null;
 
   return (

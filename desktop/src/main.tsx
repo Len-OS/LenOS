@@ -21,7 +21,8 @@ type E2eWindow = Window & {
 
 const E2E_DEFAULT_PUBKEY = "deadbeef".repeat(8);
 const E2E_COMMUNITY_ID = "e2e-default-community";
-const ONBOARDING_COMPLETION_STORAGE_KEY_PREFIX = "lenos-onboarding-complete.v1:";
+const ONBOARDING_COMPLETION_STORAGE_KEY_PREFIX =
+  "lenos-onboarding-complete.v1:";
 const DEV_STATE_RESET_PARAM = "resetDevState";
 
 function resetDevWebviewStateFromUrl() {

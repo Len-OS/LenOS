@@ -7499,7 +7499,9 @@ async function handleDiscoverManagedAgentPrereqs(
   return {
     acp: {
       command:
-        configuredPrereqs?.acp?.command ?? args.input?.acpCommand ?? "lenos-acp",
+        configuredPrereqs?.acp?.command ??
+        args.input?.acpCommand ??
+        "lenos-acp",
       resolved_path:
         configuredPrereqs?.acp?.resolvedPath ??
         "/Users/wesb/dev/lenos/target/debug/lenos-acp",
@@ -12030,7 +12032,9 @@ export function maybeInstallE2eTauriMocks() {
           payload as Parameters<typeof handleGetRunApprovals>[0],
         );
       case "plugin:webview|set_webview_zoom":
-        window.__LENOS_E2E_WEBVIEW_ZOOM__ = (payload as { value: number }).value;
+        window.__LENOS_E2E_WEBVIEW_ZOOM__ = (
+          payload as { value: number }
+        ).value;
         return;
       case "start_pairing": {
         const delayMs = activeConfig?.mock?.pairingStartDelayMs ?? 0;

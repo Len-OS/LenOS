@@ -137,10 +137,9 @@ async function expectLenOSSidebarPalette(page: Page, mode: "light" | "dark") {
     const rowRightSpacing = scrollContentBox.right - (rowBox.x + rowBox.width);
     expect(Math.abs(rowLeftSpacing - rowRightSpacing)).toBeLessThanOrEqual(0.5);
   }
-  await expect(page.locator("[data-lenos-sidebar-secondary]").first()).toHaveCSS(
-    "color",
-    mutedColor,
-  );
+  await expect(
+    page.locator("[data-lenos-sidebar-secondary]").first(),
+  ).toHaveCSS("color", mutedColor);
   await expect(page.locator('[data-sidebar="trigger"]')).toHaveCSS(
     "color",
     chromeColor,
@@ -466,7 +465,9 @@ test("appearance picker — dark tab (LenOS Dark)", async ({ page }) => {
   await panel.screenshot({ path: `${SHOTS}/05-picker-dark.png` });
 });
 
-test("settings nav uses LenOS active pill + hover (light)", async ({ page }) => {
+test("settings nav uses LenOS active pill + hover (light)", async ({
+  page,
+}) => {
   await seedTheme(page, "lenos");
   await installMockBridge(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });

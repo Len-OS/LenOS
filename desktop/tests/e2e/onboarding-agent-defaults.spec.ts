@@ -76,7 +76,9 @@ test("setup shows all bundled harnesses as detected", async ({ page }) => {
   await expect(page.getByTestId("onboarding-runtime-claude")).toBeVisible();
   await expect(page.getByTestId("onboarding-runtime-codex")).toBeVisible();
   await expect(page.getByTestId("onboarding-runtime-goose")).toBeVisible();
-  await expect(page.getByTestId("onboarding-runtime-lenos-agent")).toBeVisible();
+  await expect(
+    page.getByTestId("onboarding-runtime-lenos-agent"),
+  ).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(0);
 });
 

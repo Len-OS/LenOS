@@ -49,7 +49,8 @@ test.use({ userAgent: REAL_CHROME_UA });
 
 function deriveIdentity(nsec: string) {
   const decoded = decode(nsec.trim());
-  if (decoded.type !== "nsec") throw new Error("LENOS_PERF_NSEC is not an nsec");
+  if (decoded.type !== "nsec")
+    throw new Error("LENOS_PERF_NSEC is not an nsec");
   const skBytes = decoded.data as Uint8Array;
   const privateKey = Buffer.from(skBytes).toString("hex");
   const pubkey = getPublicKey(skBytes);
@@ -109,7 +110,9 @@ test("MEASURE: scroll-back pagination latency in target channel", async ({
         `${welcomePrefix}${encodeURIComponent(relayUrl)}:${ident.pubkey}`,
         "true",
       );
-      const w = window as unknown as { __LENOS_E2E__?: Record<string, unknown> };
+      const w = window as unknown as {
+        __LENOS_E2E__?: Record<string, unknown>;
+      };
       w.__LENOS_E2E__ = { ...(w.__LENOS_E2E__ ?? {}), identity: ident };
     },
     {

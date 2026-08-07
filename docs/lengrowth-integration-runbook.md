@@ -239,11 +239,24 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
 
 - Browser Worker: deployed as `lenos`; shell and empty-workspace onboarding are
   live on `e2etest26.lengrowth.com`; latest verified Worker version is
-  `4c952cbc-b12b-413b-8cc4-5a9609b69f1e`.
+  `0c126b2e-32a2-40c4-ab9b-78fae969d5b4`.
 - LenOS main: `b9c9df141` is pushed to GitHub; browser Agents now identify
   remote LenGrowth agents and the desktop Virtua integration typechecks.
 - LenGrowth backend: `e499a62` is pushed to `master` and deployed successfully
   to Scalingo; the server-side relay gateway is configured.
+
+## Production verification update — 2026-08-07
+
+- The authenticated test workspace loads at `https://e2etest26.lengrowth.com/home`
+  with no channels or agents, and correctly presents a read-only state when no
+  NIP-07 signer is available.
+- Identity settings now explain that browser provisioning and membership writes
+  require a durable browser signer or the LenOS desktop flow; raw secret keys
+  are not accepted in browser storage.
+- The workspace welcome screen refreshes identity state on focus and exposes the
+  canonical LenGrowth Team Hub at `/settings/company?tab=team`.
+- Starter provisioning, agent creation, and messages remain intentionally
+  blocked until the supplied test session has a supported durable signer.
 
 ## Final runtime verification — 2026-08-06
 

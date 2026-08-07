@@ -12,7 +12,9 @@ export function Shimmer({ children, className }: ShimmerProps) {
     <span
       className={cn("lenos-shimmer", className)}
       style={
-        { "--lenos-shimmer-spread": `${children.length * 2}px` } as CSSProperties
+        {
+          "--lenos-shimmer-spread": `${children.length * 2}px`,
+        } as CSSProperties
       }
     >
       {children}

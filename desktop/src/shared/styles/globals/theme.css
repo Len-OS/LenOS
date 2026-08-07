@@ -417,7 +417,9 @@
  * unlayered, so it wins.
  */
 :root[data-lenos-sidebar] [data-testid="app-sidebar"] [data-active="true"],
-:root[data-lenos-sidebar] [data-testid="settings-sidebar"] [data-active="true"] {
+:root[data-lenos-sidebar]
+  [data-testid="settings-sidebar"]
+  [data-active="true"] {
   background-color: var(--lenos-active-surface);
   box-shadow: none;
 }

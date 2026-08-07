@@ -299,7 +299,8 @@ export function AgentConfigFields({
     fallbackModel !== null;
   const bakedEffort = React.useMemo(
     () =>
-      bakedEnv.find((e) => e.key === LENOS_AGENT_THINKING_EFFORT)?.value ?? null,
+      bakedEnv.find((e) => e.key === LENOS_AGENT_THINKING_EFFORT)?.value ??
+      null,
     [bakedEnv],
   );
   const bakedGenericRows = React.useMemo<readonly InheritedEnvRow[]>(

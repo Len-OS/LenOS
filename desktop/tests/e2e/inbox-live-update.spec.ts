@@ -98,7 +98,8 @@ async function installScrollSpy(page: import("@playwright/test").Page) {
     ) {
       if (this.closest('[data-testid="home-inbox-detail"]')) {
         (window as MockWindow).__LENOS_E2E_SCROLL_INTO_VIEW_COUNT__ =
-          ((window as MockWindow).__LENOS_E2E_SCROLL_INTO_VIEW_COUNT__ ?? 0) + 1;
+          ((window as MockWindow).__LENOS_E2E_SCROLL_INTO_VIEW_COUNT__ ?? 0) +
+          1;
       }
       return original.apply(this, args);
     };
@@ -147,7 +148,8 @@ async function getScrollTop(page: import("@playwright/test").Page) {
 /** Returns the last `send_channel_message` payload captured in the command log. */
 async function getLastSendPayload(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
-    const payloads = (window as MockWindow).__LENOS_E2E_COMMAND_PAYLOADS__ ?? [];
+    const payloads =
+      (window as MockWindow).__LENOS_E2E_COMMAND_PAYLOADS__ ?? [];
     for (let i = payloads.length - 1; i >= 0; i--) {
       if (payloads[i].command === "send_channel_message") {
         return payloads[i].payload as {

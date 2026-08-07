@@ -78,7 +78,8 @@ const CURSOR_AVAILABLE = {
   binary_path: "/usr/local/bin/cursor-agent",
   default_args: [],
   mcp_command: null,
-  install_hint: "LenOS talks to Cursor through the cursor-agent CLI's ACP mode.",
+  install_hint:
+    "LenOS talks to Cursor through the cursor-agent CLI's ACP mode.",
   install_instructions_url: "https://cursor.com/cli",
   can_auto_install: false,
   requires_external_cli: true,

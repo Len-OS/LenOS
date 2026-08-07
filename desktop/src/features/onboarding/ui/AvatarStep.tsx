@@ -51,8 +51,10 @@ function ErrorBanner({ message }: { message: string | null }) {
 const NEUTRAL_EMOJI_PICKER_THEME_VARS = {
   "--lenos-emoji-picker-rgb-background":
     "var(--lenos-onboarding-emoji-picker-background)",
-  "--lenos-emoji-picker-rgb-color": "var(--lenos-onboarding-emoji-picker-color)",
-  "--lenos-emoji-picker-rgb-input": "var(--lenos-onboarding-emoji-picker-input)",
+  "--lenos-emoji-picker-rgb-color":
+    "var(--lenos-onboarding-emoji-picker-color)",
+  "--lenos-emoji-picker-rgb-input":
+    "var(--lenos-onboarding-emoji-picker-input)",
 } as React.CSSProperties;
 
 const AVATAR_ACTIONS_MOTION_TRANSITION = {
