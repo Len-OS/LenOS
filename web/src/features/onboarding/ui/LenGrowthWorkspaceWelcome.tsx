@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Hash,
   KeyRound,
-  Link2,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -117,14 +116,6 @@ export function LenGrowthWorkspaceWelcome() {
     agentNames.has(agent.name.toLowerCase()),
   );
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
-  const returnTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-  const linkUrl = `https://lengrowth.com/auth/nostr-link?${new URLSearchParams({
-    ...(pubkey ? { pubkey } : {}),
-    relay: workspace.workspace.relayUrl,
-    state: `lenos-workspace:${workspace.workspace.slug}`,
-    return_to: returnTo,
-  }).toString()}`;
-
   if (complete) return null;
 
   const provision = async () => {
@@ -210,21 +201,7 @@ export function LenGrowthWorkspaceWelcome() {
             complete={Boolean(pubkey)}
             icon={KeyRound}
             title="Connect identity"
-            description="Needed to create channels, join private rooms, and send messages."
-            action={
-              !pubkey ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.dispatchEvent(new Event("open-settings"));
-                    window.dispatchEvent(new Event("open-settings-identity"));
-                  }}
-                  className="mt-2 text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
-                >
-                  Open Settings <ArrowRight className="ml-1 inline h-3 w-3" />
-                </button>
-              ) : undefined
-            }
+            description="Connected automatically when you open LenOS from your LenGrowth workspace."
           />
           <Step
             complete={hasChannels}
@@ -341,16 +318,6 @@ export function LenGrowthWorkspaceWelcome() {
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-black/50 dark:text-white/50">
-          <a
-            href={linkUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 hover:text-black dark:hover:text-white"
-          >
-            <Link2 className="h-3.5 w-3.5" />
-            Link this workspace in LenGrowth
-            <ExternalLink className="h-3 w-3" />
-          </a>
           <a
             href="https://lengrowth.com/settings/company?tab=team"
             target="_blank"
