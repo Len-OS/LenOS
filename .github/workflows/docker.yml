@@ -236,7 +236,10 @@ jobs:
 
   merge:
     name: Merge ${{ matrix.variant }} multi-arch manifest
-    if: github.event_name != 'pull_request' && (matrix.variant == 'release' || github.ref_type == 'tag')
+    # Job-level `if` expressions are evaluated before the matrix exists, so
+    # they cannot reference `matrix.variant`. Pull requests have no pushed
+    # digests; all other events merge the release image below.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     needs: build
     timeout-minutes: 15
@@ -249,8 +252,6 @@ jobs:
         include:
           - variant: release
             tag_prefix: ""
-          - variant: debug
-            tag_prefix: debug-
 
     steps:
       - name: Download all per-arch digests
