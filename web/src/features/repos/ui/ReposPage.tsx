@@ -128,6 +128,16 @@ export function ReposPage() {
       <div className="flex w-full flex-1 gap-8 bg-[#F3F3F3] px-4 py-8 dark:bg-[#171717]">
         <div className="min-w-0 flex-1">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-black dark:text-white">
+            <span
+              className="h-5 w-5 overflow-hidden bg-black"
+              style={{ borderRadius: "22.37%" }}
+            >
+              <img
+                alt="LenGrowth"
+                className="h-full w-full"
+                src={lengrowthIcon}
+              />
+            </span>
             <BookMarked className="h-4 w-4" /> Repositories
           </h2>
           <div className="divide-y">
