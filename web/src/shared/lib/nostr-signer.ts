@@ -77,12 +77,18 @@ export function clearManagedSignerSession(): void {
 export function consumeManagedSignerSessionFromUrl(): boolean {
   if (typeof window === "undefined") return false;
   const url = new URL(window.location.href);
-  const token = url.searchParams.get("managed_signer_token");
-  const pubkey = url.searchParams.get("managed_signer_pubkey");
+  const fragmentParams = new URLSearchParams(url.hash.slice(1));
+  const token =
+    url.searchParams.get("managed_signer_token") ??
+    fragmentParams.get("managed_signer_token");
+  const pubkey =
+    url.searchParams.get("managed_signer_pubkey") ??
+    fragmentParams.get("managed_signer_pubkey");
   if (!token || !pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) return false;
   setManagedSignerSession(token, pubkey);
   url.searchParams.delete("managed_signer_token");
   url.searchParams.delete("managed_signer_pubkey");
+  url.hash = "";
   window.history.replaceState({}, document.title, url.toString());
   return true;
 }
