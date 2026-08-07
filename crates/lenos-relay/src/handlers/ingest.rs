@@ -2510,6 +2510,20 @@ async fn ingest_event_inner(
                 .map_err(|e| IngestError::Internal(format!("error: {e}")))?;
 
             if !was_created {
+                // A channel may predate global open-channel discovery. Re-emit
+                // its derived metadata on an idempotent create retry so an
+                // already provisioned workspace becomes discoverable without
+                // requiring a destructive migration.
+                if let Err(error) =
+                    super::side_effects::emit_group_discovery_events(tenant, state, client_uuid)
+                        .await
+                {
+                    warn!(
+                        channel_id = %client_uuid,
+                        error = %error,
+                        "failed to refresh duplicate channel discovery metadata"
+                    );
+                }
                 return Ok(IngestResult {
                     event_id: event_id_hex,
                     accepted: false,
