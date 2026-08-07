@@ -5,7 +5,7 @@ Mobile uses immutable release-candidate tags cut directly from remote `main`:
 
 | Lane | Entry point | Artifact |
 |------|-------------|----------|
-| Desktop | `just release-desktop <version>` | Packaged desktop app (signed/notarized macOS, unsigned Windows, and Linux) |
+| Desktop | `just release-desktop <version>` | Packaged desktop app (signed macOS when Apple credentials are available, unsigned Windows/macOS fallback, and Linux) |
 | Relay | `just release-relay` | `ghcr.io/lengrowth/lenos` container image |
 | Mobile | `scripts/mobile-release.sh candidate X.Y.Z` | Exact `mobile-vX.Y.Z-rc.N` source identity |
 
@@ -208,11 +208,19 @@ GitHub Release or a stable `mobile-vX.Y.Z` alias.
 
 The release workflow builds **two separate macOS DMGs**: Apple
 Silicon (`darwin-aarch64`, the `release` job) and Intel
-(`darwin-x86_64`, the `release-macos-x64` job), an unsigned Windows x64
-NSIS installer (its filename includes `_alpha-unsigned`), and Linux `.deb` and
-`.AppImage` packages. Both macOS DMGs are codesigned, notarized, and attached
-to the same `desktop-v<version>` release. Intel users
+(`darwin-x86_64`, the `release-macos-x64` job), a Windows x64
+NSIS installer, and Linux `.deb` and `.AppImage` packages. Windows is always
+published with the `_alpha-unsigned` filename marker. macOS is codesigned and
+notarized only when `OSX_CODESIGN_ROLE` and its signing exchange credentials
+are present; otherwise the workflow keeps the unsigned DMG and skips the
+codesign/notarization steps. Intel users
 download the `_x64.dmg`.
+
+Unsigned desktop artifacts are fully functional but can trigger Windows
+SmartScreen or macOS Gatekeeper warnings. Code signing is a distribution and
+trust prerequisite, not a runtime prerequisite. For a local Windows build,
+install the Visual Studio C++ build tools so Rust can find `link.exe`, then run
+`pnpm tauri:build:unsigned`; no Microsoft certificate is required.
 
 The Linux AppImage is post-processed by `desktop/scripts/fix-appimage.sh`,
 which strips infra libraries over-bundled by linuxdeploy (they crash on
