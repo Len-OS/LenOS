@@ -33,7 +33,7 @@ export function useCreateInvite(communityId: string | null) {
         { requireNip07: true },
       );
       const client = getRelayClient(relayWsUrl());
-      client.publish(event);
+      await client.publishAndWait(event as Record<string, unknown>);
       const slug = extractSlug();
       const baseUrl = slug
         ? `https://${slug}.lengrowth.com`

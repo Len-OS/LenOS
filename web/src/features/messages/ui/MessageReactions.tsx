@@ -36,7 +36,9 @@ export function MessageReactions({
         },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
     } catch {
       // no NIP-07
     }

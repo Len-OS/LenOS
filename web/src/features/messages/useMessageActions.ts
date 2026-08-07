@@ -15,7 +15,9 @@ export function useMessageActions() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   const editMessage = async (
@@ -34,7 +36,9 @@ export function useMessageActions() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   return { deleteMessage, editMessage };

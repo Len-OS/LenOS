@@ -16,7 +16,9 @@ export function useModerationActions() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   const banUser = async (pubkey: string, channelId: string) => {
@@ -31,7 +33,9 @@ export function useModerationActions() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   const reportEvent = async (
@@ -50,7 +54,9 @@ export function useModerationActions() {
       },
       { requireNip07: false },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   return { muteUser, banUser, reportEvent };

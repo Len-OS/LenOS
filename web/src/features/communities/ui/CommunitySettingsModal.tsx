@@ -56,7 +56,9 @@ export function CommunitySettingsModal({
         },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(event);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        event as Record<string, unknown>,
+      );
     } catch {
       // ignore
     } finally {
@@ -79,7 +81,9 @@ export function CommunitySettingsModal({
         },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(event);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        event as Record<string, unknown>,
+      );
       onClose();
     } catch {
       // ignore

@@ -30,6 +30,8 @@ export async function prepareDmSendChannel(
     },
     { requireNip07: false },
   );
-  getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+  await getRelayClient(relayWsUrl()).publishAndWait(
+    signed as Record<string, unknown>,
+  );
   return channelId;
 }

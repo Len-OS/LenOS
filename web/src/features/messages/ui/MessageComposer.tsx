@@ -167,7 +167,9 @@ export function MessageComposer({
         },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
       setClearCount((c) => c + 1);
       setPendingText("");
     } catch (err) {

@@ -84,7 +84,9 @@ export function ThreadPanel({ rootMessage, channelId, onClose }: Props) {
         },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
       setReplyText("");
     } catch {
       // no NIP-07

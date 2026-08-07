@@ -30,7 +30,9 @@ export function WorkflowCard({ workflow, communityId }: Props) {
         },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to run workflow.");
     }

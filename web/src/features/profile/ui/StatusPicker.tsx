@@ -53,7 +53,9 @@ export function StatusPicker({ onClose }: Props) {
         { kind: KIND_USER_STATUS, content, tags },
         { requireNip07: false },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to set status.");
@@ -68,7 +70,9 @@ export function StatusPicker({ onClose }: Props) {
         { kind: KIND_USER_STATUS, content: "", tags: [["d", "general"]] },
         { requireNip07: false },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
       onClose();
     } catch {}
     setSaving(false);

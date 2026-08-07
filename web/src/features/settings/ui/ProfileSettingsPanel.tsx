@@ -49,7 +49,9 @@ export function ProfileSettingsPanel() {
         { kind: 0, content: JSON.stringify(form), tags: [] },
         { requireNip07: true },
       );
-      getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {}

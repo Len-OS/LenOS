@@ -28,7 +28,9 @@ export function useChannelMutations() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   const editChannel = async (
@@ -48,7 +50,9 @@ export function useChannelMutations() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   const deleteChannel = async (channelId: string) => {
@@ -60,7 +64,9 @@ export function useChannelMutations() {
       },
       { requireNip07: true },
     );
-    getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
   };
 
   return { createChannel, editChannel, deleteChannel };
