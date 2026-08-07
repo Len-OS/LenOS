@@ -39,7 +39,7 @@ pub fn is_side_effect_kind(kind: u32) -> bool {
 async fn evict_live_channel_subscriptions(
     tenant: &TenantContext,
     state: &Arc<AppState>,
-    channel_id: Uuid,
+    storage_channel_id: Option<Uuid>,
     target_pubkey: &[u8],
 ) {
     let conn_ids = state
@@ -1004,7 +1004,7 @@ async fn emit_addressable_discovery_event(
             .db
             .query_events(&lenos_db::event::EventQuery {
                 kinds: Some(vec![kind as i32]),
-                channel_id: Some(channel_id),
+                channel_id: storage_channel_id,
                 limit: Some(1),
                 ..lenos_db::event::EventQuery::for_community(tenant.community())
             })
@@ -1025,7 +1025,7 @@ async fn emit_addressable_discovery_event(
 
     let (stored, was_inserted) = state
         .db
-        .replace_addressable_event(tenant.community(), &event, Some(channel_id))
+        .replace_addressable_event(tenant.community(), &event, storage_channel_id)
         .await?;
     if was_inserted {
         let kind_u32 = event_kind_u32(&stored.event);
@@ -1112,6 +1112,7 @@ pub async fn emit_group_discovery_events(
             KIND_NIP29_GROUP_METADATA,
             tags,
             &relay_pubkey_hex,
+            (channel.visibility == "private").then_some(channel_id),
         )
         .await?;
     }
@@ -1132,6 +1133,7 @@ pub async fn emit_group_discovery_events(
             KIND_NIP29_GROUP_ADMINS,
             tags,
             &relay_pubkey_hex,
+            Some(channel_id),
         )
         .await?;
     }
@@ -1151,6 +1153,7 @@ pub async fn emit_group_discovery_events(
             KIND_NIP29_GROUP_MEMBERS,
             tags,
             &relay_pubkey_hex,
+            Some(channel_id),
         )
         .await?;
     }
