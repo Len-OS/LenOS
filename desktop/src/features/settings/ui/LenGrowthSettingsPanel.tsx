@@ -79,6 +79,7 @@ export function LenGrowthSettingsPanel(props: SettingsPanelProps) {
             metrics.
           </p>
           <button
+            type="button"
             onClick={handleDisconnect}
             className="text-sm text-destructive underline underline-offset-2"
           >
@@ -91,6 +92,7 @@ export function LenGrowthSettingsPanel(props: SettingsPanelProps) {
             Not connected. Link your LenGrowth account to get started.
           </p>
           <button
+            type="button"
             onClick={handleConnect}
             className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             disabled={!pubkey || !relayUrl}
