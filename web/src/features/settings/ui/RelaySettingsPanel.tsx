@@ -7,20 +7,14 @@ type ConnStatus = "connected" | "disconnected";
 function probeStatus(): ConnStatus {
   try {
     const client = getRelayClient(relayWsUrl());
-    const unsub = client.subscribe({
-      id: "__status_probe__",
-      filter: { kinds: [0], limit: 0 },
-      onEvent: () => {},
-    });
-    unsub();
-    return "connected";
+    return client.isAuthenticated() ? "connected" : "disconnected";
   } catch {
     return "disconnected";
   }
 }
 
 export function RelaySettingsPanel() {
-  const [status, setStatus] = useState<ConnStatus>("connected");
+  const [status, setStatus] = useState<ConnStatus>("disconnected");
 
   useEffect(() => {
     setStatus(probeStatus());

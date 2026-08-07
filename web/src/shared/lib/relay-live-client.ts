@@ -162,6 +162,10 @@ class RelayLiveClient {
     }
   }
 
+  isAuthenticated(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN && this.authenticated;
+  }
+
   publishAndWait(event: Record<string, unknown>): Promise<void> {
     return this.publishAndWaitWhenReady(event);
   }
