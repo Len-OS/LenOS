@@ -6,7 +6,7 @@ import {
   detectLenOSDownloadPlatform,
   resolveLenOSDownloadUrlForPlatform,
 } from "@/shared/lib/lenos-download";
-import { hasNip07Provider } from "@/shared/lib/nostr-signer";
+import { hasDurableIdentity } from "@/shared/lib/nostr-signer";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 import { Button } from "@/shared/ui/button";
 import * as React from "react";
@@ -132,7 +132,7 @@ export function InvitePage({ code }: { code: string }) {
     }
   };
 
-  const browserSigningAvailable = hasNip07Provider();
+  const browserSigningAvailable = hasDurableIdentity();
   const disabled =
     policy === undefined ||
     opening ||

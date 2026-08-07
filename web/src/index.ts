@@ -25,7 +25,10 @@ export default {
     const assetUrl = new URL(request.url);
     // Resolve application routes through the current entrypoint. This avoids
     // serving a stale cached SPA fallback after a hashed-asset deployment.
-    if (!assetUrl.pathname.startsWith("/assets/") && assetUrl.pathname !== "/index.html") {
+    if (
+      !assetUrl.pathname.startsWith("/assets/") &&
+      assetUrl.pathname !== "/index.html"
+    ) {
       assetUrl.pathname = "/index.html";
     }
     const response = await env.ASSETS.fetch(new Request(assetUrl, request));
