@@ -36,7 +36,10 @@ class RelayLiveClient {
 
     ws.addEventListener("open", () => {
       this.reconnectDelay = 1_000;
-      // Re-subscribe after reconnect (AUTH will re-trigger sendAllSubs)
+      // Send subscriptions immediately so relays that issue NIP-42 AUTH only
+      // after the first REQ can start the authentication handshake. Once AUTH
+      // succeeds, sendAllSubs is called again with the authenticated session.
+      this.sendAllSubs(ws);
     });
 
     ws.addEventListener("message", async (evt) => {
@@ -125,7 +128,9 @@ class RelayLiveClient {
 
   subscribe(sub: Subscription): () => void {
     this.subs.set(sub.id, sub);
-    if (this.ws?.readyState === WebSocket.OPEN && this.authenticated) {
+    // An initial REQ is also the trigger for NIP-42 on relays that challenge
+    // subscriptions rather than idle connections.
+    if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(["REQ", sub.id, sub.filter]));
     }
     return () => this.unsubscribe(sub.id);
