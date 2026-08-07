@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   Bot,
@@ -61,10 +61,8 @@ function Step({
 }
 
 /**
- * The browser onboarding is intentionally progressive. Reading a workspace is
- * possible without NIP-07, but durable relay writes and LenGrowth callbacks
- * require an identity and an account link. Starter resources are provisioned
- * directly into the workspace tenant through the browser relay connection.
+ * The browser onboarding is intentionally quiet. The workspace is prepared
+ * automatically after LenGrowth has handed the user a durable identity.
  */
 export function LenGrowthWorkspaceWelcome() {
   const workspace = useWorkspace();
@@ -78,6 +76,20 @@ export function LenGrowthWorkspaceWelcome() {
   const [taskDescription, setTaskDescription] = useState("");
   const [commandStatus, setCommandStatus] = useState<string | null>(null);
   const [commandSending, setCommandSending] = useState(false);
+  const autoProvisioned = useRef(false);
+
+  const channelNames = new Set(
+    channels.map((channel) => channel.name.trim().toLowerCase()),
+  );
+  const agentNames = new Set(
+    agents.map((agent) => agent.name.trim().toLowerCase()),
+  );
+  const hasChannels = STARTER_CHANNELS.every((channel) =>
+    channelNames.has(channel.name),
+  );
+  const hasAgents = STARTER_AGENTS.every((agent) =>
+    agentNames.has(agent.name.toLowerCase()),
+  );
 
   useEffect(() => {
     const refreshIdentity = () => {
@@ -98,22 +110,41 @@ export function LenGrowthWorkspaceWelcome() {
     };
   }, []);
 
-  if (workspace.status !== "found") return null;
+  useEffect(() => {
+    if (
+      workspace.status !== "found" ||
+      !communityId ||
+      !pubkey ||
+      (hasChannels && hasAgents) ||
+      autoProvisioned.current
+    ) {
+      return;
+    }
+    autoProvisioned.current = true;
+    setProvisioning(true);
+    setProvisionError(null);
+    void provisionStarterWorkspace(communityId, channelNames, agentNames)
+      .catch((error) => {
+        setProvisionError(
+          error instanceof Error
+            ? error.message
+            : "We could not finish setting up your workspace.",
+        );
+      })
+      .finally(() => setProvisioning(false));
+  }, [
+    agentNames,
+    channelNames,
+    communityId,
+    hasAgents,
+    hasChannels,
+    pubkey,
+    workspace.status,
+  ]);
 
-  const channelNames = new Set(
-    channels.map((channel) => channel.name.trim().toLowerCase()),
-  );
-  const agentNames = new Set(
-    agents.map((agent) => agent.name.trim().toLowerCase()),
-  );
+  if (workspace.status !== "found") return null;
   const growthChannel = channels.find(
     (channel) => channel.name.trim().toLowerCase() === "lengrowth",
-  );
-  const hasChannels = STARTER_CHANNELS.every((channel) =>
-    channelNames.has(channel.name),
-  );
-  const hasAgents = STARTER_AGENTS.every((agent) =>
-    agentNames.has(agent.name.toLowerCase()),
   );
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
   if (complete) return null;
@@ -126,7 +157,7 @@ export function LenGrowthWorkspaceWelcome() {
       await provisionStarterWorkspace(communityId, channelNames, agentNames);
     } catch (error) {
       setProvisionError(
-        error instanceof Error ? error.message : "Relay provisioning failed",
+        error instanceof Error ? error.message : "Workspace setup failed",
       );
     } finally {
       setProvisioning(false);
