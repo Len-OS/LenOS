@@ -22,7 +22,13 @@ export default {
       return fetch(origin, { method: "GET", headers });
     }
 
-    const response = await env.ASSETS.fetch(request);
+    const assetUrl = new URL(request.url);
+    // Resolve application routes through the current entrypoint. This avoids
+    // serving a stale cached SPA fallback after a hashed-asset deployment.
+    if (!assetUrl.pathname.startsWith("/assets/") && assetUrl.pathname !== "/index.html") {
+      assetUrl.pathname = "/index.html";
+    }
+    const response = await env.ASSETS.fetch(new Request(assetUrl, request));
     // Never let SPA fallback HTML masquerade as a JavaScript/CSS asset. This
     // gives the client-side stale-chunk recovery a chance to refresh cleanly.
     const pathname = new URL(request.url).pathname;
