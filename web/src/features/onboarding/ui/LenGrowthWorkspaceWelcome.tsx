@@ -231,16 +231,16 @@ export function LenGrowthWorkspaceWelcome() {
           <Step
             complete={Boolean(pubkey)}
             icon={KeyRound}
-            title="Connect identity"
-            description="Connected automatically when you open LenOS from your LenGrowth workspace."
+            title="Your workspace"
+            description="Your workspace is connected and getting ready for you."
           />
           <Step
             complete={hasChannels}
             icon={Hash}
-            title="Create starter channels"
-            description="Recommended: #general, #welcome-everyone, #lengrowth, and #tasks."
+            title="Your channels"
+            description="Your shared spaces will appear here automatically."
             action={
-              !hasChannels ? (
+              provisionError && !hasChannels ? (
                 <button
                   type="button"
                   onClick={() => void provision()}
@@ -258,10 +258,10 @@ export function LenGrowthWorkspaceWelcome() {
           <Step
             complete={hasAgents}
             icon={Bot}
-            title="Add the growth team"
-            description="Your LenGrowth specialists are ready to help with planning, analysis, and execution."
+            title="Your LenGrowth team"
+            description="Your team will appear here automatically."
             action={
-              !hasAgents ? (
+              provisionError && !hasAgents ? (
                 <button
                   type="button"
                   onClick={() => void provision()}
