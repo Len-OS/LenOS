@@ -3,7 +3,6 @@ import { Send, Smile } from "lucide-react";
 import {
   signNostrEvent,
   Nip07UnavailableError,
-  hasNip07Provider,
 } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
@@ -174,9 +173,7 @@ export function MessageComposer({
       setPendingText("");
     } catch (err) {
       if (err instanceof Nip07UnavailableError) {
-        setError(
-          "Install a Nostr browser extension (Alby or nos2x) to send messages.",
-        );
+        setError("Your workspace connection is still being prepared. Reopen LenOS from LenGrowth and try again.");
       } else {
         setError("Failed to send. Try again.");
       }
@@ -290,29 +287,6 @@ export function MessageComposer({
           <Send className="h-4 w-4" />
         </button>
       </div>
-      {!hasNip07Provider() && (
-        <p className="mt-1 text-xs text-black/40 dark:text-white/40">
-          Read-only mode — install{" "}
-          <a
-            href="https://getalby.com"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-          >
-            Alby
-          </a>{" "}
-          or{" "}
-          <a
-            href="https://github.com/fiatjaf/nos2x"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-          >
-            nos2x
-          </a>{" "}
-          to send messages
-        </p>
-      )}
     </div>
   );
 }

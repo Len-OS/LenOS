@@ -228,7 +228,7 @@ export function LenGrowthWorkspaceWelcome() {
             complete={hasAgents}
             icon={Bot}
             title="Add the growth team"
-            description="Remote LenGrowth roles run without local ACP runtime or provider setup."
+            description="Your LenGrowth specialists are ready to help with planning, analysis, and execution."
             action={
               !hasAgents ? (
                 <button
@@ -331,8 +331,8 @@ export function LenGrowthWorkspaceWelcome() {
           <span className="inline-flex items-center gap-1">
             <Circle className="h-2.5 w-2.5 fill-current" />
             {pubkey
-              ? "Identity connected"
-              : "Read-only until identity is connected"}
+              ? "Workspace connected"
+              : "Finish opening LenOS from LenGrowth to continue"}
           </span>
         </div>
       </div>

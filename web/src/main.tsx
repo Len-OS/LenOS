@@ -12,6 +12,16 @@ import { consumeManagedSignerSessionFromUrl } from "@/shared/lib/nostr-signer";
 
 consumeManagedSignerSessionFromUrl();
 
+// A deployment can leave an already-open tab pointing at an older hashed
+// chunk. Ask Vite to reload the latest entrypoint instead of leaving the user
+// with a dynamic-import error screen.
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  const url = new URL(window.location.href);
+  url.searchParams.set("_asset_refresh", Date.now().toString());
+  window.location.replace(url.toString());
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

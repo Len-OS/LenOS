@@ -22,6 +22,19 @@ export default {
       return fetch(origin, { method: "GET", headers });
     }
 
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    // Never let SPA fallback HTML masquerade as a JavaScript/CSS asset. This
+    // gives the client-side stale-chunk recovery a chance to refresh cleanly.
+    const pathname = new URL(request.url).pathname;
+    if (
+      pathname.startsWith("/assets/") &&
+      response.headers.get("content-type")?.includes("text/html")
+    ) {
+      return new Response("Asset not found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    return response;
   },
 };
