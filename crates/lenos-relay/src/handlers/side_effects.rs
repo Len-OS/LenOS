@@ -39,7 +39,7 @@ pub fn is_side_effect_kind(kind: u32) -> bool {
 async fn evict_live_channel_subscriptions(
     tenant: &TenantContext,
     state: &Arc<AppState>,
-    storage_channel_id: Option<Uuid>,
+    channel_id: Uuid,
     target_pubkey: &[u8],
 ) {
     let conn_ids = state
@@ -985,10 +985,10 @@ pub async fn emit_membership_notification(
 async fn emit_addressable_discovery_event(
     tenant: &TenantContext,
     state: &Arc<AppState>,
-    channel_id: Uuid,
     kind: u32,
     tags: Vec<Tag>,
     relay_pubkey_hex: &str,
+    storage_channel_id: Option<Uuid>,
 ) -> anyhow::Result<()> {
     // Ensure the new event's created_at is strictly greater than any existing event
     // of the same (kind, pubkey, channel_id). Without this, rapid successive updates
@@ -1108,7 +1108,6 @@ pub async fn emit_group_discovery_events(
         emit_addressable_discovery_event(
             tenant,
             state,
-            channel_id,
             KIND_NIP29_GROUP_METADATA,
             tags,
             &relay_pubkey_hex,
@@ -1129,7 +1128,6 @@ pub async fn emit_group_discovery_events(
         emit_addressable_discovery_event(
             tenant,
             state,
-            channel_id,
             KIND_NIP29_GROUP_ADMINS,
             tags,
             &relay_pubkey_hex,
@@ -1149,7 +1147,6 @@ pub async fn emit_group_discovery_events(
         emit_addressable_discovery_event(
             tenant,
             state,
-            channel_id,
             KIND_NIP29_GROUP_MEMBERS,
             tags,
             &relay_pubkey_hex,
