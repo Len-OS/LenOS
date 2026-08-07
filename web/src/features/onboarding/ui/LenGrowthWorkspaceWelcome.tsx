@@ -107,8 +107,8 @@ export function LenGrowthWorkspaceWelcome() {
   );
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
   const linkUrl = pubkey
-    ? `https://app.lengrowth.com/auth/nostr-link?pubkey=${encodeURIComponent(pubkey)}&relay=${encodeURIComponent(workspace.workspace.relayUrl)}&state=${encodeURIComponent(`lenos-workspace:${workspace.workspace.slug}`)}`
-    : "https://app.lengrowth.com/settings";
+    ? `https://lengrowth.com/auth/nostr-link?pubkey=${encodeURIComponent(pubkey)}&relay=${encodeURIComponent(workspace.workspace.relayUrl)}&state=${encodeURIComponent(`lenos-workspace:${workspace.workspace.slug}`)}`
+    : "https://lengrowth.com/auth/login";
 
   if (complete) return null;
 
