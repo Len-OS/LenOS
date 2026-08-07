@@ -34,8 +34,8 @@ export function AgentsPage() {
                   No agents in this workspace yet
                 </p>
                 <p className="mt-1 text-xs text-black/30 dark:text-white/30">
-                  Add the LenGrowth team from the workspace welcome panel, or
-                  use the desktop app to run local agents.
+                  Your LenGrowth team will appear here as soon as your workspace
+                  is ready.
                 </p>
               </div>
             </div>
