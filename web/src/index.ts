@@ -30,6 +30,7 @@ export default {
       assetUrl.pathname !== "/index.html"
     ) {
       assetUrl.pathname = "/index.html";
+      assetUrl.searchParams.set("_entrypoint", "current");
     }
     const response = await env.ASSETS.fetch(new Request(assetUrl, request));
     // Never let SPA fallback HTML masquerade as a JavaScript/CSS asset. This
