@@ -15,6 +15,7 @@ class RelayLiveClient {
   private reconnectDelay = 1_000;
   private destroyed = false;
   private authenticated = false;
+  private authEventId: string | null = null;
   private pendingPublishes = new Map<
     string,
     {
@@ -29,6 +30,7 @@ class RelayLiveClient {
   connect(): void {
     if (this.ws) return;
     this.authenticated = false;
+    this.authEventId = null;
     const ws = new WebSocket(this.relayUrl);
     this.ws = ws;
 
@@ -53,18 +55,31 @@ class RelayLiveClient {
         const template = makeAuthEvent(this.relayUrl, challenge);
         try {
           const signed = await signNostrEvent(template);
+          this.authEventId = signed.id;
           ws.send(JSON.stringify(["AUTH", signed]));
         } catch {
           // No NIP-07 — continue as read-only
+          this.authEventId = null;
           this.sendAllSubs(ws);
         }
         return;
       }
 
-      if (type === "OK" && !this.authenticated) {
+      if (
+        type === "OK" &&
+        typeof msg[1] === "string" &&
+        msg[1] === this.authEventId
+      ) {
         // AUTH response — now send all pending subscriptions
-        this.authenticated = true;
-        this.sendAllSubs(ws);
+        if (msg[2] === true) {
+          this.authenticated = true;
+          this.sendAllSubs(ws);
+        } else {
+          this.authenticated = false;
+          this.authEventId = null;
+          // Keep open-relay browsing usable when the relay rejects AUTH.
+          this.sendAllSubs(ws);
+        }
         return;
       }
 
@@ -101,6 +116,7 @@ class RelayLiveClient {
     ws.addEventListener("close", () => {
       this.ws = null;
       this.authenticated = false;
+      this.authEventId = null;
       if (!this.destroyed) this.scheduleReconnect();
     });
 
