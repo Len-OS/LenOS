@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 #
-# Public Buzz relay image — published as ghcr.io/block/buzz:<tag>.
+# Public LenOS relay image — published as ghcr.io/len-os/lenos:<tag>.
 #
-# Builds the `buzz-relay` binary (Rust 1.95) and the `buzz-web` static bundle
+# Builds the `lenos-relay` binary (Rust 1.95) and the LenOS web static bundle
 # (pnpm + vite), then assembles them into a small debian-slim runtime with
 # `git` available (the relay shells out to git for repo hydrate / receive-pack
-# / upload-pack — see crates/buzz-relay/src/api/git).
+# / upload-pack — see crates/lenos-relay/src/api/git).
 #
 # Multi-arch is handled by running this same Dockerfile on native amd64 and
 # native arm64 runners (see .github/workflows/docker.yml). The Dockerfile
@@ -64,7 +64,7 @@ RUN apt-get update \
 ENV CARGO_PROFILE_RELEASE_DEBUG=line-tables-only
 COPY --from=planner /build/recipe.json recipe.json
 # Cook the full workspace recipe — relay deps include workspace siblings, so
-# scoping to -p buzz-relay misses transitive deps and re-builds them later.
+# scoping to -p lenos-relay misses transitive deps and re-builds them later.
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release -p lenos-relay --bin lenos-relay \
