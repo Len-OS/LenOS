@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Parser and loader for LenOS persona pack files (.persona.md)"
 license = "Apache-2.0"
-repository = "https://github.com/Lengrowth/LenOS"
+repository = "https://github.com/Len-OS/LenOS"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

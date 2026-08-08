@@ -1,6 +1,6 @@
 name: Docker image
 
-# Builds and publishes the public LenOS relay images as ghcr.io/lengrowth/lenos.
+# Builds and publishes the public LenOS relay images as ghcr.io/len-os/lenos.
 # Normal tags contain stripped binaries; matching debug-* tags contain the same
 # optimized binaries with line-table debug information for native profilers.
 #
@@ -89,7 +89,7 @@ env:
   # Single source of truth for the image name. Set GHCR_IMAGE as a repo
   # variable to override (e.g., for forks that want to push to their own
   # namespace without forking this file).
-  IMAGE_NAME: ${{ vars.GHCR_IMAGE != '' && vars.GHCR_IMAGE || 'ghcr.io/lengrowth/lenos' }}
+  IMAGE_NAME: ${{ vars.GHCR_IMAGE != '' && vars.GHCR_IMAGE || 'ghcr.io/len-os/lenos' }}
 
 jobs:
   build:
@@ -390,7 +390,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9  # v6.1.0
         with:
-          images: ghcr.io/lengrowth/lenos-push-gateway
+          images: ghcr.io/len-os/lenos-push-gateway
           labels: |
             org.opencontainers.image.title=LenOS Push Gateway
             org.opencontainers.image.description=Capability-gated APNs last hop for LenOS
@@ -403,9 +403,9 @@ jobs:
           file: ./Dockerfile.push-gateway
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=ghcr.io/lengrowth/lenos-push-gateway,push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
-          cache-from: type=registry,ref=ghcr.io/lengrowth/lenos-push-gateway-buildcache:${{ matrix.arch }}
-          cache-to: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && format('type=registry,ref=ghcr.io/lengrowth/lenos-push-gateway-buildcache:{0},mode=max,compression=zstd', matrix.arch) || '' }}
+          outputs: type=image,name=ghcr.io/len-os/lenos-push-gateway,push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+          cache-from: type=registry,ref=ghcr.io/len-os/lenos-push-gateway-buildcache:${{ matrix.arch }}
+          cache-to: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && format('type=registry,ref=ghcr.io/len-os/lenos-push-gateway-buildcache:{0},mode=max,compression=zstd', matrix.arch) || '' }}
       - name: Export digest
         if: github.event_name != 'pull_request'
         env:
@@ -448,7 +448,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9  # v6.1.0
         with:
-          images: ghcr.io/lengrowth/lenos-push-gateway
+          images: ghcr.io/len-os/lenos-push-gateway
           tags: |
             type=ref,event=branch,enable=${{ github.event_name != 'workflow_dispatch' || inputs.version == '' }}
             type=sha,prefix=sha-,format=short,enable=${{ github.event_name != 'workflow_dispatch' || inputs.version == '' }}
@@ -462,7 +462,7 @@ jobs:
         run: |
           set -euo pipefail
           tags=(); while IFS= read -r tag; do [ -n "$tag" ] && tags+=("-t" "$tag"); done <<< "$META_TAGS"
-          digests=(); for digest in *; do digests+=("ghcr.io/lengrowth/lenos-push-gateway@sha256:${digest}"); done
+          digests=(); for digest in *; do digests+=("ghcr.io/len-os/lenos-push-gateway@sha256:${digest}"); done
           docker buildx imagetools create "${tags[@]}" "${digests[@]}"
           first_tag=$(echo "$META_TAGS" | head -n1)
           digest=$(docker buildx imagetools inspect "$first_tag" --format '{{json .Manifest}}' | jq -r '.digest')
@@ -474,7 +474,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "### Published \`ghcr.io/lengrowth/lenos-push-gateway\`"
+            echo "### Published \`ghcr.io/len-os/lenos-push-gateway\`"
             echo
             printf "**Digest:** \`%s\`\n" "$GATEWAY_DIGEST"
             echo
@@ -485,6 +485,6 @@ jobs:
             echo
             echo 'Verify provenance before deployment:'
             echo "\`\`\`"
-            printf 'gh attestation verify oci://ghcr.io/lengrowth/lenos-push-gateway@%s --owner block\n' "$GATEWAY_DIGEST"
+            printf 'gh attestation verify oci://ghcr.io/len-os/lenos-push-gateway@%s --owner block\n' "$GATEWAY_DIGEST"
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"

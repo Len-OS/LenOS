@@ -5,8 +5,10 @@ on:
   pull_request:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # CI validates the newest commit on a branch; stale push runs only consume
+  # minutes and cannot produce a releasable artifact.
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.ref_name }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -93,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.desktop-rust == 'true'
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.desktop-rust == 'true'
     permissions:
       contents: read
     steps:
@@ -114,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:
@@ -136,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:
@@ -228,7 +230,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -294,7 +296,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes, desktop-core, desktop-smoke-e2e]
-    if: always() && (github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true')
+    if: always() && (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true')
     permissions:
       contents: read
     steps:
@@ -315,7 +317,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:
@@ -384,7 +386,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes, desktop-e2e-relay]
-    if: github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -560,7 +562,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes, desktop-e2e-integration-shard]
-    if: always() && (github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true')
+    if: always() && (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true')
     permissions:
       contents: read
     steps:
@@ -577,7 +579,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes, desktop-e2e-relay]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:
@@ -741,7 +743,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes, desktop-e2e-relay]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:
@@ -782,7 +784,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.web == 'true'
+    if: needs.changes.outputs.web == 'true'
     permissions:
       contents: read
     steps:
@@ -817,7 +819,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.mobile == 'true'
+    if: needs.changes.outputs.mobile == 'true'
     permissions:
       contents: read
     steps:
@@ -878,7 +880,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:
@@ -913,7 +915,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     strategy:
@@ -954,7 +956,7 @@ jobs:
     # cold across four steps; budget generously.
     timeout-minutes: 45
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.desktop-rust == 'true'
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.desktop-rust == 'true'
     permissions:
       contents: read
     env:
@@ -986,8 +988,6 @@ jobs:
           done
       - name: Clippy (workspace)
         run: cargo clippy --workspace --all-targets --target $env:TARGET -- -D warnings
-      - name: Check (workspace)
-        run: cargo check --workspace --all-targets --target $env:TARGET
       - name: Test (lenos-dev-mcp)
         # The Windows-only bash resolver lives in lenos-dev-mcp; its unit tests
         # only gate if this crate is tested ON Windows.
@@ -1023,12 +1023,8 @@ jobs:
           git -c user.name=ci -c user.email=ci@example.com commit -q --allow-empty -m smoke
           git log -1 --format=%s | grep -qx smoke
           echo "Host bash resolved and functional; git commit round-trip passed"
-      - name: Check (Tauri crate)
-        run: cargo check --manifest-path desktop/src-tauri/Cargo.toml --target $env:TARGET
-        env:
-          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
       - name: Test (Tauri crate)
-        run: cargo test --manifest-path desktop/src-tauri/Cargo.toml --target $env:TARGET
+        run: cargo test --manifest-path desktop/src-tauri/Cargo.toml --all-targets --target $env:TARGET
         env:
           CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
@@ -1037,7 +1033,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
     needs: [changes]
-    if: github.event_name == 'push' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
     permissions:
       contents: read
     steps:

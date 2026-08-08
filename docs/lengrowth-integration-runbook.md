@@ -247,6 +247,38 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
 
 ## Production verification update — 2026-08-07
 
+- Authenticated verification using the supplied disposable account succeeded
+  against Supabase and `growth-api.lenquant.com`.
+- The original account resolves to LenOS workspace `e2etest26` with relay
+  community `aea95e4d-a1a6-40bb-8d75-912ebf8cb4fb`; the aligned multi-seat
+  fixture uses workspace `lenos-e2e32` and community
+  `328be86d-0ce7-4a75-a6e2-919bbeb1782b`.
+- A disposable LenGrowth company was provisioned with ID
+  `6a75d48b6b67f5b8084bda8f`; its membership list contains one active `owner`
+  record for the test account.
+- Live checks passed for relay health, public workspace lookup, authenticated
+  workspace lookup, company membership lookup, backend-supported membership
+  roles, and `https://e2etest26.lengrowth.com/home` returning HTTP 200.
+- Authorization checks passed for unknown public workspace (`404`), foreign
+  company member listing (`403`), unauthenticated member listing (`403`), and
+  duplicate invitation of the existing owner (`409`).
+- Additional disposable identities `fern2gue+32@gmail.com` and
+  `fern2gue+33@gmail.com` now authenticate successfully. The original
+  `e2etest26` company remains a separate owner-only fixture.
+- Multi-seat fixture company `6a75d8700418e3844768d91e` is now provisioned:
+  `+32` is active owner, `+33` is active contributor after invite acceptance,
+  and `+20` is denied access with `403`. Backend commit `c669e4f` is deployed;
+  authenticated live Nostr-link, repeat-link, and revoke checks all returned
+  `200` for `+32` using ephemeral keys that were not persisted.
+- A disposable LenOS workspace was provisioned for `+32` as
+  `lenos-e2e32`, with relay community `328be86d-0ce7-4a75-a6e2-919bbeb1782b`.
+- Backend commit `c669e4f` was tested (6 tests passed) and pushed to GitHub.
+  Scalingo is configured for `BuildGrowthNow/backend`, but its integration
+  currently rejects both `master` and `main` with `422 git_branch does not
+  exist`; no live deployment of `c669e4f` has been verified. The integration
+  must be re-linked or have its repository/branch metadata refreshed before
+  the deployed Nostr-link endpoint can be retested.
+
 - The authenticated test workspace loads at `https://e2etest26.lengrowth.com/home`
   with no channels or agents, and correctly presents a read-only state when no
   NIP-07 signer is available.
@@ -257,6 +289,10 @@ See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
   canonical LenGrowth Team Hub at `/settings/company?tab=team`.
 - Starter provisioning, agent creation, and messages remain intentionally
   blocked until the supplied test session has a supported durable signer.
+- The relay accepts the workspace connection but requires NIP-42 before
+  subscriptions. Relay-community membership is therefore still unverified;
+  the fixture needs a durable signer/member pubkey before signed membership,
+  channel, and message E2E checks can be claimed.
 
 ## Final runtime verification — 2026-08-06
 
@@ -320,3 +356,12 @@ scalingo --app lengrowth-main logs --filter nostradapter -n 200
 **Duplicate nostr_links after reconnect**
 - Check `POST /api/auth/nostr-link` in `lengrowth-main` for idempotency (upsert not insert)
 - Review disconnect handler — must delete old link before new one created
+
+## Production-readiness continuation — 2026-08-07
+
+- LenOS web commits `fa690a217`, `c8a9079ef`, and `05df54daf` are local repository changes. They harden NIP-42 acknowledgement handling, make core relay writes await `OK` acknowledgements, and align smoke assertions with the current LenGrowth branding contract.
+- LenOS web verification passed: TypeScript typecheck, full Biome/check suite, production build, and browser smoke E2E **6/6**.
+- LenGrowth backend verification passed: Nostr-link route tests **6/6** and task contract tests **4/4**. The adapter source parses `create task` and `run/trigger/start agent` commands and retains correlation/callback metadata.
+- Full LenGrowth frontend Vitest did not complete within 180 seconds when invoked directly; the normal pnpm wrapper is currently blocked by ignored native dependency build scripts. This is not recorded as a passing full-suite result.
+- Still blocked: durable NIP-07 identities for the disposable `+32`/`+33` fixture. Until provisioned through the supported desktop/NIP-07 flow, do not claim live relay membership, authenticated channel/message permissions, or remote-agent success/failure callbacks.
+- Normal-user identity work has started: `POST /api/auth/managed-nostr/provision` provisions or reuses an encrypted per-user signer under the authenticated Supabase identity, and `POST /api/auth/managed-nostr/sign` returns signed events without exposing private keys. The feature is fail-closed until Scalingo has a dedicated 32-byte `MANAGED_NOSTR_MASTER_KEY`; do not deploy with this variable absent or reuse an unrelated secret.

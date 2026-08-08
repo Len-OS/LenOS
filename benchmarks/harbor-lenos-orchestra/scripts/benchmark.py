@@ -206,7 +206,7 @@ def write_env_file(state: dict[str, str]) -> Path:
     """Compose interpolation env — regenerated from state on every run."""
     env_path = STATE_DIR / ".env"
     lines = {
-        "LENOS_IMAGE": os.environ.get("LENOS_IMAGE", "ghcr.io/Lengrowth/LenOS:main"),
+        "LENOS_IMAGE": os.environ.get("LENOS_IMAGE", "ghcr.io/len-os/lenos:main"),
         "LENOS_DOMAIN": "localhost",
         "RELAY_URL": f"ws://localhost:{RELAY_HTTP_PORT}",
         "LENOS_MEDIA_BASE_URL": f"http://localhost:{RELAY_HTTP_PORT}/media",

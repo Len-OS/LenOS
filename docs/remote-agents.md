@@ -1009,7 +1009,7 @@ run — it MUST NOT fall back to `default`.
 
 ### Image
 
-`ghcr.io/lengrowth/lenos-sprig`: Alpine base + `bash` (required by the dev-MCP
+`ghcr.io/len-os/lenos-sprig`: Alpine base + `bash` (required by the dev-MCP
 shell tool) + `git` + CA certificates + the static musl `sprig` multicall
 binary with its personality links (`lenos-acp`, `lenos-agent`, `lenos-dev-mcp`,
 `rg`, `tree`, `lenos`, `git-credential-nostr`, `git-sign-nostr`) + a baked
@@ -1026,7 +1026,7 @@ field, not a fatter default. Tagging follows the relay image's matrix —
 reference MUST be pinned by digest, not tag**: the provider bakes, at
 compile time, the multi-arch manifest digest of the image built from its
 own commit and defaults `image` to
-`ghcr.io/lengrowth/lenos-sprig@sha256:<that-digest>` — a `sha-<git-sha>` *tag*
+`ghcr.io/len-os/lenos-sprig@sha256:<that-digest>` — a `sha-<git-sha>` *tag*
 is traceable but still movable (registry tags are mutable pointers;
 Kubernetes distinguishes movable tags from immutable digests for exactly
 this reason), and the object holding it runs with an nsec. The provider

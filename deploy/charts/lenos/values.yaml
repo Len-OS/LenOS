@@ -23,7 +23,7 @@ quickstart: false
 
 # ── Image ────────────────────────────────────────────────────────────────────
 image:
-  repository: ghcr.io/lengrowth/lenos
+  repository: ghcr.io/len-os/lenos
   tag: ""                        # empty → .Chart.AppVersion
   pullPolicy: IfNotPresent
   pullSecrets: []

@@ -297,4 +297,4 @@ of decrypted payloads and MUST NOT log it at INFO level or above.
 
 ## Reference Implementation
 
-[Lengrowth/LenOS PR #421](https://github.com/Lengrowth/LenOS/pull/421)
+[Len-OS/LenOS PR #421](https://github.com/Len-OS/LenOS/pull/421)

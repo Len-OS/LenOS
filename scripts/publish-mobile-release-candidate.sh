@@ -15,7 +15,7 @@ candidate_number="$2"
 target_sha="$3"
 repo="${GITHUB_REPOSITORY:-}"
 
-[[ "$repo" == "Lengrowth/LenOS" ]] || fail "candidate publishing is restricted to Lengrowth/LenOS"
+[[ "$repo" == "Len-OS/LenOS" ]] || fail "candidate publishing is restricted to Len-OS/LenOS"
 [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || \
   fail "'$version' is not a mobile release version (expected X.Y.Z)"
 [[ "$candidate_number" =~ ^[1-9][0-9]*$ ]] || \

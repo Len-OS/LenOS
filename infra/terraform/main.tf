@@ -197,7 +197,7 @@ resource "aws_ecs_task_definition" "relay" {
 
   container_definitions = jsonencode([{
     name  = "relay"
-    image = "ghcr.io/lengrowth/lenos:main"
+    image = "ghcr.io/len-os/lenos:main"
     portMappings = [{ containerPort = 3000 }]
     environment = [
       { name = "DATABASE_URL",              value = "postgres://lenos:${var.postgres_password}@${aws_db_instance.lenos.endpoint}/lenos" },

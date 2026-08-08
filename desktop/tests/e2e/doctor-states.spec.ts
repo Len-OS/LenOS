@@ -41,7 +41,7 @@ const LENOS_AGENT_AVAILABLE = {
   default_args: [],
   mcp_command: "lenos-dev-mcp",
   install_hint: "",
-  install_instructions_url: "https://github.com/Lengrowth/LenOS",
+  install_instructions_url: "https://github.com/Len-OS/LenOS",
   can_auto_install: false,
   underlying_cli_path: null,
   node_required: false,

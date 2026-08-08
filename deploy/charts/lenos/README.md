@@ -1,6 +1,6 @@
 # LenOS Helm Chart
 
-[LenOS](https://github.com/Lengrowth/LenOS) is a Nostr-based messaging platform for human–agent collaboration: a single relay binary serving WebSocket + REST + web UI, backed by PostgreSQL, Redis, and S3-compatible object storage.
+[LenOS](https://github.com/Len-OS/LenOS) is a Nostr-based messaging platform for human–agent collaboration: a single relay binary serving WebSocket + REST + web UI, backed by PostgreSQL, Redis, and S3-compatible object storage.
 
 This chart has two operating profiles selected by values:
 
@@ -12,7 +12,7 @@ This chart has two operating profiles selected by values:
 ## Quickstart (eval only)
 
 ```sh
-helm install lenos oci://ghcr.io/lengrowth/lenos/charts/lenos --version 0.1.7 \
+helm install lenos oci://ghcr.io/len-os/lenos/charts/lenos --version 0.1.7 \
   --create-namespace --namespace lenos \
   --set quickstart=true \
   --set postgresql.enabled=true \
@@ -231,7 +231,7 @@ Save these. Losing any of them is data loss. See NOTES.txt printed by `helm inst
 ## Releasing
 
 The chart is published to GHCR as an OCI artifact at
-`oci://ghcr.io/lengrowth/lenos/charts/lenos` by the `helm chart` workflow
+`oci://ghcr.io/len-os/lenos/charts/lenos` by the `helm chart` workflow
 (`.github/workflows/helm-chart.yml`), versioned independently of the desktop app
 and the relay image via its own `chart-v*` tags. Every PR/`main` push still
 lints, unit-tests, and render-checks the chart; only a `chart-v*` tag publishes,

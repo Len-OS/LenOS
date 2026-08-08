@@ -27,7 +27,7 @@ git -C "$tmp" commit -qm 'docs: repository policy'
 base=$(git -C "$tmp" rev-parse HEAD)
 (
   cd "$tmp"
-  scripts/desktop_release.py generate 1.0.1 --base "$base" --repo Lengrowth/LenOS
+  scripts/desktop_release.py generate 1.0.1 --base "$base" --repo Len-OS/LenOS
   python3 - <<'PY'
 import json
 for path in ('desktop/package.json', 'desktop/src-tauri/tauri.conf.json'):
@@ -43,7 +43,7 @@ Co-authored-by: Test Automation <test@example.com>
 EOF
   git -c user.name=Wes -c user.email=wesbillman@users.noreply.github.com commit -q -s -F msg
   rm msg
-  scripts/desktop_release.py validate --version 1.0.1 --repo Lengrowth/LenOS
+  scripts/desktop_release.py validate --version 1.0.1 --repo Len-OS/LenOS
   grep -Fq '### Other repository changes' CHANGELOG.md
   grep -Fq "$(git rev-parse HEAD~1)" CHANGELOG.md
   grep -Fq "$(git rev-parse HEAD~2)" CHANGELOG.md
@@ -54,7 +54,7 @@ EOF
 import json
 p='.release/desktop-candidate.json'; d=json.load(open(p)); d['previous_tag']=None; open(p,'w').write(json.dumps(d)+'\n')
 PY
-  if scripts/desktop_release.py validate --version 1.0.1 --repo Lengrowth/LenOS >/dev/null 2>&1; then
+  if scripts/desktop_release.py validate --version 1.0.1 --repo Len-OS/LenOS >/dev/null 2>&1; then
     echo "validator accepted a forged previous release tag" >&2
     exit 1
   fi
@@ -77,7 +77,7 @@ echo root > "$initial/ROOT.md"
 git -C "$initial" add .
 git -C "$initial" commit -qm 'feat: root release content'
 root_sha=$(git -C "$initial" rev-parse HEAD)
-(cd "$initial" && scripts/desktop_release.py generate 0.1.0 --base "$root_sha" --repo Lengrowth/LenOS)
+(cd "$initial" && scripts/desktop_release.py generate 0.1.0 --base "$root_sha" --repo Len-OS/LenOS)
 grep -Fq "$root_sha" "$initial/CHANGELOG.md"
 rm -rf "$initial"
 

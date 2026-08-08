@@ -14,7 +14,7 @@ This guide covers the most common rendering failures on Linux and how to resolve
 
 ## Crash: `colrv1_configure_skpaint` assertion abort (AppImage)
 
-**Affected distributions:** Fedora 40+ and any distro shipping Google's Noto Color Emoji in COLRv1 format (`Noto-COLRv1.ttf`). Issues [#2548](https://github.com/Lengrowth/LenOS/issues/2548), [#2982](https://github.com/Lengrowth/LenOS/issues/2982).
+**Affected distributions:** Fedora 40+ and any distro shipping Google's Noto Color Emoji in COLRv1 format (`Noto-COLRv1.ttf`). Issues [#2548](https://github.com/Len-OS/LenOS/issues/2548), [#2982](https://github.com/Len-OS/LenOS/issues/2982).
 
 **Symptom:** LenOS starts, the window appears briefly (or stays blank), then the process aborts with output like:
 
@@ -25,7 +25,7 @@ Assertion '__n < this->size()' failed.
 
 **Root cause:** The AppImage bundles WebKitGTK compiled against FreeType 2.11.1 (Ubuntu 22.04's version), but `libfreetype.so.6` is not bundled — WebKit loads the host's FreeType at runtime instead. FreeType 2.13.0 (2023-02-09) added a field to `FT_ColorStopIterator`, growing the struct from 16 to 20 bytes. On Fedora 40+ hosts (FreeType ≥ 2.13), the struct-layout mismatch corrupts color-stop index arithmetic inside Skia's COLRv1 renderer, producing the assertion abort.
 
-**Fix:** Upgrade to the latest AppImage (v0.5.2+). The build container was bumped to `ubuntu:24.04` ([#3602](https://github.com/Lengrowth/LenOS/pull/3602)), which ships FreeType 2.13.2. The compiled layout now matches every crash-affected host (FreeType ≥ 2.13), eliminating the ABI mismatch.
+**Fix:** Upgrade to the latest AppImage (v0.5.2+). The build container was bumped to `ubuntu:24.04` ([#3602](https://github.com/Len-OS/LenOS/pull/3602)), which ships FreeType 2.13.2. The compiled layout now matches every crash-affected host (FreeType ≥ 2.13), eliminating the ABI mismatch.
 
 **AppImage glibc floor (v0.5.2+):** The `ubuntu:24.04` build raises the AppImage's minimum glibc requirement:
 
@@ -57,19 +57,19 @@ XML
 FONTCONFIG_FILE=~/.config/lenos-fontconfig/fonts.conf ./LenOS_*.AppImage
 ```
 
-**Native packages (`deb`/`rpm`):** The COLRv1 crash ([#2548](https://github.com/Lengrowth/LenOS/issues/2548), [#2982](https://github.com/Lengrowth/LenOS/issues/2982)) is AppImage-only — native packages use the system WebKit, which has a consistent FreeType ABI, and are not affected.
+**Native packages (`deb`/`rpm`):** The COLRv1 crash ([#2548](https://github.com/Len-OS/LenOS/issues/2548), [#2982](https://github.com/Len-OS/LenOS/issues/2982)) is AppImage-only — native packages use the system WebKit, which has a consistent FreeType ABI, and are not affected.
 
 ---
 
 ## Blank window on startup (no crash): dmabuf renderer
 
-**Affected hardware:** NVIDIA GPUs (proprietary and nouveau drivers) and AppImage installs on any GPU. Issue [#2338](https://github.com/Lengrowth/LenOS/issues/2338).
+**Affected hardware:** NVIDIA GPUs (proprietary and nouveau drivers) and AppImage installs on any GPU. Issue [#2338](https://github.com/Len-OS/LenOS/issues/2338).
 
 **Symptom:** LenOS launches without any crash or assertion output, but the window is blank or invisible. The process is running (`ps aux | grep lenos`), but nothing renders.
 
 **Root cause:** WebKitGTK's dmabuf zero-copy buffer path is incompatible with some GPU/driver/compositor combinations. The WebKit child process silently fails to paint.
 
-**Fix (shipped automatically starting with the first release containing [#3271](https://github.com/Lengrowth/LenOS/pull/3271) (v0.5.1)):** LenOS sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` automatically before WebKit initializes when it detects an NVIDIA GPU (`/sys/class/drm` vendor ID `0x10de`) or when running as an AppImage. This restores a slightly slower shared-memory rendering path that works universally.
+**Fix (shipped automatically starting with the first release containing [#3271](https://github.com/Len-OS/LenOS/pull/3271) (v0.5.1)):** LenOS sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` automatically before WebKit initializes when it detects an NVIDIA GPU (`/sys/class/drm` vendor ID `0x10de`) or when running as an AppImage. This restores a slightly slower shared-memory rendering path that works universally.
 
 **If automatic detection doesn't help (`--safe-rendering`):** Pass `--safe-rendering` to force both `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1` for that launch:
 
@@ -92,7 +92,7 @@ export WEBKIT_DISABLE_DMABUF_RENDERER=1
 
 ## AMD RDNA4 / transparent window
 
-**Affected hardware:** AMD RDNA4 GPUs (RX 9000 series) with the `radv` driver. Issue [#2643](https://github.com/Lengrowth/LenOS/issues/2643).
+**Affected hardware:** AMD RDNA4 GPUs (RX 9000 series) with the `radv` driver. Issue [#2643](https://github.com/Len-OS/LenOS/issues/2643).
 
 **Symptom:** The LenOS window is transparent or renders with graphical corruption on AMD RDNA4 hardware.
 
@@ -111,7 +111,7 @@ lenos-desktop
 - `GDK_BACKEND=x11` avoids the blank window that appears when running under a Plasma-Wayland compositor.
 - `WEBKIT_DISABLE_DMABUF_RENDERER=1` prevents post-first-paint transparency from the dmabuf renderer.
 
-A dedicated fix for RDNA4 detection is being tracked in [#2643](https://github.com/Lengrowth/LenOS/issues/2643).
+A dedicated fix for RDNA4 detection is being tracked in [#2643](https://github.com/Len-OS/LenOS/issues/2643).
 
 ---
 
@@ -132,4 +132,4 @@ If none of the above match your situation:
 
 3. Try `--safe-rendering` first — if it resolves the issue, it's a WebKit rendering incompatibility and the crash log will help narrow down which driver is involved.
 
-4. File a [new issue](https://github.com/Lengrowth/LenOS/issues/new) with your distro, GPU, driver version, and the terminal output.
+4. File a [new issue](https://github.com/Len-OS/LenOS/issues/new) with your distro, GPU, driver version, and the terminal output.

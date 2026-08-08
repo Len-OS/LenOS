@@ -17,7 +17,7 @@ record() {
 }
 
 case "${1:-}:${2:-}" in
-  api:repos/Lengrowth/LenOS/rulesets/14378754)
+  api:repos/Len-OS/LenOS/rulesets/14378754)
     case "$*" in
       *'.enforcement'*) printf '%s\n' "${GH_TAG_RULESET_STATE:-active}" ;;
       *'.current_user_can_bypass'*) printf '%s\n' "${GH_CURRENT_USER_CAN_BYPASS-always}" ;;
@@ -27,33 +27,33 @@ case "${1:-}:${2:-}" in
       *) exit 2 ;;
     esac
     ;;
-  api:repos/Lengrowth/LenOS/git/ref/heads/main) printf '%s\n' "$GH_TARGET_SHA" ;;
-  api:repos/Lengrowth/LenOS/commits/*) printf '%s\n' "$GH_TARGET_SHA" ;;
+  api:repos/Len-OS/LenOS/git/ref/heads/main) printf '%s\n' "$GH_TARGET_SHA" ;;
+  api:repos/Len-OS/LenOS/commits/*) printf '%s\n' "$GH_TARGET_SHA" ;;
   api:--paginate)
-    [[ "$3" == "repos/Lengrowth/LenOS/git/matching-refs/tags/mobile-v1.2.3-rc." ]]
+    [[ "$3" == "repos/Len-OS/LenOS/git/matching-refs/tags/mobile-v1.2.3-rc." ]]
     printf '%s' "${GH_EXISTING_REFS:-}"
     ;;
   api:--method)
     endpoint="$4"
     case "$endpoint" in
-      repos/Lengrowth/LenOS/git/tags)
+      repos/Len-OS/LenOS/git/tags)
         record "$*"
         printf '%s\n' "$GH_TAG_OBJECT_SHA"
         ;;
-      repos/Lengrowth/LenOS/git/refs)
+      repos/Len-OS/LenOS/git/refs)
         record "$*"
         ;;
       *) exit 2 ;;
     esac
     ;;
-  api:repos/Lengrowth/LenOS/git/ref/tags/mobile-v1.2.3-rc.*)
+  api:repos/Len-OS/LenOS/git/ref/tags/mobile-v1.2.3-rc.*)
     if [[ "$*" == *'.object.type'* ]]; then
       printf '%s\n' "${GH_PUBLISHED_REF_TYPE:-tag}"
     else
       printf '%s\n' "${GH_PUBLISHED_REF_SHA:-$GH_TAG_OBJECT_SHA}"
     fi
     ;;
-  api:repos/Lengrowth/LenOS/git/tags/*)
+  api:repos/Len-OS/LenOS/git/tags/*)
     if [[ "$*" == *'.object.type'* ]]; then
       printf '%s\n' "${GH_ANNOTATED_TARGET_TYPE:-commit}"
     else
@@ -70,7 +70,7 @@ chmod +x "$bin/gh"
 
 export PATH="$bin:$PATH"
 export GH_CALLS="$tmp/calls"
-export GITHUB_REPOSITORY=Lengrowth/LenOS
+export GITHUB_REPOSITORY=Len-OS/LenOS
 export GH_TARGET_SHA=1111111111111111111111111111111111111111
 export GH_TAG_OBJECT_SHA=2222222222222222222222222222222222222222
 

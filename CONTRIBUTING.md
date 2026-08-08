@@ -4,7 +4,7 @@ Welcome, and thank you for your interest in contributing! LenOS is an
 open-source project and we're glad you're here. This guide will help you
 get from zero to a merged pull request.
 
-If you have questions that aren't answered here, [open an issue](https://github.com/Lengrowth/LenOS/issues/new).
+If you have questions that aren't answered here, [open an issue](https://github.com/Len-OS/LenOS/issues/new).
 
 ---
 
@@ -35,7 +35,7 @@ unacceptable behavior to **conduct@lenos-relay.org**.
 
 ## Before You Open a PR
 
-Before starting, search [open PRs](https://github.com/Lengrowth/LenOS/pulls) and [open issues](https://github.com/Lengrowth/LenOS/issues) for duplicates — someone may already be working on the same thing. When you open your PR, link the closest existing one in the description (or say "none found").
+Before starting, search [open PRs](https://github.com/Len-OS/LenOS/pulls) and [open issues](https://github.com/Len-OS/LenOS/issues) for duplicates — someone may already be working on the same thing. When you open your PR, link the closest existing one in the description (or say "none found").
 
 For anything beyond a small fix, opening an issue first is strongly recommended. Describe the problem and proposed solution so a maintainer can acknowledge the approach before you build — it avoids two people building the same thing in parallel.
 
@@ -133,7 +133,7 @@ clippy`, `just test-unit`, and `just test` need no GTK.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/Lengrowth/LenOS.git
+git clone https://github.com/Len-OS/LenOS.git
 cd lenos
 
 # 2. Activate Hermit (optional but recommended)
@@ -390,7 +390,7 @@ to existing clients.
 
 ## Ecosystem
 
-LenOS is developed across multiple repositories. This repo (`Lengrowth/LenOS`)
+LenOS is developed across multiple repositories. This repo (`Len-OS/LenOS`)
 is the open-source home for all application code — the relay, desktop app,
 mobile app, CLI, and agent harness. Internal repositories handle
 enterprise-signed builds and infrastructure deployment.
@@ -398,11 +398,11 @@ enterprise-signed builds and infrastructure deployment.
 See [AGENTS.md § Ecosystem](AGENTS.md#ecosystem) for the full repo table and
 dependency diagram.
 
-**External contributors:** Fork `Lengrowth/LenOS`, open a PR, and CI runs
+**External contributors:** Fork `Len-OS/LenOS`, open a PR, and CI runs
 automatically. No special access is required.
 
 **Block team members:** See the internal
-[sprout-releases CONTRIBUTING.md](https://github.com/Lengrowth/LenOS/blob/main/CONTRIBUTING.md)
+[sprout-releases CONTRIBUTING.md](https://github.com/Len-OS/LenOS/blob/main/CONTRIBUTING.md)
 for team access setup, onboarding, and the full repo inventory. See
 [RELEASING.md](RELEASING.md) for the release process.
 

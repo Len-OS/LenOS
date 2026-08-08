@@ -250,7 +250,7 @@ def write_metadata_template(args: argparse.Namespace, job_dir: Path) -> Path:
             }
         )
     metadata = {
-        "agent_url": "https://github.com/Lengrowth/LenOS",
+        "agent_url": "https://github.com/Len-OS/LenOS",
         "agent_display_name": f"LenOS Orchestra ({manifest.get('condition', 'team')})",
         "agent_org_display_name": "Block",
         "models": models,

@@ -116,7 +116,7 @@ New to LenOS? Pick the path that matches you.
 
 ### I just want to try the app
 
-Grab a packaged build from the [latest release](https://github.com/Lengrowth/LenOS/releases/latest):
+Grab a packaged build from the [latest release](https://github.com/Len-OS/LenOS/releases/latest):
 
 | Platform | File |
 |---|---|
@@ -152,7 +152,7 @@ You'll need [Docker](https://docs.docker.com/get-docker/), Rust 1.88+, Node 24+,
 
 **Once:**
 ```bash
-git clone https://github.com/Lengrowth/LenOS.git && cd LenOS
+git clone https://github.com/Len-OS/LenOS.git && cd LenOS
 just setup && just build
 ```
 

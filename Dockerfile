@@ -126,9 +126,9 @@ FROM debian:${DEBIAN_VERSION}-slim AS runtime-base
 # one — without it GHCR keeps the image private even when the repo is public.
 LABEL org.opencontainers.image.title="LenOS" \
       org.opencontainers.image.description="WebSocket relay server for the LenOS communications platform" \
-      org.opencontainers.image.source="https://github.com/Lengrowth/LenOS" \
-      org.opencontainers.image.url="https://github.com/Lengrowth/LenOS" \
-      org.opencontainers.image.documentation="https://github.com/Lengrowth/LenOS#readme" \
+      org.opencontainers.image.source="https://github.com/Len-OS/LenOS" \
+      org.opencontainers.image.url="https://github.com/Len-OS/LenOS" \
+      org.opencontainers.image.documentation="https://github.com/Len-OS/LenOS#readme" \
       org.opencontainers.image.licenses="Apache-2.0"
 
 RUN apt-get update \

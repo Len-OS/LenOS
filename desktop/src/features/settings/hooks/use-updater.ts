@@ -31,7 +31,7 @@ const BACKGROUND_BLOCKED_STATES = new Set<UpdateStatus["state"]>([
 ]);
 
 const GITHUB_RELEASES_URL =
-  "https://github.com/Lengrowth/LenOS/releases/latest";
+  "https://github.com/Len-OS/LenOS/releases/latest";
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);

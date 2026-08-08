@@ -22,7 +22,7 @@ if [[ "${2:-}" == graphql ]]; then
     echo "GraphQL call does not match the deployed query contract" >&2; exit 92;
   }
   if [[ -n "${REVIEW_DECISION:-}" ]]; then printf '%s\n' "$REVIEW_DECISION"; else printf '%s\n' '{"reviewDecision":"APPROVED"}'; fi
-elif [[ "$#" -eq 4 && "$2" == --paginate && "$3" == --slurp && "$4" == "repos/Lengrowth/LenOS/pulls/123/reviews?per_page=100&page=1" ]]; then
+elif [[ "$#" -eq 4 && "$2" == --paginate && "$3" == --slurp && "$4" == "repos/Len-OS/LenOS/pulls/123/reviews?per_page=100&page=1" ]]; then
   [[ "${GH_FAIL_REVIEWS:-false}" != true ]] || { echo "simulated reviews API failure" >&2; exit 94; }
   if [[ -n "${REVIEWS:-}" ]]; then printf '%s\n' "$REVIEWS"; else printf '%s\n' '[[],[{"state":"APPROVED","commit_id":"head","author_association":"MEMBER"}]]'; fi
 else
@@ -34,7 +34,7 @@ chmod +x "$tmp/bin/gh"
 
 run_authorization() {
   (cd "$repo_root" && PATH="$tmp/bin:$PATH" GH_CALLS="$tmp/calls" GH_TOKEN=test \
-    GITHUB_REPOSITORY=Lengrowth/LenOS PR_NUMBER=123 PR_HEAD_SHA=head \
+    GITHUB_REPOSITORY=Len-OS/LenOS PR_NUMBER=123 PR_HEAD_SHA=head \
     REVIEW_DECISION="${REVIEW_DECISION-}" REVIEWS="${REVIEWS-}" GH_FAIL_REVIEWS="${GH_FAIL_REVIEWS-false}" \
     scripts/verify-desktop-release-authorization.sh)
 }

@@ -44,22 +44,22 @@ test("invite requires age and legal consent before opening LenOS", async ({
             {
               name: "LenOS_0.4.9_aarch64.dmg",
               browser_download_url:
-                "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_aarch64.dmg",
+                "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_aarch64.dmg",
             },
             {
               name: "LenOS_0.4.9_x64.dmg",
               browser_download_url:
-                "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64.dmg",
+                "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64.dmg",
             },
             {
               name: "LenOS_0.4.9_amd64.AppImage",
               browser_download_url:
-                "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_amd64.AppImage",
+                "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_amd64.AppImage",
             },
             {
               name: "LenOS_0.4.9_x64-setup_alpha-unsigned.exe",
               browser_download_url:
-                "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64-setup_alpha-unsigned.exe",
+                "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64-setup_alpha-unsigned.exe",
             },
           ],
         },
@@ -72,7 +72,7 @@ test("invite requires age and legal consent before opening LenOS", async ({
     page.getByRole("link", { name: "Download it now" }),
   ).toHaveAttribute(
     "href",
-    "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64-setup_alpha-unsigned.exe",
+    "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64-setup_alpha-unsigned.exe",
   );
 
   const ageConfirmation = page.getByLabel("I am 18 years of age or older.");
@@ -249,7 +249,7 @@ test("invite asks Safari users to choose their Mac download", async ({
   const openedPage = await openedPagePromise;
   await expect(chooser).toBeHidden();
   await expect(openedPage).toHaveURL(
-    "https://github.com/Lengrowth/LenOS/releases",
+    "https://github.com/Len-OS/LenOS/releases",
   );
   await expect(page).toHaveURL(/\/invite\/demo-code$/);
   await openedPage.close();
@@ -328,12 +328,12 @@ test("invite download falls back for mobile and non-desktop devices", async ({
               {
                 name: "LenOS_0.4.9_x64.dmg",
                 browser_download_url:
-                  "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64.dmg",
+                  "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_x64.dmg",
               },
               {
                 name: "LenOS_0.4.9_amd64.AppImage",
                 browser_download_url:
-                  "https://github.com/Lengrowth/LenOS/releases/download/v0.4.9/LenOS_0.4.9_amd64.AppImage",
+                  "https://github.com/Len-OS/LenOS/releases/download/v0.4.9/LenOS_0.4.9_amd64.AppImage",
               },
             ],
           },
@@ -345,7 +345,7 @@ test("invite download falls back for mobile and non-desktop devices", async ({
     await expect(
       page.getByRole("link", { name: "Download it now" }),
       device.name,
-    ).toHaveAttribute("href", "https://github.com/Lengrowth/LenOS/releases");
+    ).toHaveAttribute("href", "https://github.com/Len-OS/LenOS/releases");
     await context.close();
   }
 });

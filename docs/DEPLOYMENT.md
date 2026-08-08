@@ -39,7 +39,7 @@ Secrets (`relay_private_key_hex`, `postgres_password`) live only in `infra/terra
 - RDS Postgres 17 (db.t3.micro) in private subnets
 - ElastiCache Redis (cache.t3.micro) in private subnets
 - S3 bucket for Blossom media
-- ECS Fargate service running `ghcr.io/lengrowth/lenos:main`
+- ECS Fargate service running `ghcr.io/len-os/lenos:main`
 - ALB with HTTPS listener (ACM cert above), HTTP→HTTPS redirect
 - IAM task role with S3 read/write
 - CloudWatch log group `/ecs/lenos` (14-day retention)
@@ -183,7 +183,7 @@ In `LenOS/web/src/`:
 
 ### Deployment plan — Cloudflare Pages (recommended)
 
-1. Connect `Lengrowth/LenOS` to Cloudflare Pages
+1. Connect `Len-OS/LenOS` to Cloudflare Pages
 2. Build command: `pnpm build` (root of `/web`)
 3. Output dir: `web/dist`
 4. Add wildcard DNS in Cloudflare: `*.lengrowth.com` CNAME to Pages hostname (proxy ON)

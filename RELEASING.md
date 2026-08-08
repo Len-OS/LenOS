@@ -6,7 +6,7 @@ Mobile uses immutable release-candidate tags cut directly from remote `main`:
 | Lane | Entry point | Artifact |
 |------|-------------|----------|
 | Desktop | `just release-desktop <version>` | Packaged desktop app (signed macOS when Apple credentials are available, unsigned Windows/macOS fallback, and Linux) |
-| Relay | `just release-relay` | `ghcr.io/lengrowth/lenos` container image |
+| Relay | `just release-relay` | `ghcr.io/len-os/lenos` container image |
 | Mobile | `scripts/mobile-release.sh candidate X.Y.Z` | Exact `mobile-vX.Y.Z-rc.N` source identity |
 
 The lanes version independently. Desktop reads its manifests, relay reads its
@@ -89,7 +89,7 @@ Every push to `main` continues to publish the rolling relay `:main` and
 ### Mobile
 
 1. **Publish a candidate.** From a clean checkout whose `origin` is the
-   canonical `Lengrowth/LenOS` repository, run
+   canonical `Len-OS/LenOS` repository, run
    `scripts/mobile-release.sh candidate X.Y.Z`. The script resolves and fetches
    the exact current `origin/main` commit, derives the next number from exact
    remote tags for that marketing version, and publishes an annotated
@@ -144,7 +144,7 @@ Use the manual **Signed macOS Canary** workflow when you need an Apple Silicon
 build of current `main` for explicit testing without publishing a release:
 
 ```sh
-gh workflow run signed-macos-canary.yml --repo Lengrowth/LenOS --ref main
+gh workflow run signed-macos-canary.yml --repo Len-OS/LenOS --ref main
 ```
 
 The workflow derives a `-test.<run-number>` version, signs and notarizes the
@@ -157,7 +157,7 @@ create or move tags, and cannot update `lenos-desktop-latest` or `latest.json`.
 Download the artifact from the completed run:
 
 ```sh
-gh run download <run-id> --repo Lengrowth/LenOS --name <artifact-name>
+gh run download <run-id> --repo Len-OS/LenOS --name <artifact-name>
 ```
 
 The workflow intentionally accepts only `main`. Use the normal release process
@@ -170,7 +170,7 @@ for distributable builds or builds from an immutable release tag.
 `release.yml` has no manual dispatch and cannot build from `main` or another
 caller-selected ref. If a run for an existing immutable
 `desktop-v<version>` tag fails, rerun that failed workflow from GitHub Actions
-(or use `gh run rerun <run-id> --failed --repo Lengrowth/LenOS`). A stable rerun also
+(or use `gh run rerun <run-id> --failed --repo Len-OS/LenOS`). A stable rerun also
 repairs `lenos-desktop-latest/latest.json` if the original run published the
 versioned release but failed during that final rolling-manifest upload. Do not
 recreate, move, or push the immutable tag again.
@@ -186,7 +186,7 @@ For mobile, trigger the private
 [Release Mobile pipeline](https://buildkite.com/runway/lenos-mobile-releases) with
 an exact RC tag for the platform build being cut. For desktop, use
 [Release Desktop](https://buildkite.com/runway/sprout-releases). See the
-[lenos-releases README](https://github.com/Lengrowth/LenOS#cutting-a-release)
+[lenos-releases README](https://github.com/Len-OS/LenOS#cutting-a-release)
 for the private pipeline contract.
 
 ---
@@ -235,14 +235,14 @@ host's Wayland/GStreamer/graphics stack and requires GLib >= 2.72
 
 ## Prerequisites
 
-- **Write access** to the `Lengrowth/LenOS` GitHub repository
-- An `origin` remote whose configured URL is the canonical `Lengrowth/LenOS`
+- **Write access** to the `Len-OS/LenOS` GitHub repository
+- An `origin` remote whose configured URL is the canonical `Len-OS/LenOS`
   repository
 - `gh` CLI authenticated with permission to push the candidate branch and open
   its pull request
 - The Default `main` ruleset configured for squash-only merging, strict required
   checks, stale-review dismissal, and the **Desktop Release Candidate** check
-- Release tag ruleset [`14378754`](https://github.com/Lengrowth/LenOS/rules/14378754)
+- Release tag ruleset [`14378754`](https://github.com/Len-OS/LenOS/rules/14378754)
   active for `desktop-v*` and `mobile-v*`, with creation, update, deletion, and
   non-fast-forward protections and `lenos-release-bot` as its sole always-bypass
   actor
@@ -262,7 +262,7 @@ host's Wayland/GStreamer/graphics stack and requires GLib >= 2.72
 
 Mobile candidate publication requires workflow-dispatch access and the existing
 release App because strict tag protection denies direct human creation. The App
-must be installed on `Lengrowth/LenOS`, have Contents write and Metadata read, and
+must be installed on `Len-OS/LenOS`, have Contents write and Metadata read, and
 retain an `always` bypass on the immutable `mobile-v*` tag rules. It does not
 require GitHub Releases permissions, repository Administration permission, or a
 mobile release-branch ruleset. The publisher validates the App token's effective
