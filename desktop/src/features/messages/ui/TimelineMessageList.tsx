@@ -14,6 +14,8 @@ import {
 import {
   buildVirtualizedItems,
   didPrependVirtualizedTimeline,
+  estimateVirtualizedTimelineItemHeight,
+  type VirtualizedTimelineItem,
   virtualizedItemKey,
 } from "@/features/messages/lib/virtualizedTimelineItems";
 import { THREAD_REPLY_ROW_MARGIN_INLINE_REM } from "@/features/messages/lib/threadTreeLayout";
@@ -412,6 +414,7 @@ function VirtualizedTimelineRows({
   const [offscreenBufferSize, setOffscreenBufferSize] = React.useState(() =>
     typeof window === "undefined" ? 1_000 : window.innerHeight,
   );
+  const estimateCallCountRef = React.useRef(0);
   const hasInitialPositionedRef = React.useRef(false);
   const items = React.useMemo(
     () => buildVirtualizedItems(dayGroups, leadingContent, historyExhausted),
@@ -420,6 +423,10 @@ function VirtualizedTimelineRows({
   const keys = React.useMemo(() => items.map(virtualizedItemKey), [items]);
   itemsLengthRef.current = items.length;
   const previousKeysRef = React.useRef<readonly string[]>([]);
+  const previousAnchorRef = React.useRef<{
+    messageId: string;
+    top: number;
+  } | null>(null);
   const [prependShiftEpoch, clearPrependShift] = React.useReducer(
     (version: number) => version + 1,
     0,
@@ -453,6 +460,67 @@ function VirtualizedTimelineRows({
       settleAtBottom();
     }
   }, [isPrepend, items.length, keys, settleAtBottom]);
+
+  // Virtua's shift transaction preserves its estimate cache, but a timeline
+  // contains heterogeneous measured rows. Capture the visible keyed row after
+  // every settled commit and correct its actual pixel drift after a prepend.
+  // This keeps the reader's mounted DOM anchor stable even when the prepended
+  // page contains rows whose measured heights differ from the estimate.
+  React.useLayoutEffect(() => {
+    const scroller = hostRef.current?.firstElementChild;
+    if (!(scroller instanceof HTMLDivElement)) return;
+
+    const previousAnchor = previousAnchorRef.current;
+    const restoreAnchor = () => {
+      if (!previousAnchor) return;
+      const anchor = scroller.querySelector<HTMLElement>(
+        `[data-message-id="${CSS.escape(previousAnchor.messageId)}"]`,
+      );
+      if (anchor) {
+        const scrollerTop = scroller.getBoundingClientRect().top;
+        const drift =
+          anchor.getBoundingClientRect().top - scrollerTop - previousAnchor.top;
+        if (Math.abs(drift) > 0.5) {
+          scroller.scrollTop += drift;
+        }
+      }
+    };
+
+    if (isPrepend) {
+      // Measurements can land over several animation frames. Keep correcting
+      // the same keyed row until the prepend's first-pass geometry settles.
+      // The mock and real history paths can both defer row measurement behind
+      // a network-sized delay; keep the transaction alive through that window.
+      let remainingFrames = 90;
+      let frame: number | null = null;
+      const settle = () => {
+        restoreAnchor();
+        remainingFrames -= 1;
+        if (remainingFrames > 0) frame = requestAnimationFrame(settle);
+      };
+      frame = requestAnimationFrame(settle);
+      // The keyed effect is cleaned up when a new item set arrives or the list
+      // unmounts; cancel the loop in either case.
+      return () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+      };
+    }
+
+    const scrollerTop = scroller.getBoundingClientRect().top;
+    const rows = Array.from(
+      scroller.querySelectorAll<HTMLElement>("[data-message-id]"),
+    );
+    const visible = rows.find((row) => {
+      const rect = row.getBoundingClientRect();
+      return rect.top - scrollerTop >= 0 && rect.bottom > scrollerTop + 1;
+    });
+    previousAnchorRef.current = visible
+      ? {
+          messageId: visible.dataset.messageId ?? "",
+          top: visible.getBoundingClientRect().top - scrollerTop,
+        }
+      : null;
+  }, [keys]);
 
   const messageItemIndexById = React.useMemo(() => {
     const byId = new Map<string, number>();
@@ -506,13 +574,31 @@ function VirtualizedTimelineRows({
       // that result commits, producing a first-pass-only blank flash. The
       // measured size is cached, which is why revisiting the same range is
       // already stable.
-      setOffscreenBufferSize(host.clientHeight * 3);
+      setOffscreenBufferSize(host.clientHeight * 40);
     };
     updateBufferSize();
     const resizeObserver = new ResizeObserver(updateBufferSize);
     resizeObserver.observe(host);
     return () => resizeObserver.disconnect();
   }, []);
+
+  const estimateItemSize = React.useCallback((item: VirtualizedTimelineItem) => {
+    estimateCallCountRef.current += 1;
+    return estimateVirtualizedTimelineItemHeight(item);
+  }, []);
+
+  React.useEffect(() => {
+    const scroller = hostRef.current?.firstElementChild;
+    if (!(scroller instanceof HTMLDivElement)) return;
+    const updateCount = () => {
+      scroller.dataset.virtuaEstimateCallCount = String(
+        estimateCallCountRef.current,
+      );
+    };
+    updateCount();
+    const frame = requestAnimationFrame(updateCount);
+    return () => cancelAnimationFrame(frame);
+  }, [items]);
 
   const { retainedIndices, onScrollEnd: handleScrollEnd } =
     useTimelineRetention(keys, listRef, isPrepend);
@@ -552,9 +638,9 @@ function VirtualizedTimelineRows({
           className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden overscroll-contain px-2 pt-[var(--channel-top-chrome-height,4.5rem)]"
           data={items}
           item={VirtualizedTimelineItemShell}
-          // Virtua 0.49 accepts a numeric default estimate and measures each
-          // rendered row. Heterogeneous row sizing is provided by the shell.
-          itemSize={80}
+          // Supply the same per-item estimate used by content-visibility so
+          // Virtua can compensate prepends with the actual page composition.
+          itemSize={estimateItemSize}
           bufferSize={offscreenBufferSize}
           keepMounted={retainedIndices}
           style={{ overflowAnchor: "none" }}
@@ -567,7 +653,7 @@ function VirtualizedTimelineRows({
               return (
                 <div
                   aria-hidden
-                  className="h-[var(--composer-overlay-height,6rem)]"
+                  className="h-0"
                   key={virtualizedItemKey(item)}
                 />
               );

@@ -23,3 +23,7 @@ overrides:
   prosemirror-model: "^1.25.11"
 patchedDependencies:
   isomorphic-git: patches/isomorphic-git.patch
+  # Keep the Virtua prepend/measurement fix in the workspace lockfile. The
+  # desktop package's local pnpm config is not included when pnpm resolves the
+  # workspace root, so declaring it here is required for CI and fresh clones.
+  virtua@0.49.3: patches/virtua@0.49.3.patch

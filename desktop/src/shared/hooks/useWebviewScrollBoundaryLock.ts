@@ -96,11 +96,16 @@ export function useWebviewScrollBoundaryLock(enabled = true) {
 
       const path = event.composedPath();
       let firstScrollable: HTMLElement | null = null;
+      let conversationScroller: HTMLElement | null = null;
 
       for (const target of path) {
         if (!isHTMLElement(target)) {
           continue;
         }
+
+        conversationScroller ??= isConversationScroller(target)
+          ? target
+          : null;
 
         const scrollableY = deltaY !== 0 && isScrollableY(target);
         const scrollableX = deltaX !== 0 && isScrollableX(target);
@@ -121,8 +126,7 @@ export function useWebviewScrollBoundaryLock(enabled = true) {
       // preserved; a predominantly horizontal gesture must never pan the
       // webview, even over a conversation pane.
       if (
-        firstScrollable &&
-        isConversationScroller(firstScrollable) &&
+        conversationScroller &&
         Math.abs(deltaY) >= Math.abs(deltaX)
       ) {
         return;

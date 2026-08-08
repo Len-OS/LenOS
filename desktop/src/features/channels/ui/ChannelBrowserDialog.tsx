@@ -487,15 +487,44 @@ export function ChannelBrowserDialog({
                         event.key === "Enter" &&
                         !event.nativeEvent.isComposing
                       ) {
+                        // The fuzzy list intentionally uses a deferred query,
+                        // but Enter must act on the text currently in the
+                        // input. Otherwise a fast fill+Enter can still see
+                        // the previous channel list and skip the create form.
+                        const enteredQuery = canonicalChannelName(
+                          event.currentTarget.value,
+                        );
+                        const enteredNormalizedQuery =
+                          enteredQuery.toLowerCase();
+                        const enteredMatches = channels.filter(
+                          (channel) =>
+                            channel.channelType !== "dm" &&
+                            (!channelTypeFilter ||
+                              channel.channelType === channelTypeFilter) &&
+                            (enteredNormalizedQuery.length === 0 ||
+                              scoreChannelMatch(
+                                channel,
+                                enteredNormalizedQuery,
+                              ) !== null),
+                        );
+                        const enteredHasExactMatch = channels.some(
+                          (channel) =>
+                            channel.channelType !== "dm" &&
+                            (!channelTypeFilter ||
+                              channel.channelType === channelTypeFilter) &&
+                            canonicalChannelName(channel.name) === enteredQuery,
+                        );
+
                         // If the create row is highlighted — or it's the only
                         // actionable item (no channel matches) — Enter creates.
                         if (
-                          showCreateRow &&
-                          (isCreateRowSelected ||
-                            orderedVisibleChannels.length === 0)
+                          canCreate &&
+                          enteredQuery.length > 0 &&
+                          !enteredHasExactMatch &&
+                          (isCreateRowSelected || enteredMatches.length === 0)
                         ) {
                           event.preventDefault();
-                          enterCreateMode(trimmedQuery);
+                          enterCreateMode(enteredQuery);
                           return;
                         }
 

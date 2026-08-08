@@ -216,6 +216,13 @@ export function CommunitySwitcher({
             }
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-popover-foreground outline-hidden transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none focus-visible:bg-muted/50 focus-visible:outline-none data-[state=open]:bg-muted/50 data-[state=open]:text-popover-foreground"
             data-testid="community-switcher"
+            onClick={() => {
+              // A click must win over a pending hover-close timer. This is
+              // especially important after selecting an action from the
+              // profile menu and immediately reopening community actions.
+              clearProfileMenuHoverTimer();
+              setDropdownOpen(true);
+            }}
             onMouseEnter={() => scheduleProfileMenu(true)}
             onMouseLeave={() => scheduleProfileMenu(false)}
             role="menuitem"

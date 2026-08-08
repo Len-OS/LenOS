@@ -168,7 +168,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "python3 -m http.server 4173 -d dist",
+    command: `${process.platform === "win32" ? "python" : "python3"} -m http.server 4173 -d dist`,
     cwd: ".",
     reuseExistingServer: !process.env.CI,
     url: "http://127.0.0.1:4173",
