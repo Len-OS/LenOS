@@ -449,17 +449,19 @@ function VirtualizedTimelineRows({
     void prependShiftEpoch;
     return didPrependVirtualizedTimeline(previousKeysRef.current, keys);
   }, [keys, prependShiftEpoch]);
+  const isPrependRef = React.useRef(isPrepend);
+  isPrependRef.current = isPrepend;
 
   React.useLayoutEffect(() => {
     previousKeysRef.current = keys;
-    if (isPrepend) {
+    if (isPrependRef.current) {
       clearPrependShift();
     }
     if (!hasInitialPositionedRef.current && items.length > 0) {
       hasInitialPositionedRef.current = true;
       settleAtBottom();
     }
-  }, [isPrepend, items.length, keys, settleAtBottom]);
+  }, [items.length, keys, settleAtBottom]);
 
   // Virtua's shift transaction preserves its estimate cache, but a timeline
   // contains heterogeneous measured rows. Capture the visible keyed row after
@@ -469,6 +471,10 @@ function VirtualizedTimelineRows({
   React.useLayoutEffect(() => {
     const scroller = hostRef.current?.firstElementChild;
     if (!(scroller instanceof HTMLDivElement)) return;
+    if (keys.length === 0) {
+      previousAnchorRef.current = null;
+      return;
+    }
 
     const previousAnchor = previousAnchorRef.current;
     const restoreAnchor = () => {
@@ -486,7 +492,7 @@ function VirtualizedTimelineRows({
       }
     };
 
-    if (isPrepend) {
+    if (isPrependRef.current) {
       // Measurements can land over several animation frames. Keep correcting
       // the same keyed row until the prepend's first-pass geometry settles.
       // The mock and real history paths can both defer row measurement behind
@@ -582,10 +588,13 @@ function VirtualizedTimelineRows({
     return () => resizeObserver.disconnect();
   }, []);
 
-  const estimateItemSize = React.useCallback((item: VirtualizedTimelineItem) => {
-    estimateCallCountRef.current += 1;
-    return estimateVirtualizedTimelineItemHeight(item);
-  }, []);
+  const estimateItemSize = React.useCallback(
+    (item: VirtualizedTimelineItem) => {
+      estimateCallCountRef.current += 1;
+      return estimateVirtualizedTimelineItemHeight(item);
+    },
+    [],
+  );
 
   React.useEffect(() => {
     const scroller = hostRef.current?.firstElementChild;
@@ -598,7 +607,7 @@ function VirtualizedTimelineRows({
     updateCount();
     const frame = requestAnimationFrame(updateCount);
     return () => cancelAnimationFrame(frame);
-  }, [items]);
+  });
 
   const { retainedIndices, onScrollEnd: handleScrollEnd } =
     useTimelineRetention(keys, listRef, isPrepend);

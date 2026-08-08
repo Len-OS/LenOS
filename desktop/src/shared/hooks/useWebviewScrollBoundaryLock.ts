@@ -95,7 +95,6 @@ export function useWebviewScrollBoundaryLock(enabled = true) {
       }
 
       const path = event.composedPath();
-      let firstScrollable: HTMLElement | null = null;
       let conversationScroller: HTMLElement | null = null;
 
       for (const target of path) {
@@ -103,9 +102,7 @@ export function useWebviewScrollBoundaryLock(enabled = true) {
           continue;
         }
 
-        conversationScroller ??= isConversationScroller(target)
-          ? target
-          : null;
+        conversationScroller ??= isConversationScroller(target) ? target : null;
 
         const scrollableY = deltaY !== 0 && isScrollableY(target);
         const scrollableX = deltaX !== 0 && isScrollableX(target);
@@ -113,7 +110,6 @@ export function useWebviewScrollBoundaryLock(enabled = true) {
           continue;
         }
 
-        firstScrollable ??= target;
         if (
           (scrollableY && canScrollY(target, deltaY)) ||
           (scrollableX && canScrollX(target, deltaX))
@@ -125,10 +121,7 @@ export function useWebviewScrollBoundaryLock(enabled = true) {
       // Only the vertical elastic affordance of conversation scrollers is
       // preserved; a predominantly horizontal gesture must never pan the
       // webview, even over a conversation pane.
-      if (
-        conversationScroller &&
-        Math.abs(deltaY) >= Math.abs(deltaX)
-      ) {
+      if (conversationScroller && Math.abs(deltaY) >= Math.abs(deltaX)) {
         return;
       }
 
