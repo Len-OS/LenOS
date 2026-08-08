@@ -28,20 +28,46 @@ on:
       - "Dockerfile.sprig"
       - "scripts/sprig-entrypoint.sh"
       - ".github/workflows/sprig-image.yml"
+      - "crates/sprig/**"
+      - "crates/lenos-acp/**"
+      - "crates/lenos-agent/**"
+      - "crates/lenos-dev-mcp/**"
+      - "crates/lenos-core/**"
+      - "crates/lenos-persona/**"
+      - "crates/lenos-sdk/**"
+      - "crates/lenos-cli/**"
+      - "crates/git-credential-nostr/**"
+      - "crates/git-sign-nostr/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
-      - "crates/**"
+      - ".cargo/**"
+      - "patches/**"
   pull_request:
     paths:
       - "Dockerfile.sprig"
       - "scripts/sprig-entrypoint.sh"
       - ".github/workflows/sprig-image.yml"
+      - "crates/sprig/**"
+      - "crates/lenos-acp/**"
+      - "crates/lenos-agent/**"
+      - "crates/lenos-dev-mcp/**"
+      - "crates/lenos-core/**"
+      - "crates/lenos-persona/**"
+      - "crates/lenos-sdk/**"
+      - "crates/lenos-cli/**"
+      - "crates/git-credential-nostr/**"
+      - "crates/git-sign-nostr/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".cargo/**"
+      - "patches/**"
   workflow_dispatch: {}
 
 concurrency:
   group: sprig-image-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_type == 'branch' && github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
 
 permissions: {}
 

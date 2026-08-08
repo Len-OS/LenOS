@@ -48,7 +48,7 @@ jobs:
               - 'deny.toml'
               - '.github/workflows/ci.yml'
               - 'scripts/run-tests.sh'
-              - 'justfile'
+              - 'Justfile'
             desktop:
               - 'scripts/check-file-sizes-core.mjs'
               - 'scripts/check-file-sizes-core.test.mjs'
@@ -138,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [changes]
-    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true'
     permissions:
       contents: read
     steps:
@@ -233,8 +233,7 @@ jobs:
     if: >-
       needs.desktop-core.result == 'success' &&
       (needs.changes.outputs.desktop == 'true' ||
-      needs.changes.outputs.desktop-rust == 'true' ||
-      needs.changes.outputs.rust == 'true')
+      needs.changes.outputs.desktop-rust == 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -300,7 +299,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes, desktop-core, desktop-smoke-e2e]
-    if: always() && (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true')
+    if: always() && (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true')
     permissions:
       contents: read
     steps:
@@ -322,7 +321,9 @@ jobs:
     timeout-minutes: 30
     needs: [changes, desktop-core]
     if: >-
-      needs.desktop-core.result == 'success' &&
+      always() &&
+      (needs.desktop-core.result == 'success' ||
+      needs.desktop-core.result == 'skipped') &&
       (needs.changes.outputs.desktop == 'true' ||
       needs.changes.outputs.desktop-rust == 'true' ||
       needs.changes.outputs.rust == 'true')
@@ -394,7 +395,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes, desktop-e2e-relay]
-    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -570,7 +571,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes, desktop-e2e-integration-shard]
-    if: always() && (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true')
+    if: always() && (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true')
     permissions:
       contents: read
     steps:
@@ -1041,7 +1042,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
     needs: [changes]
-    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true'
     permissions:
       contents: read
     steps:

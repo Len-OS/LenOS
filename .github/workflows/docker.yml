@@ -77,11 +77,11 @@ on:
         description: "Semver version e.g. 0.3.0 (no relay-v prefix) — for relay-tag rescue dispatch"
         required: true
 
-# One image build per ref; cancel superseded PR builds, but never cancel
-# tag/main builds (publishing must not be aborted mid-flight).
+# One image build per ref; superseded branch builds are obsolete, while tagged
+# release builds are allowed to finish for publication.
 concurrency:
   group: docker-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_type == 'branch' && github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
 
 permissions: {}
 
