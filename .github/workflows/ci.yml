@@ -229,8 +229,12 @@ jobs:
     name: Desktop Smoke E2E (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [changes]
-    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    needs: [changes, desktop-core]
+    if: >-
+      needs.desktop-core.result == 'success' &&
+      (needs.changes.outputs.desktop == 'true' ||
+      needs.changes.outputs.desktop-rust == 'true' ||
+      needs.changes.outputs.rust == 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -316,8 +320,12 @@ jobs:
     name: Desktop E2E Relay
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [changes]
-    if: needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop-rust == 'true' || needs.changes.outputs.rust == 'true'
+    needs: [changes, desktop-core]
+    if: >-
+      needs.desktop-core.result == 'success' &&
+      (needs.changes.outputs.desktop == 'true' ||
+      needs.changes.outputs.desktop-rust == 'true' ||
+      needs.changes.outputs.rust == 'true')
     permissions:
       contents: read
     steps:
