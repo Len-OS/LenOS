@@ -1140,7 +1140,7 @@ mod tests {
         // → CliMissing state → no probe run → CliLogin{CliMissing}.
         let exe = present_binary_str();
         let rt = make_cli_runtime(
-            static_commands(vec![exe]),              // adapter found via absolute path
+            static_commands(vec![exe]), // adapter found via absolute path
             Some("__lenos_nonexistent_cli_abc123__"), // underlying CLI missing
         );
         let reqs = cli_login::requirements(&[exe, "--list"], "install the CLI", &rt);
@@ -1539,7 +1539,10 @@ mod tests {
 
         // User env_vars must be present in the output (last-write-wins).
         assert_eq!(
-            effective.env.get("LENOS_AGENT_PROVIDER").map(String::as_str),
+            effective
+                .env
+                .get("LENOS_AGENT_PROVIDER")
+                .map(String::as_str),
             Some("anthropic")
         );
         assert_eq!(

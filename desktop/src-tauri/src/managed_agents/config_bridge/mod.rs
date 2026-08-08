@@ -1,7 +1,7 @@
-mod lenos_agent;
 mod claude;
 mod codex;
 mod goose;
+mod lenos_agent;
 pub(crate) mod reader;
 mod schema_walker;
 pub(crate) mod types;

@@ -229,7 +229,9 @@ pub fn migrate_teams_to_events(app: &tauri::AppHandle, keys: &nostr::Keys, db_pa
     match migrate_teams_in_dir_at(&base_dir, keys, db_path) {
         Ok(0) => {}
         Ok(migrated) => {
-            eprintln!("lenos-desktop: team-event-migration: {migrated} teams migrated to retention");
+            eprintln!(
+                "lenos-desktop: team-event-migration: {migrated} teams migrated to retention"
+            );
         }
         Err(e) => {
             eprintln!("lenos-desktop: team-event-migration: {e}");

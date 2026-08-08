@@ -59,7 +59,8 @@ pub(crate) fn sweep_orphaned_agent_processes(app: &AppHandle, skip_pids: &[u32])
         if skip_pids.contains(&receipt.pid) {
             continue;
         }
-        if !process_is_running(receipt.pid) || !process_has_lenos_marker(receipt.pid, &instance_id) {
+        if !process_is_running(receipt.pid) || !process_has_lenos_marker(receipt.pid, &instance_id)
+        {
             super::super::remove_agent_runtime_receipt(app, &receipt.key);
         }
     }

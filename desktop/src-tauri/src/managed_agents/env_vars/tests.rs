@@ -258,19 +258,19 @@ fn is_well_formed_accepts_posix_keys() {
 #[test]
 fn is_well_formed_rejects_malformed_keys() {
     for key in [
-        "",                  // empty
-        "=",                 // bare equals
+        "",                   // empty
+        "=",                  // bare equals
         "LENOS_AUTH_TAG=x",   // =-in-key bypass
         "LENOS_PRIVATE_KEY=", // trailing equals
-        "FOO BAR",           // space
-        " FOO",              // leading whitespace
-        "FOO\nBAR",          // newline
-        "FOO\0BAR",          // NUL
-        "123_LEADING_DIGIT", // POSIX forbids leading digit
-        "FOO-BAR",           // hyphen
-        "FOO.BAR",           // dot
-        "FOO/BAR",           // slash
-        "ünicode_key",       // non-ASCII
+        "FOO BAR",            // space
+        " FOO",               // leading whitespace
+        "FOO\nBAR",           // newline
+        "FOO\0BAR",           // NUL
+        "123_LEADING_DIGIT",  // POSIX forbids leading digit
+        "FOO-BAR",            // hyphen
+        "FOO.BAR",            // dot
+        "FOO/BAR",            // slash
+        "ünicode_key",        // non-ASCII
     ] {
         assert!(!is_well_formed_env_key(key), "{key:?} should be malformed");
     }

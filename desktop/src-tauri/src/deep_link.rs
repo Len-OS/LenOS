@@ -336,7 +336,9 @@ pub(crate) fn handle_deep_link_url(app: &tauri::AppHandle, url_str: &str) {
         }
         Some("add-community") => {
             let Some(payload) = parse_add_community_deep_link(&url) else {
-                eprintln!("lenos-desktop: add-community deep link missing/invalid relay: {url_str}");
+                eprintln!(
+                    "lenos-desktop: add-community deep link missing/invalid relay: {url_str}"
+                );
                 return;
             };
             activate_main_window(app);
@@ -376,12 +378,13 @@ pub(crate) fn handle_deep_link_url(app: &tauri::AppHandle, url_str: &str) {
             }
         },
         Some("lengrowth-auth") => {
-            let linked = url
-                .query_pairs()
-                .any(|(k, v)| k == "linked" && v == "true");
+            let linked = url.query_pairs().any(|(k, v)| k == "linked" && v == "true");
             if linked {
                 activate_main_window(app);
-                let _ = app.emit("deep-link-lengrowth-auth", serde_json::json!({"linked": true}));
+                let _ = app.emit(
+                    "deep-link-lengrowth-auth",
+                    serde_json::json!({"linked": true}),
+                );
             } else {
                 eprintln!("lenos-desktop: lengrowth-auth missing linked=true: {url_str}");
             }
@@ -577,7 +580,8 @@ mod tests {
 
     #[test]
     fn parse_join_deep_link_rejects_non_websocket_relay() {
-        let url = Url::parse("lenos://join?relay=https%3A%2F%2Frelay.example&code=abc.def").unwrap();
+        let url =
+            Url::parse("lenos://join?relay=https%3A%2F%2Frelay.example&code=abc.def").unwrap();
         assert!(parse_join_deep_link(&url).is_none());
     }
 

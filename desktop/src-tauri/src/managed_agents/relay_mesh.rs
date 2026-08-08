@@ -142,7 +142,10 @@ mod tests {
                 "LENOS_AGENT_MAX_OUTPUT_TOKENS".to_string(),
                 "2048".to_string(),
             ),
-            ("LENOS_AGENT_THINKING_EFFORT".to_string(), "high".to_string()),
+            (
+                "LENOS_AGENT_THINKING_EFFORT".to_string(),
+                "high".to_string(),
+            ),
         ]);
         apply_relay_mesh_env(
             &mut env,

@@ -778,7 +778,9 @@ pub fn sync_shared_agent_data(app: &tauri::AppHandle) {
         .and_then(|k| k.parse::<nostr::Keys>().ok())
         .is_some();
     if !has_valid_key {
-        eprintln!("lenos-desktop: shared-agent-sync: LENOS_PRIVATE_KEY missing or invalid, skipping");
+        eprintln!(
+            "lenos-desktop: shared-agent-sync: LENOS_PRIVATE_KEY missing or invalid, skipping"
+        );
         return;
     }
 

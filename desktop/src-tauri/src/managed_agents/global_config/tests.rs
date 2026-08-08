@@ -498,7 +498,10 @@ fn inherited_shared_compute_translates_to_supported_agent_transport() {
     );
 
     assert_eq!(
-        effective.env.get("LENOS_AGENT_PROVIDER").map(String::as_str),
+        effective
+            .env
+            .get("LENOS_AGENT_PROVIDER")
+            .map(String::as_str),
         Some("openai")
     );
     assert_eq!(

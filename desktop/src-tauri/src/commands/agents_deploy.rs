@@ -249,7 +249,10 @@ mod tests {
             launch["policy_env"]["LENOS_ACP_TEAM_INSTRUCTIONS"],
             "Coordinate"
         );
-        assert_eq!(launch["policy_env"]["LENOS_ACP_SESSION_TITLE"], "Agent Name");
+        assert_eq!(
+            launch["policy_env"]["LENOS_ACP_SESSION_TITLE"],
+            "Agent Name"
+        );
         assert_eq!(launch["policy_env"]["LENOS_ACP_SYSTEM_PROMPT"], "prompt");
         assert_eq!(launch["policy_env"]["LENOS_ACP_MODEL"], "model");
         assert_eq!(launch["policy_env"]["LENOS_ACP_IDLE_TIMEOUT"], "17");

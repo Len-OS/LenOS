@@ -672,7 +672,9 @@ fn recover_from_keyring(
     data_dir: &std::path::Path,
     error: &str,
 ) -> Result<ResolvedIdentity, String> {
-    eprintln!("lenos-desktop: corrupt nsec in keyring ({error}), clearing and recovering from file");
+    eprintln!(
+        "lenos-desktop: corrupt nsec in keyring ({error}), clearing and recovering from file"
+    );
     if let Err(e) = store.delete(IDENTITY_KEY_NAME) {
         eprintln!("lenos-desktop: failed to clear corrupt keyring value: {e}");
     }

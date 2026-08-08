@@ -729,9 +729,10 @@ fn lenos_agent_max_tokens_env_var_not_double_surfaced_in_advanced() {
 #[test]
 fn lenos_agent_thinking_effort_from_env_is_lenos_explicit() {
     let mut record = test_record();
-    record
-        .env_vars
-        .insert("LENOS_AGENT_THINKING_EFFORT".to_string(), "high".to_string());
+    record.env_vars.insert(
+        "LENOS_AGENT_THINKING_EFFORT".to_string(),
+        "high".to_string(),
+    );
     let runtime = lenos_agent_runtime();
 
     let surface = read_config_surface(&record, Some(runtime), None, None);

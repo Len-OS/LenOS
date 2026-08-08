@@ -166,7 +166,9 @@ pub fn run() {
         Err(error) => {
             // Fall back to Tauri's default runtime: the app still works,
             // only deep mesh-llm futures are at risk of stack overflow.
-            eprintln!("lenos-mesh: failed to build big-stack tokio runtime, using default: {error}");
+            eprintln!(
+                "lenos-mesh: failed to build big-stack tokio runtime, using default: {error}"
+            );
         }
     }
 

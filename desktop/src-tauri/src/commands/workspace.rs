@@ -29,7 +29,9 @@ fn migrate_legacy_retention_into(
     ) {
         Ok(0) => {}
         Ok(copied) => {
-            eprintln!("lenos-desktop: adopted {copied} legacy retained event(s) into this community")
+            eprintln!(
+                "lenos-desktop: adopted {copied} legacy retained event(s) into this community"
+            )
         }
         Err(error) => eprintln!("lenos-desktop: legacy retention migration failed: {error}"),
     }
@@ -229,7 +231,9 @@ pub async fn apply_workspace(
             )
         }
         Err(error) => {
-            eprintln!("lenos-desktop: scoped event-sync unavailable after workspace apply: {error}");
+            eprintln!(
+                "lenos-desktop: scoped event-sync unavailable after workspace apply: {error}"
+            );
         }
     }
 

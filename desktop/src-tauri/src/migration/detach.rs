@@ -30,7 +30,9 @@ pub fn detach_directory_backed_teams(app: &tauri::AppHandle) {
     };
     match detach_directory_backed_teams_in_dir(&base_dir) {
         Ok(0) => {}
-        Ok(n) => eprintln!("lenos-desktop: detach-dir-teams: detached {n} directory-backed team(s)"),
+        Ok(n) => {
+            eprintln!("lenos-desktop: detach-dir-teams: detached {n} directory-backed team(s)")
+        }
         Err(e) => eprintln!("lenos-desktop: detach-dir-teams: {e}"),
     }
 }

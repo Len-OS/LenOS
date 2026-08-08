@@ -108,7 +108,7 @@ pub(crate) fn parse_agent_env_lines(raw: &str) -> Vec<(&str, &str)> {
 #[cfg(test)]
 mod tests {
     use super::{
-        baked_build_env, build_lenos_agent_provider_defaults, build_env_map,
+        baked_build_env, build_env_map, build_lenos_agent_provider_defaults,
         discovery_env_with_baked_floor, parse_agent_env_lines,
     };
 

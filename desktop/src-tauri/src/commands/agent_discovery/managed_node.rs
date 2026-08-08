@@ -572,7 +572,10 @@ mod tests {
     #[test]
     fn test_rewrite_npm_uninstall_uses_private_prefix() {
         assert_eq!(
-            rewrite_npm_global_install("npm uninstall -g @zed-industries/codex-acp", "'/tmp/lenos'"),
+            rewrite_npm_global_install(
+                "npm uninstall -g @zed-industries/codex-acp",
+                "'/tmp/lenos'"
+            ),
             "npm uninstall --global --prefix '/tmp/lenos' @zed-industries/codex-acp"
         );
     }
