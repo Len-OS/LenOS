@@ -63,6 +63,7 @@ jobs:
       sig: ${{ steps.read-sig.outputs.sig }}
     env:
       VERSION: ${{ needs.setup.outputs.version }}
+      OSX_CODESIGN_ROLE: ${{ secrets.OSX_CODESIGN_ROLE }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -183,7 +184,7 @@ jobs:
 
       - name: Codesign and Notarize
         id: codesign
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         uses: block/apple-codesign-action@679535d1ab7c5a7c18e6f9afcba3464512cc3dde # v1.1.0
         with:
           osx-codesign-role: ${{ secrets.OSX_CODESIGN_ROLE }}
@@ -193,11 +194,11 @@ jobs:
           artifact-name: lenos-${{ github.sha }}-${{ github.run_id }}-arm64
 
       - name: Stage signing entitlements (codesign path)
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         run: cp desktop/src-tauri/Entitlements.plist "${RUNNER_TEMP}/entitlements.plist"
 
       - name: Replace DMG and rebuild updater archive (codesign path)
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         env:
           SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
           SIGNED_APP_ZIP: ${{ steps.codesign.outputs.signed-artifact-path }}
@@ -220,7 +221,7 @@ jobs:
           (cd desktop && pnpm tauri signer sign "$TARBALL_ABS")
 
       - name: Verify code signature
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         run: |
           codesign --verify --deep --strict --verbose=2 \
             desktop/src-tauri/target/release/bundle/macos/LenOS.app
@@ -290,6 +291,7 @@ jobs:
     env:
       VERSION: ${{ needs.setup.outputs.version }}
       TARGET: x86_64-apple-darwin
+      OSX_CODESIGN_ROLE: ${{ secrets.OSX_CODESIGN_ROLE }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -368,12 +370,12 @@ jobs:
         run: desktop/scripts/set-dmg-finder-text-size.sh "$DMG_PATH" 14
 
       - name: Stage signing entitlements (codesign path)
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         run: cp desktop/src-tauri/Entitlements.plist "${RUNNER_TEMP}/entitlements.plist"
 
       - name: Codesign and Notarize
         id: codesign
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         uses: block/apple-codesign-action@679535d1ab7c5a7c18e6f9afcba3464512cc3dde # v1.1.0
         with:
           osx-codesign-role: ${{ secrets.OSX_CODESIGN_ROLE }}
@@ -383,7 +385,7 @@ jobs:
           artifact-name: lenos-${{ github.sha }}-${{ github.run_id }}-x64
 
       - name: Replace DMG and rebuild updater archive (codesign path)
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         env:
           SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
           SIGNED_APP_ZIP: ${{ steps.codesign.outputs.signed-artifact-path }}
@@ -405,7 +407,7 @@ jobs:
           (cd desktop && pnpm tauri signer sign "$TARBALL_ABS")
 
       - name: Verify code signature
-        if: secrets.OSX_CODESIGN_ROLE != ''
+        if: env.OSX_CODESIGN_ROLE != ''
         run: |
           APP_DIR="desktop/src-tauri/target/${TARGET}/release/bundle/macos/LenOS.app"
           codesign --verify --deep --strict --verbose=2 "$APP_DIR"
