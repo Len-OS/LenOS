@@ -116,7 +116,9 @@ impl Config {
             .parse::<i64>()
             .ok()
             .filter(|seconds| (1..=31_536_000).contains(seconds))
-            .ok_or(ConfigError::Invalid("LENOS_PUSH_MAX_GRANT_LIFETIME_SECONDS"))?;
+            .ok_or(ConfigError::Invalid(
+                "LENOS_PUSH_MAX_GRANT_LIFETIME_SECONDS",
+            ))?;
         let max_installation_lifetime_seconds = e
             .get("LENOS_PUSH_MAX_INSTALLATION_LIFETIME_SECONDS")
             .map(String::as_str)

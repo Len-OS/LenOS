@@ -5169,16 +5169,22 @@ mod tests {
             Tag::parse(["t", "read-state"]).expect("t tag"),
         ];
         let base = Timestamp::now().as_secs();
-        let old = EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_READ_STATE as u16), "old")
-            .tags(tags.clone())
-            .custom_created_at(Timestamp::from(base))
-            .sign_with_keys(&keys)
-            .expect("sign old");
-        let new = EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_READ_STATE as u16), "new")
-            .tags(tags)
-            .custom_created_at(Timestamp::from(base + 1))
-            .sign_with_keys(&keys)
-            .expect("sign new");
+        let old = EventBuilder::new(
+            Kind::Custom(lenos_core::kind::KIND_READ_STATE as u16),
+            "old",
+        )
+        .tags(tags.clone())
+        .custom_created_at(Timestamp::from(base))
+        .sign_with_keys(&keys)
+        .expect("sign old");
+        let new = EventBuilder::new(
+            Kind::Custom(lenos_core::kind::KIND_READ_STATE as u16),
+            "new",
+        )
+        .tags(tags)
+        .custom_created_at(Timestamp::from(base + 1))
+        .sign_with_keys(&keys)
+        .expect("sign new");
 
         assert!(
             db.replace_parameterized_event(community, &old, &d_tag, None)

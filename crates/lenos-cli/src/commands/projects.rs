@@ -211,7 +211,11 @@ pub async fn cmd_create(
 }
 
 /// `lenos projects get`
-pub async fn cmd_get(client: &LenOSClient, slug: &str, owner: Option<&str>) -> Result<(), CliError> {
+pub async fn cmd_get(
+    client: &LenOSClient,
+    slug: &str,
+    owner: Option<&str>,
+) -> Result<(), CliError> {
     validate_project_slug(slug)?;
     let resp = match fetch_project(client, slug, owner).await? {
         Some(event) => serde_json::json!({

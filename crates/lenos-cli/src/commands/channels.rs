@@ -852,8 +852,9 @@ pub async fn cmd_update_channel(
     }
     let channel_uuid = parse_uuid(channel_id)?;
 
-    let builder = lenos_sdk::build_update_channel(channel_uuid, name, description, None, ttl_change)
-        .map_err(|e| CliError::Other(format!("build_update_channel failed: {e}")))?;
+    let builder =
+        lenos_sdk::build_update_channel(channel_uuid, name, description, None, ttl_change)
+            .map_err(|e| CliError::Other(format!("build_update_channel failed: {e}")))?;
 
     let event = client.sign_event(builder)?;
     let resp = client.submit_event(event).await?;
@@ -1360,7 +1361,10 @@ mod tests {
 
     #[tokio::test]
     async fn set_add_policy_env_gate_rejects_disallowed_via_full_path() {
-        std::env::set_var("LENOS_ACP_ALLOWED_CHANNEL_ADD_POLICIES", "owner_only,nobody");
+        std::env::set_var(
+            "LENOS_ACP_ALLOWED_CHANNEL_ADD_POLICIES",
+            "owner_only,nobody",
+        );
         let client = make_test_client();
         let result = cmd_set_add_policy(&client, "anyone").await;
         std::env::remove_var("LENOS_ACP_ALLOWED_CHANNEL_ADD_POLICIES");

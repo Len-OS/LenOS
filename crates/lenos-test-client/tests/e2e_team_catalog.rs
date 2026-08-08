@@ -88,7 +88,9 @@ async fn test_team_catalog_publish_and_query_own_unshared() {
     let keys = Keys::generate();
     let d_tag = uuid::Uuid::new_v4().to_string();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let event = catalog_event(&keys, &d_tag, false);
     let event_id = event.id;
     let ok = client.send_event(event).await.expect("send catalog");
@@ -121,7 +123,9 @@ async fn test_team_catalog_accepts_builtin_colon_d_tag() {
     let keys = Keys::generate();
     let d_tag = format!("builtin-team:{}", &uuid::Uuid::new_v4().to_string()[..8]);
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let ok = client
         .send_event(catalog_event(&keys, &d_tag, true))
         .await
@@ -143,7 +147,9 @@ async fn test_team_catalog_rejects_empty_d_tag() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let ok = client
         .send_event(catalog_event(&keys, "", false))
         .await
@@ -180,7 +186,9 @@ async fn test_team_catalog_rejects_valueless_plus_valued_d_tags() {
     .sign_with_keys(&keys)
     .unwrap();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let ok = client.send_event(event).await.expect("send catalog");
     assert!(
         !ok.accepted,
@@ -217,7 +225,9 @@ async fn test_team_catalog_rejects_three_element_shared_tag() {
     .sign_with_keys(&keys)
     .unwrap();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let ok = client.send_event(event).await.expect("send catalog");
     assert!(!ok.accepted, "three-element shared tag must be rejected");
     assert!(

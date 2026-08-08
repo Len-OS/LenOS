@@ -26,8 +26,8 @@ pub mod error;
 /// Search query execution.
 pub mod query;
 
-pub use lenos_core::CommunityId;
 pub use error::SearchError;
+pub use lenos_core::CommunityId;
 pub use query::{search, ChannelScope, SearchHit, SearchMode, SearchQuery, SearchResult};
 
 use sqlx::PgPool;

@@ -288,7 +288,8 @@ pub async fn handle_auth(event: nostr::Event, conn: Arc<ConnectionState>, state:
         }
         Err(e) => {
             warn!(conn_id = %conn_id, error = %e, "NIP-42 auth failed");
-            metrics::counter!("lenos_auth_failures_total", "reason" => "nip42_invalid").increment(1);
+            metrics::counter!("lenos_auth_failures_total", "reason" => "nip42_invalid")
+                .increment(1);
             *conn.auth_state.write().await = AuthState::Failed;
             conn.send(RelayMessage::ok(
                 &event_id_hex,

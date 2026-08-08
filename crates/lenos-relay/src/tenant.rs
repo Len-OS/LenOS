@@ -105,7 +105,11 @@ pub async fn bind_deployment_community<R: HostResolver>(
     resolver: &R,
     relay_url: &str,
 ) -> Result<TenantContext, BindError<R::Error>> {
-    bind_community(resolver, &lenos_core::tenant::relay_url_authority(relay_url)).await
+    bind_community(
+        resolver,
+        &lenos_core::tenant::relay_url_authority(relay_url),
+    )
+    .await
 }
 
 /// Extract the relay URL authority in the same normalized shape as request

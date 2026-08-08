@@ -1,5 +1,5 @@
-use lenos_core::CommunityId;
 use chrono::{DateTime, Utc};
+use lenos_core::CommunityId;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

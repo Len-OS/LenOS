@@ -602,7 +602,9 @@ async fn test_author_can_subscribe_to_own_reminders_ws() {
     assert!(accepted, "setup failed: {msg}");
 
     // Subscribe via WebSocket as the author
-    let mut ws = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut ws = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let sid = sub_id("author-read");
     let filter = Filter::new()
         .kind(Kind::Custom(KIND_EVENT_REMINDER))
@@ -1164,7 +1166,9 @@ async fn test_scheduler_delivers_due_reminder_to_author_subscription() {
 
     // Now subscribe as the author and wait for the scheduler to push the due
     // reminder live (after the historical EOSE).
-    let mut ws = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut ws = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let sid = sub_id("scheduler-delivery");
     let filter = Filter::new()
         .kind(Kind::Custom(KIND_EVENT_REMINDER))

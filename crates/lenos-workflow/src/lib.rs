@@ -44,12 +44,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
+use chrono::{DateTime, Utc};
+use dashmap::DashMap;
 use lenos_core::kind::{event_kind_u32, is_workflow_execution_kind, KIND_REACTION};
 use lenos_core::tenant::CommunityId;
 use lenos_db::workflow::RunStatus;
 use lenos_db::Db;
-use chrono::{DateTime, Utc};
-use dashmap::DashMap;
 use tokio::sync::Semaphore;
 use uuid::Uuid;
 
@@ -1710,7 +1710,11 @@ steps:
 
     /// Create a community, a channel owned by `creator`, and add `member` as a
     /// plain member. Returns `(community, channel)`.
-    async fn setup_channel(db: &lenos_db::Db, creator: &[u8], member: &[u8]) -> (CommunityId, Uuid) {
+    async fn setup_channel(
+        db: &lenos_db::Db,
+        creator: &[u8],
+        member: &[u8],
+    ) -> (CommunityId, Uuid) {
         let host = format!("sec006-{}.example", Uuid::new_v4().simple());
         let community = match db
             .create_community_with_owner(&host, &hex::encode(creator))

@@ -268,7 +268,9 @@ async fn test_nip50_search_returns_results_and_eose() {
     let unique_token = format!("searchtoken_{}", uuid::Uuid::new_v4().simple());
     let content = format!("Hello world {unique_token}");
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let ok = client
         .send_text_message(&keys, &channel, &content, 9)
@@ -344,7 +346,9 @@ async fn test_nip50_search_mixed_filters_rejected() {
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("nip50-mixed");
 
@@ -404,7 +408,9 @@ async fn test_nip50_search_empty_results() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("nip50-empty");
     // Must include kinds to avoid triggering P_GATED_KINDS check (wildcard
@@ -444,7 +450,9 @@ async fn test_nip10_thread_reply_creates_metadata() {
     // Send root message via REST.
     let root_event_id = send_rest_message(&keys, &channel, "root message for NIP-10 test").await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Build reply event with NIP-10 e-tag.
     let h_tag = Tag::parse(["h", &channel]).expect("h tag");
@@ -508,7 +516,9 @@ async fn test_nip10_unknown_parent_rejected() {
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Use a random 32-byte hex as a nonexistent parent ID.
     let fake_parent_id = hex::encode([0xdeu8; 32]);
@@ -552,7 +562,9 @@ async fn test_nip10_root_mismatch_rejected() {
     // Use a different random ID as the claimed root.
     let wrong_root_id = hex::encode([0xabu8; 32]);
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let h_tag = Tag::parse(["h", &channel]).expect("h tag");
     // wrong_root as "root" marker, real_parent as "reply" marker — mismatch.
@@ -623,7 +635,9 @@ async fn test_nip17_gift_wrap_requires_p_filter() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("nip17-no-p");
     // No #p filter — should be rejected.
@@ -884,7 +898,9 @@ async fn test_nip10_thread_reply_not_in_top_level() {
     let root_content = format!("root-toplevel-{}", uuid::Uuid::new_v4());
     let root_event_id = send_rest_message(&keys, &channel, &root_content).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let h_tag = Tag::parse(["h", &channel]).expect("h tag");
     let e_reply_tag = Tag::parse(["e", &root_event_id, "", "reply"]).expect("e reply tag");
 
@@ -1070,7 +1086,9 @@ async fn test_nip50_search_relevance_order() {
     // Wait for FTS indexing.
     tokio::time::sleep(Duration::from_secs(3)).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("nip50-relevance");
     let query = format!("{prefix} alpha bravo charlie");
@@ -1121,7 +1139,9 @@ async fn test_historical_req_dedup_preserves_or_semantics() {
     let content = format!("dedup-or-{}", uuid::Uuid::new_v4());
     let event_id = send_rest_message(&keys, &channel, &content).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Generate a random wrong author key.
     let wrong_author = Keys::generate();
@@ -1175,7 +1195,9 @@ async fn test_empty_kinds_returns_zero_events() {
     // Send a message so there IS data in the channel.
     send_rest_message(&keys, &channel, "should not appear").await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("empty-kinds");
     // kinds:[] = match nothing per NIP-01.
@@ -1796,7 +1818,9 @@ async fn test_channel_window_rows_overlays_and_exact_multiple_exhaustion() {
         .as_str()
         .expect("probe row id")
         .to_string();
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let reply = EventBuilder::new(Kind::Custom(9), "window reply")
         .tags([
             Tag::parse(["h", &channel]).unwrap(),
@@ -1971,7 +1995,9 @@ async fn test_channel_window_rejects_half_cursor_and_client_overlay_kinds() {
     );
 
     // Client-submitted overlay kinds are rejected at ingest.
-    let mut ws = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut ws = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     for kind in [39005u16, 39006u16] {
         let forged = EventBuilder::new(Kind::Custom(kind), "{}")
             .tags([Tag::parse(["h", &channel]).unwrap()])

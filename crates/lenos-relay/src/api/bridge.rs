@@ -1750,10 +1750,11 @@ async fn handle_bridge_search(
             .map_err(|e| internal_error(&format!("search fetch error: {e}")))?;
 
         // Build lookup map to preserve FTS relevance ordering.
-        let event_map: std::collections::HashMap<[u8; 32], &lenos_core::StoredEvent> = stored_events
-            .iter()
-            .map(|ev| (ev.event.id.to_bytes(), ev))
-            .collect();
+        let event_map: std::collections::HashMap<[u8; 32], &lenos_core::StoredEvent> =
+            stored_events
+                .iter()
+                .map(|ev| (ev.event.id.to_bytes(), ev))
+                .collect();
 
         for id_array in &hit_ids {
             let stored = match event_map.get(id_array) {
@@ -3258,10 +3259,13 @@ mod tests {
             nostr::TagKind::SingleLetter(SingleLetterTag::lowercase(Alphabet::P)),
             [&viewer],
         );
-        let ev = EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_DM_VISIBILITY as u16), "")
-            .tags([d_tag, p_tag])
-            .sign_with_keys(&relay)
-            .expect("sign snapshot");
+        let ev = EventBuilder::new(
+            Kind::Custom(lenos_core::kind::KIND_DM_VISIBILITY as u16),
+            "",
+        )
+        .tags([d_tag, p_tag])
+        .sign_with_keys(&relay)
+        .expect("sign snapshot");
         let stored = lenos_core::StoredEvent::new(ev.clone(), None);
 
         // Kindless filter — the exact bypass shape: no #p, just the id.

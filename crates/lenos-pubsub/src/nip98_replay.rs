@@ -101,8 +101,8 @@ impl Nip98ReplayGuard for RedisNip98ReplayGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lenos_core::{CommunityId, TenantContext};
     use deadpool_redis::{Config, Runtime};
+    use lenos_core::{CommunityId, TenantContext};
     use nostr::{EventBuilder, Keys, Kind};
     use uuid::Uuid;
 

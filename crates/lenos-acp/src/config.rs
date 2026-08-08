@@ -2201,7 +2201,8 @@ channels = "ALL"
     #[test]
     fn lazy_pool_cli_flag_enables_deferred_startup() {
         let key = "0".repeat(64);
-        let args = CliArgs::try_parse_from(["lenos-acp", "--private-key", &key, "--lazy-pool=true"]);
+        let args =
+            CliArgs::try_parse_from(["lenos-acp", "--private-key", &key, "--lazy-pool=true"]);
         assert!(args.is_err(), "bool flags do not take an explicit value");
         assert!(CliArgs::parse_from(["lenos-acp", "--private-key", &key, "--lazy-pool"]).lazy_pool);
     }

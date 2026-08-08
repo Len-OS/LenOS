@@ -227,7 +227,9 @@ async fn test_client_submitted_nip43_membership_snapshots_are_rejected() {
         .sign_with_keys(&keys)
         .expect("sign forged membership snapshot");
 
-    let mut ws = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut ws = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let ok = ws
         .send_event(forged.clone())
         .await
@@ -416,7 +418,9 @@ async fn test_large_event_frame_below_configured_limit_is_accepted() {
 
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let h_tag = Tag::parse(["h", channel.as_str()]).expect("h tag");
     let content = "x".repeat(70_000);
@@ -468,7 +472,9 @@ async fn test_subscription_filters_by_kind() {
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("filter-kind");
     let filter = Filter::new()
@@ -536,7 +542,9 @@ async fn test_close_subscription_stops_delivery() {
 
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("close-sub");
     let filter = Filter::new()
@@ -683,7 +691,9 @@ async fn test_stored_events_returned_before_eose() {
 
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let content = format!("stored-{}", uuid::Uuid::new_v4());
     let ok = client
@@ -725,7 +735,9 @@ async fn test_ephemeral_event_not_stored() {
 
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let ok = client
         .send_text_message(&keys, &channel, "ephemeral content", ephemeral_kind)
@@ -766,7 +778,9 @@ async fn test_ephemeral_event_not_stored() {
 async fn test_auth_event_kind_rejected() {
     let url = relay_url();
     let keys = Keys::generate();
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let relay_url_parsed: nostr::RelayUrl = url.parse().unwrap();
     let auth_event = nostr::EventBuilder::auth("fake-challenge", relay_url_parsed)
@@ -800,7 +814,9 @@ async fn test_auth_event_kind_rejected() {
 async fn test_subscription_limit_enforced() {
     let url = relay_url();
     let keys = Keys::generate();
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Open 1024 subscriptions (the relay's MAX_SUBSCRIPTIONS).
     for i in 0..1024 {
@@ -941,7 +957,9 @@ async fn test_eose_sent_for_empty_subscription() {
 
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("empty-eose");
     let filter = Filter::new()
@@ -998,7 +1016,9 @@ async fn test_kind0_nip05_sync() {
     let valid_handle = format!("{}@{}", unique_name, relay_domain);
 
     // Step 1: Connect and publish kind:0 with a valid nip05 handle.
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let kind0_content = serde_json::json!({
         "display_name": "Kind0 Test User",
@@ -1604,7 +1624,9 @@ async fn test_membership_notification_kind_rejected() {
     let keys = Keys::generate();
     let channel_id = create_test_channel(&keys).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let p_tag = Tag::parse(["p", &keys.public_key().to_hex()]).expect("p tag");
     let h_tag = Tag::parse(["h", &channel_id]).expect("h tag");
@@ -1744,7 +1766,9 @@ async fn test_membership_notification_requires_p_filter() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("no-p-filter");
     let filter = Filter::new().kinds(vec![Kind::Custom(44100), Kind::Custom(44101)]);
@@ -1795,7 +1819,9 @@ async fn test_membership_notification_wildcard_filter_rejected() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("wildcard-filter");
     // Empty filter — no kinds, no #p — can match kind:44100/44101.
@@ -2124,7 +2150,9 @@ async fn test_membership_notification_mixed_filter_rejected() {
     let keys = Keys::generate();
     let channel_id = create_test_channel(&keys).await;
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let sid = sub_id("mixed-filter");
     // Filter 1: has #h + membership kinds (would skip per-filter #h check)
@@ -2395,7 +2423,9 @@ async fn test_reply_ingest_pushes_live_thread_summary() {
     let url = relay_url();
     let keys = Keys::generate();
     let channel = create_test_channel(&keys).await;
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Root message for the thread — built locally so we keep its id.
     let root = EventBuilder::new(Kind::Custom(9), "thread root")

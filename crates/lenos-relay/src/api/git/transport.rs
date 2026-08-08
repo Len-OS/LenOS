@@ -187,9 +187,9 @@ impl axum::extract::FromRequestParts<Arc<AppState>> for GitAuth {
         let pubkey =
             lenos_auth::nip98::verify_nip98_event(&event_json, &expected_url, &event_method, None)
                 .map_err(|e| {
-                warn!(error = %e, "git NIP-98 auth failed");
-                (StatusCode::UNAUTHORIZED, "NIP-98 auth failed").into_response()
-            })?;
+                    warn!(error = %e, "git NIP-98 auth failed");
+                    (StatusCode::UNAUTHORIZED, "NIP-98 auth failed").into_response()
+                })?;
 
         // NOTE: NIP-98 event-ID dedup intentionally NOT implemented here.
         // Git's credential protocol reuses one signed token across multiple requests
@@ -1547,7 +1547,8 @@ impl<S> Drop for TimedByteStream<S> {
     fn drop(&mut self) {
         metrics::histogram!("lenos_git_upload_pack_stream_seconds")
             .record(self.started_at.elapsed().as_secs_f64());
-        metrics::histogram!("lenos_git_upload_pack_stream_bytes").record(self.streamed_bytes as f64);
+        metrics::histogram!("lenos_git_upload_pack_stream_bytes")
+            .record(self.streamed_bytes as f64);
     }
 }
 
@@ -2015,7 +2016,11 @@ mod track_c_tests {
             "initialize source repository",
         );
         assert_git_success(
-            run_test_git(source.as_path(), &["config", "user.name", "LenOS Test"], &[]),
+            run_test_git(
+                source.as_path(),
+                &["config", "user.name", "LenOS Test"],
+                &[],
+            ),
             "configure user name",
         );
         assert_git_success(
@@ -2733,7 +2738,9 @@ mod sec005_read_gate_tests {
                 tags.push(Tag::parse(["lenos-channel", "not-a-uuid"]).unwrap());
             }
             Binding::UnknownChannel => {
-                tags.push(Tag::parse(["lenos-channel", &uuid::Uuid::new_v4().to_string()]).unwrap());
+                tags.push(
+                    Tag::parse(["lenos-channel", &uuid::Uuid::new_v4().to_string()]).unwrap(),
+                );
             }
         }
         let event = announcement(&owner_keys, tags);

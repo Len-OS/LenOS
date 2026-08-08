@@ -20,6 +20,13 @@ use std::time::Duration;
 
 use acp::{AcpClient, EnvVar, McpServer};
 use anyhow::Result;
+use clap::Parser;
+use config::{
+    AuthAgentArgs, AuthMethodsArgs, AuthenticateArgs, Config, DedupMode, ModelsArgs,
+    MultipleEventHandling, RespondTo, SubscribeMode,
+};
+use filter::SubscriptionRule;
+use futures_util::FutureExt;
 use lenos_core::kind::{
     KIND_MEMBER_ADDED_NOTIFICATION, KIND_MEMBER_REMOVED_NOTIFICATION, KIND_STREAM_MESSAGE,
     KIND_STREAM_REMINDER, KIND_WORKFLOW_APPROVAL_REQUESTED,
@@ -28,13 +35,6 @@ use lenos_core::observer::{
     decrypt_observer_payload, encrypt_observer_payload, OBSERVER_FRAME_TELEMETRY,
     OBSERVER_MAX_PLAINTEXT_LEN,
 };
-use clap::Parser;
-use config::{
-    AuthAgentArgs, AuthMethodsArgs, AuthenticateArgs, Config, DedupMode, ModelsArgs,
-    MultipleEventHandling, RespondTo, SubscribeMode,
-};
-use filter::SubscriptionRule;
-use futures_util::FutureExt;
 use nostr::{PublicKey, ToBech32};
 use pool::{
     AgentPool, ControlSignal, IdleSwitchResult, OwnedAgent, PromptContext, PromptOutcome,
@@ -5186,7 +5186,10 @@ mod build_mcp_servers_tests {
 
         let server = &servers[0];
         let has_auth_tag = server.env.iter().any(|e| e.name == "LENOS_AUTH_TAG");
-        assert!(!has_auth_tag, "empty LENOS_AUTH_TAG should not be forwarded");
+        assert!(
+            !has_auth_tag,
+            "empty LENOS_AUTH_TAG should not be forwarded"
+        );
     }
 
     #[test]

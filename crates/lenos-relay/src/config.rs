@@ -667,7 +667,9 @@ impl Config {
 
         let s3_addressing_style = match std::env::var("LENOS_S3_ADDRESSING_STYLE") {
             Ok(value) => value.parse().map_err(ConfigError::InvalidValue)?,
-            Err(std::env::VarError::NotPresent) => lenos_media::config::S3AddressingStyle::default(),
+            Err(std::env::VarError::NotPresent) => {
+                lenos_media::config::S3AddressingStyle::default()
+            }
             Err(std::env::VarError::NotUnicode(_)) => {
                 return Err(ConfigError::InvalidValue(
                     "LENOS_S3_ADDRESSING_STYLE must be valid Unicode and one of 'path' or 'virtual'"
@@ -682,7 +684,8 @@ impl Config {
                 .unwrap_or_else(|_| "lenos_dev".to_string()),
             s3_secret_key: std::env::var("LENOS_S3_SECRET_KEY")
                 .unwrap_or_else(|_| "lenos_dev_secret".to_string()),
-            s3_bucket: std::env::var("LENOS_S3_BUCKET").unwrap_or_else(|_| "lenos-media".to_string()),
+            s3_bucket: std::env::var("LENOS_S3_BUCKET")
+                .unwrap_or_else(|_| "lenos-media".to_string()),
             s3_region: std::env::var("LENOS_S3_REGION")
                 .or_else(|_| std::env::var("AWS_REGION"))
                 .unwrap_or_else(|_| "us-east-1".to_string()),
@@ -916,7 +919,10 @@ impl Config {
                     dir.display()
                 )));
             }
-            tracing::info!("LENOS_WEB_DIR={} — serving web UI from relay", dir.display());
+            tracing::info!(
+                "LENOS_WEB_DIR={} — serving web UI from relay",
+                dir.display()
+            );
         }
 
         // Reject explicitly-configured secrets that are too short.
@@ -1198,7 +1204,10 @@ mod tests {
         std::env::set_var("READ_DATABASE_URL", "   ");
         let blank = Config::from_env().expect("config").read_database_url;
 
-        std::env::set_var("READ_DATABASE_URL", "postgres://lenos:pw@replica:5432/lenos"); // sadscan:disable np.postgres.1
+        std::env::set_var(
+            "READ_DATABASE_URL",
+            "postgres://lenos:pw@replica:5432/lenos",
+        ); // sadscan:disable np.postgres.1
         let set = Config::from_env().expect("config").read_database_url;
 
         if let Some(value) = previous {
@@ -1406,7 +1415,10 @@ mod tests {
     #[test]
     fn relay_operator_api_origin_rejects_paths() {
         let _guard = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("RELAY_OPERATOR_API_ORIGIN", "https://lenos.example/operator");
+        std::env::set_var(
+            "RELAY_OPERATOR_API_ORIGIN",
+            "https://lenos.example/operator",
+        );
         let result = Config::from_env();
         std::env::remove_var("RELAY_OPERATOR_API_ORIGIN");
 

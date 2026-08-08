@@ -11,8 +11,8 @@
 
 use std::collections::HashMap;
 
-use lenos_core::tenant::CommunityId;
 use evalexpr::HashMapContext;
+use lenos_core::tenant::CommunityId;
 use nostr::ToBech32;
 use serde_json::Value as JsonValue;
 use tracing::{debug, info, warn};
@@ -886,8 +886,8 @@ fn shared_http_client() -> &'static reqwest::Client {
 /// POST `{"emoji": emoji}` to `POST /api/messages/{message_id}/reactions`.
 #[cfg(feature = "reqwest")]
 async fn add_reaction_impl(message_id: &str, emoji: &str) -> Result<JsonValue, WorkflowError> {
-    let base_url =
-        std::env::var("LENOS_RELAY_BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_owned());
+    let base_url = std::env::var("LENOS_RELAY_BASE_URL")
+        .unwrap_or_else(|_| "http://localhost:3000".to_owned());
 
     let url = format!("{base_url}/api/messages/{message_id}/reactions");
 

@@ -23,11 +23,11 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 use lenos_core::kind::KIND_NIP43_MEMBERSHIP_LIST;
 use lenos_core::tenant::{relay_url_authority, TenantContext};
 use lenos_db::{Db, DbConfig};
 use lenos_pubsub::{EventTopic, PubSubManager};
-use clap::{Parser, Subcommand};
 use nostr::{EventBuilder, Keys, Kind, Tag};
 use tracing::warn;
 

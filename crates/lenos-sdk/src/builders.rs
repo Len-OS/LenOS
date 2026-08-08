@@ -4324,7 +4324,10 @@ mod tests {
         assert_eq!(desc_tags.len(), 1);
         assert_eq!(desc_tags[0][1], "A description");
 
-        let ch_tags: Vec<_> = all_tags.iter().filter(|t| t[0] == "lenos-channel").collect();
+        let ch_tags: Vec<_> = all_tags
+            .iter()
+            .filter(|t| t[0] == "lenos-channel")
+            .collect();
         assert_eq!(ch_tags.len(), 1);
         assert_eq!(ch_tags[0][1], VALID_UUID);
 

@@ -15,6 +15,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use deadpool_redis;
 use lenos_audit::AuditService;
 use lenos_auth::{AuthService, Nip98ReplayGuard};
 use lenos_core::tenant::TenantContext;
@@ -27,7 +28,6 @@ use lenos_pubsub::rate_limiter::RedisRateLimiter;
 use lenos_pubsub::{PubSubManager, RedisNip98ReplayGuard};
 use lenos_search::SearchService;
 use lenos_workflow::WorkflowEngine;
-use deadpool_redis;
 
 use crate::audio::AudioRoomManager;
 use crate::config::Config;

@@ -201,7 +201,10 @@ pub async fn fetch_by_slug(client: &LenOSClient, slug: &str) -> Result<Vec<Event
 /// - 64-hex pubkey → parsed directly.
 /// - anything else → treated as a petname / display name, searched against
 ///   kind:0 profiles. Exact-one match required; ambiguity is a hard error.
-pub async fn resolve_author(client: &LenOSClient, author_flag: &str) -> Result<PublicKey, CliError> {
+pub async fn resolve_author(
+    client: &LenOSClient,
+    author_flag: &str,
+) -> Result<PublicKey, CliError> {
     if author_flag == "me" {
         return Ok(client.keys().public_key());
     }

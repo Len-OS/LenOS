@@ -1038,7 +1038,8 @@ mod probe {
         // The hydrate/CAS live tests use explicit local MinIO fixtures instead.
         let endpoint =
             std::env::var("LENOS_S3_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".into());
-        let access_key = std::env::var("LENOS_S3_ACCESS_KEY").unwrap_or_else(|_| "lenos_dev".into());
+        let access_key =
+            std::env::var("LENOS_S3_ACCESS_KEY").unwrap_or_else(|_| "lenos_dev".into());
         let secret_key =
             std::env::var("LENOS_S3_SECRET_KEY").unwrap_or_else(|_| "lenos_dev_secret".into());
         let bucket = std::env::var("LENOS_S3_BUCKET").unwrap_or_else(|_| "lenos-git".into());

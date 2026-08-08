@@ -571,10 +571,9 @@ mod tests {
             .tags
             .iter()
             .any(|tag| tag.as_slice().get(1).map(String::as_str) == Some("refs/heads/main")));
-        assert!(updated
-            .tags
-            .iter()
-            .any(|tag| { tag.as_slice() == ["lenos-protect", "refs/heads/release", "push:owner"] }));
+        assert!(updated.tags.iter().any(|tag| {
+            tag.as_slice() == ["lenos-protect", "refs/heads/release", "push:owner"]
+        }));
     }
 
     #[test]

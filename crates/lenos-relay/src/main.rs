@@ -532,7 +532,8 @@ async fn main() -> anyhow::Result<()> {
     // this repairs pre-snapshot communities and any publication that failed
     // after a membership transaction committed.
     if config.require_relay_membership {
-        match lenos_relay::handlers::side_effects::reconcile_nip43_membership_snapshots(&state).await
+        match lenos_relay::handlers::side_effects::reconcile_nip43_membership_snapshots(&state)
+            .await
         {
             Ok(count) => info!(count, "NIP-43 membership snapshots reconciled on startup"),
             Err(error) => {
@@ -682,12 +683,13 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     // Update NIP-29 discovery events so clients see the archived state.
-                    if let Err(e) = lenos_relay::handlers::side_effects::emit_group_discovery_events(
-                        &tenant,
-                        &reaper_state,
-                        channel_id,
-                    )
-                    .await
+                    if let Err(e) =
+                        lenos_relay::handlers::side_effects::emit_group_discovery_events(
+                            &tenant,
+                            &reaper_state,
+                            channel_id,
+                        )
+                        .await
                     {
                         error!(channel = %channel_id, "reaper discovery update failed: {e}");
                     }
@@ -1908,7 +1910,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        lenos_auto_migrate_enabled, dropped_in_memory_keys, idle_timeout_secs,
+        dropped_in_memory_keys, idle_timeout_secs, lenos_auto_migrate_enabled,
         refresh_legacy_active_gauge_recency, run_periodic_until_cancelled, EmissionScope,
         InMemoryMetricKey,
     };

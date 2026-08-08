@@ -707,7 +707,10 @@ pub struct SendDiffParams {
     pub reply_to: Option<String>,
 }
 
-pub async fn cmd_send_diff_message(client: &LenOSClient, p: SendDiffParams) -> Result<(), CliError> {
+pub async fn cmd_send_diff_message(
+    client: &LenOSClient,
+    p: SendDiffParams,
+) -> Result<(), CliError> {
     if let Some(r) = &p.reply_to {
         validate_hex64(r)?;
     }

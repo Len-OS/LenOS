@@ -6636,10 +6636,13 @@ mod tests {
         let keys = Keys::generate();
         let h_tag = Tag::parse(["h", CHANNEL_UUID]).expect("h tag");
         let mut ev = serde_json::to_value(
-            EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_CANVAS as u16), "content")
-                .tags([h_tag])
-                .sign_with_keys(&keys)
-                .expect("sign"),
+            EventBuilder::new(
+                Kind::Custom(lenos_core::kind::KIND_CANVAS as u16),
+                "content",
+            )
+            .tags([h_tag])
+            .sign_with_keys(&keys)
+            .expect("sign"),
         )
         .expect("serialise");
         // Corrupt created_at to a string value.
@@ -6658,10 +6661,13 @@ mod tests {
         let keys = Keys::generate();
         let h_tag = Tag::parse(["h", CHANNEL_UUID]).expect("h tag");
         let mut ev = serde_json::to_value(
-            EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_CANVAS as u16), "content")
-                .tags([h_tag])
-                .sign_with_keys(&keys)
-                .expect("sign"),
+            EventBuilder::new(
+                Kind::Custom(lenos_core::kind::KIND_CANVAS as u16),
+                "content",
+            )
+            .tags([h_tag])
+            .sign_with_keys(&keys)
+            .expect("sign"),
         )
         .expect("serialise");
         ev.as_object_mut().unwrap().remove("created_at");
@@ -6681,11 +6687,14 @@ mod tests {
         let keys = Keys::generate();
         let h_tag = Tag::parse(["h", CHANNEL_UUID]).expect("h tag");
         let ev = serde_json::to_value(
-            EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_CANVAS as u16), "content")
-                .tags([h_tag])
-                .custom_created_at(Timestamp::max())
-                .sign_with_keys(&keys)
-                .expect("sign"),
+            EventBuilder::new(
+                Kind::Custom(lenos_core::kind::KIND_CANVAS as u16),
+                "content",
+            )
+            .tags([h_tag])
+            .custom_created_at(Timestamp::max())
+            .sign_with_keys(&keys)
+            .expect("sign"),
         )
         .expect("serialise");
         let result = canvas_section_from_query_response(&[ev], CHANNEL_UUID);
@@ -6743,10 +6752,13 @@ mod tests {
         let keys = Keys::generate();
         let wrong_h = Tag::parse(["h", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"]).expect("h tag");
         let ev = serde_json::to_value(
-            EventBuilder::new(Kind::Custom(lenos_core::kind::KIND_CANVAS as u16), "content")
-                .tags([wrong_h])
-                .sign_with_keys(&keys)
-                .expect("sign"),
+            EventBuilder::new(
+                Kind::Custom(lenos_core::kind::KIND_CANVAS as u16),
+                "content",
+            )
+            .tags([wrong_h])
+            .sign_with_keys(&keys)
+            .expect("sign"),
         )
         .expect("serialise");
         let result = canvas_section_from_query_response(&[ev], CHANNEL_UUID);

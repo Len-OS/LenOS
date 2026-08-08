@@ -132,7 +132,10 @@ mod tests {
     fn global_key_includes_community() {
         let ctx = ctx(0xaaaa, "a.example");
 
-        assert_eq!(global_key(&ctx), format!("lenos:{}:global", ctx.community()));
+        assert_eq!(
+            global_key(&ctx),
+            format!("lenos:{}:global", ctx.community())
+        );
     }
 
     #[test]

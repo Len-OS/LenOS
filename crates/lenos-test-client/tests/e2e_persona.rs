@@ -165,7 +165,9 @@ async fn test_persona_publish_and_query() {
     })
     .to_string();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Publish persona event
     let event = persona_event(&keys, &d_tag, &content);
@@ -213,7 +215,9 @@ async fn test_promptless_persona_ingests_and_round_trips() {
     let d_tag = format!("promptless-{}", &uuid::Uuid::new_v4().to_string()[..8]);
     let content = serde_json::json!({ "display_name": "Config Only" }).to_string();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let event = persona_event(&keys, &d_tag, &content);
     let ok = client.send_event(event).await.expect("send promptless");
     assert!(
@@ -257,7 +261,9 @@ async fn test_behavioral_fields_persona_ingests_and_round_trips() {
     })
     .to_string();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
     let event = persona_event(&keys, &d_tag, &content);
     let ok = client.send_event(event).await.expect("send behavioral");
     assert!(
@@ -291,7 +297,9 @@ async fn test_persona_nip33_replacement_newer_wins() {
     let keys = Keys::generate();
     let d_tag = format!("replace-{}", &uuid::Uuid::new_v4().to_string()[..8]);
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Publish older version
     let now = Timestamp::now().as_secs();
@@ -337,7 +345,9 @@ async fn test_persona_nip33_older_does_not_replace_newer() {
     let keys = Keys::generate();
     let d_tag = format!("no-replace-{}", &uuid::Uuid::new_v4().to_string()[..8]);
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Publish newer version first
     let now = Timestamp::now().as_secs();
@@ -383,7 +393,9 @@ async fn test_persona_rejects_empty_d_tag() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let event = EventBuilder::new(
         Kind::Custom(PERSONA_KIND),
@@ -410,7 +422,9 @@ async fn test_persona_rejects_missing_d_tag() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // No d-tag at all
     let event = EventBuilder::new(
@@ -432,7 +446,9 @@ async fn test_persona_rejects_d_tag_too_long() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // 65 characters — exceeds the 64-char limit
     let long_slug = "a".repeat(65);
@@ -461,7 +477,9 @@ async fn test_persona_rejects_d_tag_uppercase() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let event = persona_event(
         &keys,
@@ -483,7 +501,9 @@ async fn test_persona_rejects_d_tag_special_chars() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     let event = persona_event(
         &keys,
@@ -505,7 +525,9 @@ async fn test_persona_rejects_d_tag_starting_with_underscore() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Slug must start with [a-z0-9], not underscore
     let event = persona_event(
@@ -528,7 +550,9 @@ async fn test_persona_accepts_valid_slugs() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Various valid slug patterns
     let valid_slugs = [
@@ -563,7 +587,9 @@ async fn test_persona_multiple_per_author() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Publish two different personas (different d-tags)
     let slug_a = format!("persona-a-{}", &uuid::Uuid::new_v4().to_string()[..8]);
@@ -1038,7 +1064,9 @@ async fn test_persona_ingest_shared_tag_validation() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Accept: no shared tag
     let ev = persona_event_with_shared(
@@ -1556,7 +1584,9 @@ async fn test_persona_ingest_rejects_three_element_shared_tag() {
     let url = relay_url();
     let keys = Keys::generate();
 
-    let mut client = LenOSTestClient::connect(&url, &keys).await.expect("connect");
+    let mut client = LenOSTestClient::connect(&url, &keys)
+        .await
+        .expect("connect");
 
     // Build a persona event with a three-element ["shared","true","extra"] tag.
     // nostr::Tag::parse accepts variable-length slices, so this is straightforward.

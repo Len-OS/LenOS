@@ -96,8 +96,14 @@ impl Config {
                     Ok(value) if !value.trim().is_empty() => value,
                     _ => {
                         let owner_keys = Keys::parse(&required_env("LENOS_OWNER_PRIVATE_KEY")?)
-                            .context("LENOS_OWNER_PRIVATE_KEY must be an nsec or hex private key")?;
-                        lenos_sdk::nip_oa::compute_auth_tag(&owner_keys, &bot_keys.public_key(), "")?
+                            .context(
+                                "LENOS_OWNER_PRIVATE_KEY must be an nsec or hex private key",
+                            )?;
+                        lenos_sdk::nip_oa::compute_auth_tag(
+                            &owner_keys,
+                            &bot_keys.public_key(),
+                            "",
+                        )?
                     }
                 };
 

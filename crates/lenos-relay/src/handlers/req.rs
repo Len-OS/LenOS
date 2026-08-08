@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use tracing::{debug, warn};
 
+use hex;
 use lenos_core::filter::filters_match;
 use lenos_core::kind::{
     is_unshared_gated_event, AUTHOR_ONLY_KINDS, KIND_AGENT_ENGRAM, KIND_AGENT_TURN_METRIC,
@@ -13,7 +14,6 @@ use lenos_core::kind::{
 use lenos_core::tenant::TenantContext;
 use lenos_db::EventQuery;
 use lenos_pubsub::EventTopic;
-use hex;
 use nostr::Filter;
 
 use lenos_auth::Scope;
@@ -1510,8 +1510,9 @@ mod tests {
 
     #[test]
     fn count_fallback_fetches_one_extra_candidate() {
-        let mut query =
-            EventQuery::for_community(lenos_core::tenant::CommunityId::from_uuid(uuid::Uuid::nil()));
+        let mut query = EventQuery::for_community(lenos_core::tenant::CommunityId::from_uuid(
+            uuid::Uuid::nil(),
+        ));
         apply_count_fallback_limit(&mut query);
         assert_eq!(query.limit, Some(COUNT_FALLBACK_CANDIDATE_LIMIT + 1));
         assert_eq!(query.max_limit, Some(COUNT_FALLBACK_CANDIDATE_LIMIT + 1));
@@ -1823,12 +1824,18 @@ mod tests {
         let owner_key = nostr::PublicKey::from_hex(&owner).unwrap();
         let other_key = nostr::PublicKey::from_hex(&other).unwrap();
         let own = Filter::new()
-            .kind(nostr::Kind::Custom(lenos_core::kind::KIND_PUSH_LEASE as u16))
+            .kind(nostr::Kind::Custom(
+                lenos_core::kind::KIND_PUSH_LEASE as u16,
+            ))
             .author(owner_key);
         let foreign = Filter::new()
-            .kind(nostr::Kind::Custom(lenos_core::kind::KIND_PUSH_LEASE as u16))
+            .kind(nostr::Kind::Custom(
+                lenos_core::kind::KIND_PUSH_LEASE as u16,
+            ))
             .author(other_key);
-        let bare = Filter::new().kind(nostr::Kind::Custom(lenos_core::kind::KIND_PUSH_LEASE as u16));
+        let bare = Filter::new().kind(nostr::Kind::Custom(
+            lenos_core::kind::KIND_PUSH_LEASE as u16,
+        ));
 
         assert!(author_only_filters_authorized(
             std::slice::from_ref(&own),

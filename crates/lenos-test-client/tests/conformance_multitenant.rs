@@ -950,7 +950,11 @@ mod users_profiles_nip05 {
     /// relay's ingest side-effect at `crates/lenos-relay/src/handlers/side_effects.rs::handle_kind0_profile`
     /// also syncs the parsed fields into `users` via
     /// `update_user_profile(tenant.community(), pubkey, ...)`.
-    async fn publish_kind0(client: &mut LenOSTestClient, keys: &Keys, content_json: &str) -> String {
+    async fn publish_kind0(
+        client: &mut LenOSTestClient,
+        keys: &Keys,
+        content_json: &str,
+    ) -> String {
         let event = EventBuilder::new(Kind::Metadata, content_json)
             .sign_with_keys(keys)
             .unwrap();
