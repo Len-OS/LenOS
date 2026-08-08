@@ -981,7 +981,7 @@ agent-level I5 into substrate-level I5.
 
 ## The Kubernetes Binding (`lenos-backend-kubernetes`)
 
-The first conforming provider: a Rust crate in `Lengrowth/LenOS`, distributed as a
+The first conforming provider: a Rust crate in `Len-OS/LenOS`, distributed as a
 standalone binary. Everything above is the contract; this section is its
 realization.
 

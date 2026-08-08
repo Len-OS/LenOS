@@ -17,7 +17,7 @@
 | AWS region | `us-east-1` |
 | ECS cluster | `lenos` |
 | ECS service | `lenos-relay` |
-| Active task def | `lenos-relay:4` |
+| Active task def | `lenos-relay:8` |
 | S3 media bucket | `lenos-media-288947333598` |
 | ACM certificate ARN | `arn:aws:acm:us-east-1:288947333598:certificate/98e00c4e-39d1-4eea-be01-81e883a07724` |
 | DNS provider | Cloudflare (proxy OFF on relay.lengrowth.com) |
@@ -66,7 +66,7 @@ Future updates: edit `infra/terraform/main.tf` and re-register via AWS CLI, or i
 
 State is local only (`infra/terraform/terraform.tfstate`). Not in S3 remote backend yet. **Do not delete the local state file.**
 
-### Key env vars set on ECS task (task def rev 4)
+### Key env vars set on ECS task (task def rev 8)
 
 ```
 RELAY_URL                 = wss://relay.lengrowth.com

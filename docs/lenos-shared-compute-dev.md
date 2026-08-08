@@ -8,7 +8,7 @@ It does not use a substitute agent harness.
 
 ## Before starting
 
-Run from the `Lengrowth/LenOS` repository root on the mesh-enabled branch.
+Run from the `Len-OS/LenOS` repository root on the mesh-enabled branch.
 
 For a completely fresh, deterministic local state, use:
 

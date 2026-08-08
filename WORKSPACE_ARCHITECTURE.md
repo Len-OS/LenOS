@@ -139,7 +139,7 @@ role-based starter agents. These actions publish the compatibility commands to
 - LenGrowth frontend/backend: Scalingo apps `lengrowth-web` and `lengrowth-main`.
 - LenGrowth background process: `nostradapter` is declared in `LenGrowth/backend/Procfile`.
 - LenOS web: `.github/workflows/web-deploy.yml`, path-filtered to `web/**`, deploys with Wrangler.
-- LenOS relay: `LenOS/infra/terraform/` defines the AWS stack; the current runbook records ECS task definition `lenos-relay:4`.
+- LenOS relay: `LenOS/infra/terraform/` defines the AWS stack; the current production service runs ECS task definition `lenos-relay:8`.
 - Relay public endpoint: `relay.lengrowth.com`; production Nostr clients require WSS and the runbook calls out DNS/proxy requirements.
 
 ## Known architecture risks

@@ -16,7 +16,7 @@
 | MCP HTTP endpoint | `https://growth-api.lenquant.com/mcp` |
 | LenGrowth backend Scalingo app | `lengrowth-main` |
 | LenGrowth frontend Scalingo app | `lengrowth-web` |
-| LenOS relay ECS task def | `lenos-relay:4` |
+| LenOS relay ECS task def | `lenos-relay:8` |
 
 ---
 
