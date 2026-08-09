@@ -75,10 +75,19 @@ export function MarkdownCodeBlock({
 }) {
   const [isCopying, setIsCopying] = React.useState(false);
   const codeBlockRef = React.useRef<HTMLPreElement | null>(null);
-  const code = React.useMemo(
-    () => rawCode ?? getCodeBlockText(children),
-    [rawCode, children],
-  );
+  const code = React.useMemo(() => {
+    if (rawCode !== undefined) return rawCode;
+    let fromChild: string | undefined;
+    React.Children.forEach(children, (child) => {
+      if (
+        React.isValidElement<{ code?: unknown }>(child) &&
+        typeof child.props.code === "string"
+      ) {
+        fromChild = child.props.code;
+      }
+    });
+    return fromChild ?? getCodeBlockText(children);
+  }, [rawCode, children]);
   useSmoothCorners(codeBlockRef);
 
   const handleCopy = React.useCallback(
