@@ -32,6 +32,7 @@ interface ProfilePopoverProps {
   onSetUserStatus: (text: string, emoji: string) => void;
   onClearUserStatus: () => void;
   onOpenSettings: (section?: "profile" | "appearance") => void;
+  onOpenDashboard?: () => void;
   onSendFeedback?: () => void;
   children: React.ReactNode;
   // Optional outer container whose clicks should NOT close the popover.
@@ -62,6 +63,7 @@ export function ProfilePopover({
   onSetUserStatus,
   onClearUserStatus,
   onOpenSettings,
+  onOpenDashboard,
   onSendFeedback,
   children,
   triggerContainerRef,
@@ -255,6 +257,25 @@ export function ProfilePopover({
                 type="button"
               >
                 <span className="flex-1">Send feedback</span>
+              </button>
+            ) : null}
+
+            {/* ── Advanced Dashboard ─────────────────────────────── */}
+            {onOpenDashboard ? (
+              <button
+                className={MENU_ITEM_CLASS}
+                data-testid="profile-popover-dashboard"
+                onClick={() => {
+                  closePopover();
+                  window.requestAnimationFrame(() => {
+                    onOpenDashboard();
+                  });
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <span className="flex-1">Advanced Dashboard</span>
+                <span className="text-xs text-muted-foreground">↗</span>
               </button>
             ) : null}
 

@@ -50,9 +50,9 @@ function isRelayMembershipDeniedError(error: unknown): boolean {
 }
 
 const STARTER_PERSONA_ANIMATIONS: Record<string, string> = {
-  Fizz: "/onboarding/starter-team/fizz.png",
-  Honey: "/onboarding/starter-team/honey.png",
-  Bumble: "/onboarding/starter-team/bumble.png",
+  Len: "/onboarding/starter-team/fizz.png",
+  Scout: "/onboarding/starter-team/honey.png",
+  Forge: "/onboarding/starter-team/bumble.png",
 };
 
 /** Fade duration for the "entering" curtain over the mounting app. */

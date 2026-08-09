@@ -5,6 +5,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nostr/nostr.dart' as nostr;
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../shared/auth/auth.dart';
 import '../../shared/clipboard_utils.dart';
 import '../../shared/relay/relay.dart';
@@ -42,6 +44,9 @@ class SettingsPage extends HookConsumerWidget {
               children: [
                 profileHeader,
                 const _AppearanceSection(),
+                const _LenGrowthSection(),
+                const _IntegrationsSection(),
+                const _AutomationsSection(),
                 const _ConnectionSection(),
                 const _RemoveCommunitySection(),
               ],
@@ -51,6 +56,104 @@ class SettingsPage extends HookConsumerWidget {
             _VersionFooter(version: packageInfo.data!.version),
         ],
       ),
+    );
+  }
+}
+
+class _LenGrowthSection extends StatelessWidget {
+  const _LenGrowthSection();
+
+  static final _dashboardUrl = Uri.parse(
+    const String.fromEnvironment(
+      'DASHBOARD_URL',
+      defaultValue: 'https://dashboard.lengrowth.com',
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListCard(
+      label: 'LenGrowth',
+      children: [
+        AppListRow(
+          icon: LucideIcons.externalLink,
+          title: 'Advanced Dashboard',
+          trailing: const _RowChevron(),
+          onTap: () => launchUrl(
+            _dashboardUrl,
+            mode: LaunchMode.externalApplication,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _IntegrationsSection extends StatelessWidget {
+  const _IntegrationsSection();
+
+  static final _integrationsUrl = Uri.parse(
+    '${const String.fromEnvironment('LENOS_WEB_URL', defaultValue: 'https://app.lengrowth.com')}/settings?tab=integrations',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListCard(
+      label: 'Integrations',
+      children: [
+        AppListRow(
+          icon: LucideIcons.externalLink,
+          title: 'GitHub',
+          subtitle: 'Manage on web',
+          trailing: const _RowChevron(),
+          onTap: () => launchUrl(_integrationsUrl, mode: LaunchMode.externalApplication),
+        ),
+        AppListRow(
+          icon: LucideIcons.externalLink,
+          title: 'Notion',
+          subtitle: 'Manage on web',
+          trailing: const _RowChevron(),
+          onTap: () => launchUrl(_integrationsUrl, mode: LaunchMode.externalApplication),
+        ),
+        AppListRow(
+          icon: LucideIcons.externalLink,
+          title: 'Linear',
+          subtitle: 'Manage on web',
+          trailing: const _RowChevron(),
+          onTap: () => launchUrl(_integrationsUrl, mode: LaunchMode.externalApplication),
+        ),
+        AppListRow(
+          icon: LucideIcons.externalLink,
+          title: 'Slack',
+          subtitle: 'Manage on web',
+          trailing: const _RowChevron(),
+          onTap: () => launchUrl(_integrationsUrl, mode: LaunchMode.externalApplication),
+        ),
+      ],
+    );
+  }
+}
+
+class _AutomationsSection extends StatelessWidget {
+  const _AutomationsSection();
+
+  static final _automationsUrl = Uri.parse(
+    '${const String.fromEnvironment('LENOS_WEB_URL', defaultValue: 'https://app.lengrowth.com')}/settings?tab=automations',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListCard(
+      label: 'Automations',
+      children: [
+        AppListRow(
+          icon: LucideIcons.externalLink,
+          title: 'Manage Automations',
+          subtitle: 'View and cancel recurring tasks on web',
+          trailing: const _RowChevron(),
+          onTap: () => launchUrl(_automationsUrl, mode: LaunchMode.externalApplication),
+        ),
+      ],
     );
   }
 }

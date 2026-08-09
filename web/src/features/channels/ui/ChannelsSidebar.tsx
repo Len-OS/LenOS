@@ -5,6 +5,7 @@ import {
   Bot,
   ChevronDown,
   ChevronRight,
+  ExternalLink,
   Hash,
   Inbox,
   MoreHorizontal,
@@ -329,6 +330,19 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
               {currentStatus?.text || "Set a status"}
             </span>
           </button>
+          <a
+            href={
+              import.meta.env.VITE_DASHBOARD_URL ??
+              "https://dashboard.lengrowth.com"
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Advanced Dashboard"
+            title="Advanced Dashboard"
+            className="rounded-md p-1.5 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}

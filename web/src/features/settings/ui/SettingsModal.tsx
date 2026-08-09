@@ -26,6 +26,16 @@ const RelayPanel = lazy(() =>
     default: m.RelaySettingsPanel,
   })),
 );
+const IntegrationsPanel = lazy(() =>
+  import("@/features/settings/ui/IntegrationsSettingsPanel").then((m) => ({
+    default: m.IntegrationsSettingsPanel,
+  })),
+);
+const AutomationsPanel = lazy(() =>
+  import("@/features/settings/ui/AutomationsSettingsPanel").then((m) => ({
+    default: m.AutomationsSettingsPanel,
+  })),
+);
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
@@ -33,6 +43,8 @@ const SECTIONS = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
   { id: "relay", label: "Connection" },
+  { id: "integrations", label: "Integrations" },
+  { id: "automations", label: "Automations" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -126,6 +138,8 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                 {active === "appearance" && <AppearancePanel />}
                 {active === "notifications" && <NotificationsPanel />}
                 {active === "relay" && <RelayPanel />}
+                {active === "integrations" && <IntegrationsPanel />}
+                {active === "automations" && <AutomationsPanel />}
               </Suspense>
             </div>
           </main>

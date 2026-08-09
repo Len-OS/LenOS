@@ -28,7 +28,7 @@ const BUMBLE_SYSTEM_PROMPT: &str = "You are Bumble, a curious and adventurous re
 const BUILT_IN_PERSONAS: &[BuiltInPersona] = &[
     BuiltInPersona {
         id: "builtin:fizz",
-        display_name: "Fizz",
+        display_name: "Len",
         avatar_url: Some(FIZZ_AVATAR),
         system_prompt: FIZZ_SYSTEM_PROMPT,
         name_pool: &[
@@ -41,20 +41,20 @@ const BUILT_IN_PERSONAS: &[BuiltInPersona] = &[
     },
     BuiltInPersona {
         id: "builtin:honey",
-        display_name: "Honey",
+        display_name: "Scout",
         avatar_url: Some(HONEY_AVATAR),
         system_prompt: HONEY_SYSTEM_PROMPT,
-        name_pool: &["Honey"],
+        name_pool: &["Scout"],
         model: None,
         runtime: None,
         default_active: true,
     },
     BuiltInPersona {
         id: "builtin:bumble",
-        display_name: "Bumble",
+        display_name: "Forge",
         avatar_url: Some(BUMBLE_AVATAR),
         system_prompt: BUMBLE_SYSTEM_PROMPT,
-        name_pool: &["Bumble"],
+        name_pool: &["Forge"],
         model: None,
         runtime: None,
         default_active: true,

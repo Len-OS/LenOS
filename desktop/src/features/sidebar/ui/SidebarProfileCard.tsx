@@ -1,4 +1,5 @@
 import * as React from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { getPresenceLabel } from "@/features/presence/lib/presence";
 import { PresenceDot } from "@/features/presence/ui/PresenceBadge";
@@ -161,6 +162,12 @@ export function SidebarProfileCard({
             triggerContainerRef={profileCardRef}
             userStatusEmoji={selfUserStatus?.emoji}
             userStatusText={selfUserStatus?.text}
+            onOpenDashboard={() => {
+              void openUrl(
+                import.meta.env.VITE_DASHBOARD_URL ??
+                  "https://dashboard.lengrowth.com",
+              ).catch(() => {});
+            }}
             communitySwitcherSlot={
               <CommunitySwitcher
                 activeCommunity={activeCommunity}
