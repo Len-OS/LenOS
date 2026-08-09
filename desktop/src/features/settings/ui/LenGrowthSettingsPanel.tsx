@@ -79,10 +79,9 @@ export function LenGrowthSettingsPanel(props: SettingsPanelProps) {
         setIntegrations(map);
       })
       .catch(() => {});
-    fetch(
-      `${LENGROWTH_BASE}/api/agent/crons?company_id=${cid}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    )
+    fetch(`${LENGROWTH_BASE}/api/agent/crons?company_id=${cid}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((r) => r.json())
       .then((data: Cron[]) => setCrons(data))
       .catch(() => {});

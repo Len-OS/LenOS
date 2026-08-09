@@ -216,9 +216,12 @@ are present; otherwise the workflow keeps the unsigned DMG and skips the
 codesign/notarization steps. Intel users
 download the `_x64.dmg`.
 
-Unsigned desktop artifacts are fully functional but can trigger Windows
-SmartScreen or macOS Gatekeeper warnings. Code signing is a distribution and
-trust prerequisite, not a runtime prerequisite. For a local Windows build,
+⚠️ **Distribution blocker — no signing credentials yet:** We do not have a Microsoft Authenticode certificate or a consistent Apple Developer ID. Until acquired:
+- Windows builds ship with `_alpha-unsigned` marker and trigger SmartScreen on every install. **Do not distribute Windows builds publicly.**
+- macOS DMGs are signed/notarized only when `OSX_CODESIGN_ROLE` credentials are present in CI. If credentials are absent the workflow produces unsigned DMGs — Gatekeeper will block them. **Verify signing succeeded before distributing macOS builds.**
+- Mobile is not ready for store distribution. `pubspec.yaml` keeps `0.0.0+1` as a placeholder; real versions are injected only by the private Buildkite pipeline.
+
+Unsigned desktop artifacts are fully functional for internal testing but code signing is a distribution and trust prerequisite, not a runtime prerequisite. For a local Windows build,
 install the Visual Studio C++ build tools so Rust can find `link.exe`, then run
 `pnpm tauri:build:unsigned`; no Microsoft certificate is required.
 

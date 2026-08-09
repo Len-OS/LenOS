@@ -66,8 +66,8 @@ export function AutomationsSettingsPanel() {
         <p className="text-sm text-black/40 dark:text-white/40">Loading…</p>
       ) : crons.length === 0 ? (
         <p className="text-sm text-black/40 dark:text-white/40">
-          No active automations. Ask Len to create one: "Send me a standup
-          every morning at 8am."
+          No active automations. Ask Len to create one: "Send me a standup every
+          morning at 8am."
         </p>
       ) : (
         <div className="space-y-2">

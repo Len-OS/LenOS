@@ -1,6 +1,6 @@
 # LenOS + LenGrowth Integration Runbook
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-09
 **Status legend:** ✅ Done · 🔲 Pending · ⚠️ Partial
 
 ---
@@ -168,11 +168,9 @@ Requires building `lenos-acp` from `crates/lenos-acp/` with Rust toolchain.
 
 ---
 
-## Step 5 — E2E testing 🔲 PENDING (blocked on web app deploy)
+## Step 5 — E2E testing ⚠️ PARTIAL
 
-**Current state:** LenOS web is deployed and the shell, relay health, and public workspace lookup have been verified. The remaining blocker is an authenticated durable identity for testing signed writes, LenGrowth linking, task dispatch, and callbacks.
-
-Once web app is live at `company.lengrowth.com`:
+**Current state:** LenOS web deployed and live. Shell, relay health, and public workspace lookup verified ✅ (2026-08-07). Remaining blocker: durable NIP-07 identity for authenticated signed writes, LenGrowth link/revoke, task dispatch, and agent callbacks. Infrastructure and routing gates are green.
 
 ### 5.1 Relay health
 
@@ -222,16 +220,16 @@ Additional workspace-agent checks:
 
 ---
 
-## Step 6 — Web app deploy and branding 🔲 PENDING
+## Step 6 — Web app deploy and branding ⚠️ PARTIAL
 
-See `DEPLOYMENT.md` Parts 4–6 for full detail. Summary:
+Cloudflare Pages deploy: ✅ DONE. LenGrowth branding (icon, colors, title): ✅ DONE.
 
-1. Brand `LenOS/web/src/` — replace LenOS logo/colors with LenGrowth design system
-2. Set default relay to `wss://relay.lengrowth.com` in web app config
-3. Deploy to Cloudflare Pages (recommended) or second ECS service
-4. Add wildcard `*.lengrowth.com` DNS in Cloudflare
-5. Add "Enter workspace" option to LenGrowth post-login flow (`lengrowth-web`)
-6. Add `GET /api/workspace` endpoint to `lengrowth-main`
+Still pending:
+- "Enter workspace" option in LenGrowth post-login flow (`lengrowth-web`)
+- `GET /api/workspace` endpoint on `lengrowth-main`
+- Subdomain workspace routing (`company.lengrowth.com` per tenant)
+
+See `DEPLOYMENT.md` Parts 5–6 for detail.
 
 ---
 

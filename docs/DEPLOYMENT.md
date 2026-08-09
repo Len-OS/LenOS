@@ -1,6 +1,6 @@
 # LenOS Deployment Guide
 
-**Last updated:** 2026-08-04  
+**Last updated:** 2026-08-09  
 **Status legend:** ✅ Done · 🔲 Pending · ⚠️ Partial
 
 ---
@@ -64,7 +64,7 @@ Future updates: edit `infra/terraform/main.tf` and re-register via AWS CLI, or i
 
 ### Terraform state
 
-State is local only (`infra/terraform/terraform.tfstate`). Not in S3 remote backend yet. **Do not delete the local state file.**
+⚠️ **CRITICAL RISK:** State is local only (`infra/terraform/terraform.tfstate`). No S3 remote backend. This file is the sole source of truth for all production AWS resources (RDS, ECS, ALB). **Do not delete it. Back it up before any Terraform operation.** If lost, you must import resources manually. Migrate to S3 remote backend before adding team members or automating deploys.
 
 ### Key env vars set on ECS task (task def rev 8)
 
@@ -165,23 +165,15 @@ filter = 'channel_id == "34fb566f-4883-4941-b18a-3ac7b9020552"'
 
 ---
 
-## Part 4 — LenOS web app (cloud workspace) 🔲 PENDING
+## Part 4 — LenOS web app (cloud workspace) ✅ DONE
 
-The cloud workspace UI lives at `LenOS/web/` (Vite + React). **Not deployed yet.**
+The cloud workspace UI is deployed to Cloudflare Pages. Live at `*.lengrowth.com` (e.g. `e2etest26.lengrowth.com`). Config: `web/wrangler.jsonc`.
 
-### What it needs to become
+Shell, relay health, and public workspace lookup verified 2026-08-06. Branding (LenGrowth colors/icon/title) shipped in commits `fa690a217`, `c8a9079ef`, `05df54daf`.
 
-`company.lengrowth.com` — Slack-like workspace per company. Users sign up, invite teammates, chat with agents. Each workspace maps to a community on the relay.
+**Remaining:** authenticated E2E flows (NIP-07 signer required for signed writes, LenGrowth link/revoke, task dispatch, agent callbacks). See Part 7.
 
-### Branding work required before deploy
-
-In `LenOS/web/src/`:
-- Replace LenOS logo and product name with LenGrowth branding
-- Update color tokens / theme to match LenGrowth design system
-- Set default relay URL to `wss://relay.lengrowth.com`
-- Set OAuth callback base to `https://app.lengrowth.com/auth/nostr-link`
-
-### Deployment plan — Cloudflare Pages (recommended)
+### Deployment (Cloudflare Pages — active)
 
 1. Connect `Len-OS/LenOS` to Cloudflare Pages
 2. Build command: `pnpm build` (root of `/web`)
@@ -239,9 +231,12 @@ Each company gets `company.lengrowth.com`.
 
 ---
 
-## Part 7 — E2E testing checklist 🔲 PENDING
+## Part 7 — E2E testing checklist ⚠️ PARTIAL
 
-Blocked on Part 4 (web app deployed). Once unblocked:
+Web app is deployed (Part 4 ✅). Remaining blocker: durable NIP-07 identity for authenticated signed writes. Infrastructure, routing, health, and deployment gates are green.
+
+Shell + public workspace lookup: ✅ verified 2026-08-07.
+Still pending: authenticated starter writes, LenGrowth link/revoke, task dispatch, agent completion callback.
 
 | Test | Expected |
 |---|---|
