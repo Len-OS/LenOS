@@ -67,13 +67,18 @@ function getCodeBlockText(children: React.ReactNode) {
 export function MarkdownCodeBlock({
   children,
   language,
+  rawCode,
 }: {
   children?: React.ReactNode;
   language?: string;
+  rawCode?: string;
 }) {
   const [isCopying, setIsCopying] = React.useState(false);
   const codeBlockRef = React.useRef<HTMLPreElement | null>(null);
-  const code = React.useMemo(() => getCodeBlockText(children), [children]);
+  const code = React.useMemo(
+    () => rawCode ?? getCodeBlockText(children),
+    [rawCode, children],
+  );
   useSmoothCorners(codeBlockRef);
 
   const handleCopy = React.useCallback(

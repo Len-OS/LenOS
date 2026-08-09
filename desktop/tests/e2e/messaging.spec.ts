@@ -339,7 +339,11 @@ test("copy a rendered code block and paste it back as code", async ({
   await expect(copyButton).toHaveCSS("opacity", "1");
   await copyButton.click();
   await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .poll(() =>
+      page.evaluate(() =>
+        navigator.clipboard.readText().then((t) => t.replace(/\r\n/g, "\n")),
+      ),
+    )
     .toBe(code);
 
   await input.click();

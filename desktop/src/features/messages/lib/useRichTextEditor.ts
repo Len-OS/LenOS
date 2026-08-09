@@ -6,7 +6,12 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
 import { Extension, type KeyboardShortcutCommand } from "@tiptap/core";
-import { Plugin, Selection, TextSelection } from "@tiptap/pm/state";
+import {
+  AllSelection,
+  Plugin,
+  Selection,
+  TextSelection,
+} from "@tiptap/pm/state";
 import type { ResolvedPos } from "@tiptap/pm/model";
 
 import {
@@ -508,6 +513,22 @@ export function useRichTextEditor({
         // command/caret logic, fires regardless of selection state, and works
         // the same across browser engines. Returning `true` consumes the key.
         handleKeyDown: (view, event) => {
+          // Include decorated channel links in Ctrl/⌘+A. Browser selection
+          // can otherwise stop before the channel-link text node, leaving a
+          // visible #channel behind when the user clears an edit.
+          const isSelectAllShortcut =
+            event.key.toLowerCase() === "a" &&
+            !event.altKey &&
+            !event.shiftKey &&
+            ((isMacPlatform() && event.metaKey && !event.ctrlKey) ||
+              (!isMacPlatform() && event.ctrlKey && !event.metaKey));
+          if (isSelectAllShortcut) {
+            view.dispatch(
+              view.state.tr.setSelection(new AllSelection(view.state.doc)),
+            );
+            return true;
+          }
+
           // Chromium handles Ctrl-A/E as whole-content movement before the
           // keymap on macOS. Claim them at the raw DOM layer so hard breaks
           // behave like actual line boundaries.

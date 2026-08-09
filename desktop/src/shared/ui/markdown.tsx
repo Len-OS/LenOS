@@ -1635,16 +1635,20 @@ function createMarkdownComponents(
     pre: ({ children }) => {
       if (!interactive) return <span>{children}</span>;
       let language = "";
+      let rawCode: string | undefined;
       React.Children.forEach(children, (child) => {
-        if (
-          React.isValidElement<Record<string, unknown>>(child) &&
-          typeof child.props?.className === "string"
-        ) {
+        if (!React.isValidElement<Record<string, unknown>>(child)) return;
+        if (typeof child.props?.className === "string") {
           language = extractLanguage(child.props.className);
+        }
+        if (typeof child.props?.code === "string") {
+          rawCode = child.props.code as string;
         }
       });
       return (
-        <MarkdownCodeBlock language={language}>{children}</MarkdownCodeBlock>
+        <MarkdownCodeBlock language={language} rawCode={rawCode}>
+          {children}
+        </MarkdownCodeBlock>
       );
     },
     strong: ({ children }) => (
