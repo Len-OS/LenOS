@@ -1,6 +1,6 @@
 # LenOS + LenGrowth — Product Migration & Intelligence Plan
 
-**Last updated:** 2026-08-10 (Phase 3 complete)  
+**Last updated:** 2026-08-10 (Phase 4 complete)  
 **Status legend:** ✅ Done · ⚠️ Partial · 🔲 Pending
 
 ---
@@ -351,26 +351,34 @@ async def delete_cron(nostr_pubkey: str, cron_id: str) -> dict | str:
 
 ---
 
-## 8. Phase 4 — Free Zero-Auth Utility Tools (1 day)
+## 8. Phase 4 — Free Zero-Auth Utility Tools ✅ Done
 
 **Goal:** General tools Len can use for any user, no credentials needed. Operator-level — shared across all workspaces.
 
 ### Surface checklist
 | Surface | Work needed |
 |---|---|
-| **LenGrowth backend (Node MCP)** | Add 4 tools to `backend/mcp/server.js` — web fetch, search, weather, RSS |
+| **LenGrowth backend (Node MCP)** | ✅ 4 tools added to `backend/mcp/server.js` — web fetch, search, weather, RSS |
 | **Desktop** | No UI change — Len uses tools automatically |
 | **Web** | No UI change — Len uses tools automatically |
 | **Mobile** | No UI change — Len uses tools automatically |
 
-Add to `LenGrowth/backend/mcp/server.js` (Node MCP aggregator, already deployed as `lengrowth-mcp`):
+### What was built
+
+All 4 tools implemented natively in `LenGrowth/backend/mcp/server.js` as `BUILTIN_TOOLS` — no child process, no separate MCP server. Always available alongside connector tools.
 
 | Tool | Implementation | Scalingo env var |
 |---|---|---|
-| Web fetch / scrape | Native `fetch` in Node 24 — custom handler | None |
-| Web search | Tavily API (1000 req/mo free tier) | `TAVILY_API_KEY` |
-| Weather | Open-Meteo REST API (free, no key) | None |
-| RSS feed reader | `rss-parser` npm package | None |
+| `web__fetch` | Native Node 24 `fetch`, strips `<script>`, `<style>`, HTML tags, returns up to 8000 chars | None |
+| `web__search` | Tavily API `POST /search`, returns title+URL+snippet per result | `TAVILY_API_KEY` (optional) |
+| `weather__current` | Open-Meteo geocoding → forecast API, returns current conditions + 3-day forecast | None |
+| `rss__read` | `rss-parser` npm, returns title+link+published+snippet per item | None |
+
+**Architecture:** `BUILTIN_TOOLS` array prepended to `ListToolsRequestSchema` response. `CallToolRequestSchema` and `POST /call` both check `builtinNames.has(name)` first — routes to `callBuiltin()` before trying upstream connectors. `/health` endpoint reports `builtin: 4` in connector count.
+
+**Deployed:** `git subtree push --prefix mcp scalingo-mcp master` (Node buildpack, 220 MiB image). Boot log confirms `[mcp] aggregator listening` + `[mcp] github connected — 26 tools`. Built-in tools register in memory at startup, no log on boot.
+
+**Optional:** Set `TAVILY_API_KEY` on `lengrowth-mcp` Scalingo env to enable `web__search`. Other 3 tools work with no env vars.
 
 ---
 
