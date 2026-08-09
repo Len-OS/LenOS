@@ -652,10 +652,7 @@ function VirtualizedTimelineRows({
           itemSize={estimateItemSize}
           bufferSize={offscreenBufferSize}
           keepMounted={retainedIndices}
-          style={{
-            overflowAnchor: "none",
-            scrollPaddingBottom: "var(--composer-overlay-height, 6rem)",
-          }}
+          style={{ overflowAnchor: "none" }}
           shift={isPrepend}
           onScroll={handleScroll}
           onScrollEnd={handleScrollEnd}
@@ -665,7 +662,7 @@ function VirtualizedTimelineRows({
               return (
                 <div
                   aria-hidden
-                  className="h-[var(--composer-overlay-height,6rem)]"
+                  className="h-0"
                   key={virtualizedItemKey(item)}
                 />
               );
