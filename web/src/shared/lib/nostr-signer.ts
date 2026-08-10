@@ -3,6 +3,7 @@ import {
   generateSecretKey,
   getPublicKey,
 } from "nostr-tools/pure";
+import { nip19 } from "nostr-tools";
 
 export type UnsignedNostrEvent = {
   kind: number;
@@ -39,6 +40,29 @@ export const IDENTITY_STATE_CHANGE_EVENT = "lenos-identity-state-change";
 const MANAGED_SIGNER_TOKEN_KEY = "lenos_managed_signer_token";
 const MANAGED_SIGNER_PUBKEY_KEY = "lenos_managed_signer_pubkey";
 const MANAGED_SIGNER_API = "https://growth-api.lenquant.com";
+const LOCAL_NSEC_KEY = "lenos_nsec";
+
+export function hasLocalNsec(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(LOCAL_NSEC_KEY) !== null;
+}
+
+export function getLocalNsec(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(LOCAL_NSEC_KEY);
+}
+
+export function setLocalNsec(nsec: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LOCAL_NSEC_KEY, nsec);
+  window.dispatchEvent(new Event(IDENTITY_STATE_CHANGE_EVENT));
+}
+
+export function clearLocalNsec(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(LOCAL_NSEC_KEY);
+  window.dispatchEvent(new Event(IDENTITY_STATE_CHANGE_EVENT));
+}
 
 let ephemeralSecretKey: Uint8Array | null = null;
 
@@ -74,6 +98,18 @@ export function clearManagedSignerSession(): void {
   window.dispatchEvent(new Event(IDENTITY_STATE_CHANGE_EVENT));
 }
 
+function getLocalSecretKey(): Uint8Array | null {
+  const nsec = getLocalNsec();
+  if (!nsec) return null;
+  try {
+    const decoded = nip19.decode(nsec.trim());
+    if (decoded.type !== "nsec") return null;
+    return decoded.data;
+  } catch {
+    return null;
+  }
+}
+
 export function consumeManagedSignerSessionFromUrl(): boolean {
   if (typeof window === "undefined") return false;
   const url = new URL(window.location.href);
@@ -95,7 +131,7 @@ export function consumeManagedSignerSessionFromUrl(): boolean {
 
 /** True only for an identity that survives a page reload. */
 export function hasDurableIdentity(): boolean {
-  return hasNip07Provider() || getManagedSignerSession() !== null;
+  return hasNip07Provider() || getManagedSignerSession() !== null || hasLocalNsec();
 }
 
 export async function getCurrentPubkey(): Promise<string | null> {
@@ -109,6 +145,8 @@ export async function getCurrentPubkey(): Promise<string | null> {
   }
   const managed = getManagedSignerSession();
   if (managed) return managed.pubkey;
+  const secretKey = getLocalSecretKey();
+  if (secretKey) return getPublicKey(secretKey);
   return getPublicKey(getEphemeralSecretKey());
 }
 
@@ -189,6 +227,15 @@ export async function signNostrEvent(
       typeof signed.sig !== "string"
     ) {
       throw new Error("Managed LenOS signer returned an invalid signed event.");
+    }
+    return signed;
+  }
+
+  const localSecret = getLocalSecretKey();
+  if (localSecret) {
+    const signed = finalizeEvent(unsigned, localSecret);
+    if (signed.pubkey !== getPublicKey(localSecret)) {
+      throw new Error("Failed to sign with local identity.");
     }
     return signed;
   }
