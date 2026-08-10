@@ -5,19 +5,45 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import {
+  getCurrentPubkey,
+  hasDurableIdentity,
+} from "@/shared/lib/nostr-signer";
 import { WorkspaceShell } from "@/features/workspace/ui/WorkspaceShell";
 import { ChannelsSidebar } from "@/features/channels/ui/ChannelsSidebar";
 import { useWorkspace, useCommunityId } from "@/shared/lib/workspace-context";
 import { useChannels } from "@/features/channels/use-channels";
 import { SearchModal } from "@/features/search/ui/SearchModal";
 import { OnboardingGate } from "@/features/onboarding/ui/OnboardingGate";
+import { KeyringLockedScreen } from "@/features/onboarding/ui/KeyringLockedScreen";
 import { useFeedBrowserNotifications } from "@/features/notifications/useFeedBrowserNotifications";
 import {
   WorkspaceNotFound,
   WorkspaceLoadError,
   WorkspaceLoading,
 } from "@/features/auth/ui/WorkspaceErrorView";
+import {
+  ProfilePanelProvider,
+  useProfilePanel,
+} from "@/features/profiles/profile-panel-context";
+import { UserProfilePanel } from "@/features/profiles/ui/UserProfilePanel";
+
+const IDENTITY_SEEN_KEY = "lenos_identity_seen";
+
+function useIdentityLocked() {
+  const [locked, setLocked] = useState(() => {
+    const hadIdentity = localStorage.getItem(IDENTITY_SEEN_KEY) === "1";
+    return hadIdentity && !hasDurableIdentity();
+  });
+
+  useEffect(() => {
+    if (!locked && hasDurableIdentity()) {
+      localStorage.setItem(IDENTITY_SEEN_KEY, "1");
+    }
+  }, [locked]);
+
+  return { locked, unlock: () => setLocked(false) };
+}
 
 function WorkspaceLayout() {
   const workspace = useWorkspace();
@@ -28,6 +54,7 @@ function WorkspaceLayout() {
   const channels = useChannels(communityId);
   const [searchOpen, setSearchOpen] = useState(false);
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+  const { locked, unlock } = useIdentityLocked();
 
   useEffect(() => {
     getCurrentPubkey()
@@ -55,8 +82,47 @@ function WorkspaceLayout() {
     return <WorkspaceLoadError message={workspace.error.message} />;
   if (workspace.status === "no_subdomain") return <Outlet />;
 
+  if (locked) {
+    return <KeyringLockedScreen onRecovered={unlock} />;
+  }
+
   return (
     <OnboardingGate>
+      <ProfilePanelProvider>
+        <WorkspaceLayoutInner
+          activeChannelId={activeChannelId}
+          navigate={navigate}
+          channels={channels}
+          searchOpen={searchOpen}
+          setSearchOpen={setSearchOpen}
+          currentPubkey={currentPubkey}
+        />
+      </ProfilePanelProvider>
+    </OnboardingGate>
+  );
+}
+
+interface InnerProps {
+  activeChannelId: string | null;
+  navigate: ReturnType<typeof useNavigate>;
+  channels: ReturnType<typeof useChannels>;
+  searchOpen: boolean;
+  setSearchOpen: (v: boolean) => void;
+  currentPubkey: string | null;
+}
+
+function WorkspaceLayoutInner({
+  activeChannelId,
+  navigate,
+  channels,
+  searchOpen,
+  setSearchOpen,
+  currentPubkey,
+}: InnerProps) {
+  const { pubkey: profilePubkey, closeProfile } = useProfilePanel();
+
+  return (
+    <>
       <WorkspaceShell
         sidebar={
           <ChannelsSidebar
@@ -69,6 +135,16 @@ function WorkspaceLayout() {
             }
           />
         }
+        rightPanel={
+          profilePubkey ? (
+            <UserProfilePanel
+              pubkey={profilePubkey}
+              open
+              onClose={closeProfile}
+              isSelf={profilePubkey === currentPubkey}
+            />
+          ) : undefined
+        }
       >
         <Outlet />
       </WorkspaceShell>
@@ -77,7 +153,7 @@ function WorkspaceLayout() {
         onClose={() => setSearchOpen(false)}
         channels={channels}
       />
-    </OnboardingGate>
+    </>
   );
 }
 
