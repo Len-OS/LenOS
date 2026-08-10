@@ -18,7 +18,7 @@ interface Props {
   onSkip: () => void;
 }
 
-type Stage = "password" | "download" | "verify" | "done";
+type Stage = "password" | "download" | "done";
 
 export function WebBackupStep({ onComplete, onSkip }: Props) {
   const [stage, setStage] = useState<Stage>("password");
