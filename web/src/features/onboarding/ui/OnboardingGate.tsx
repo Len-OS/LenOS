@@ -1,14 +1,40 @@
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import {
+  hasDurableIdentity,
+  IDENTITY_STATE_CHANGE_EVENT,
+} from "@/shared/lib/nostr-signer";
+import { WebOnboardingFlow } from "./WebOnboardingFlow";
+import { LenGrowthWorkspaceWelcome } from "./LenGrowthWorkspaceWelcome";
 
 interface Props {
   children: ReactNode;
 }
 
 export function OnboardingGate({ children }: Props) {
-  // The relay client has an ephemeral-key fallback for open/read-only browsing.
-  // Do not block the whole workspace on NIP-07: users arriving from the
-  // LenGrowth web app must be able to see the Slack-like workspace immediately.
-  // Operations that create durable membership still pass `requireNip07` and
-  // remain protected by the signer.
-  return <>{children}</>;
+  const [isDurable, setIsDurable] = useState(() => hasDurableIdentity());
+
+  useEffect(() => {
+    const refresh = () => setIsDurable(hasDurableIdentity());
+    window.addEventListener(IDENTITY_STATE_CHANGE_EVENT, refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener(IDENTITY_STATE_CHANGE_EVENT, refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
+  if (!isDurable) {
+    return (
+      <WebOnboardingFlow
+        onComplete={() => setIsDurable(hasDurableIdentity())}
+      />
+    );
+  }
+
+  return (
+    <>
+      <LenGrowthWorkspaceWelcome />
+      {children}
+    </>
+  );
 }
