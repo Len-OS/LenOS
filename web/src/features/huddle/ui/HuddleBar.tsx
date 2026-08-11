@@ -1,4 +1,5 @@
 import {
+  Bot,
   FileText,
   Keyboard,
   Monitor,
@@ -13,6 +14,7 @@ import { MicControls } from "./MicControls";
 import { HuddleParticipants } from "./HuddleParticipants";
 import { HuddleNotesPanel } from "./HuddleNotesPanel";
 import { HuddleVideo } from "./HuddleVideo";
+import { AddAgentDialog } from "./AddAgentDialog";
 
 const EMOJI_CHARS = ["👍", "❤️", "😂", "🎉", "🔥", "👏", "💡", "🚀"];
 
@@ -37,6 +39,10 @@ export function HuddleBar() {
     stopCameraShare,
     parentChannelId,
     ephemeralChannelId,
+    agentPubkeys,
+    addAgentDialogOpen,
+    setAddAgentDialogOpen,
+    addAgent,
   } = useHuddle();
   const [showP, setShowP] = useState(false);
   const [showR, setShowR] = useState(false);
@@ -78,6 +84,15 @@ export function HuddleBar() {
           startedEventId={ephemeralChannelId}
           parentChannelId={parentChannelId}
           onClose={() => setNotesOpen(false)}
+        />
+      )}
+
+      {addAgentDialogOpen && parentChannelId && (
+        <AddAgentDialog
+          parentChannelId={parentChannelId}
+          currentAgentPubkeys={agentPubkeys}
+          onAdd={addAgent}
+          onClose={() => setAddAgentDialogOpen(false)}
         />
       )}
 
@@ -196,11 +211,24 @@ export function HuddleBar() {
             <FileText className="h-4 w-4" />
           </button>
 
+          {/* Add agent */}
+          <button
+            type="button"
+            onClick={() => setAddAgentDialogOpen(true)}
+            aria-label="Add agent to huddle"
+            className="rounded-full p-2 text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white"
+          >
+            <Bot className="h-4 w-4" />
+          </button>
+
           {/* Screen share */}
           <button
             type="button"
             onClick={handleScreenShare}
-            disabled={!screenShareActive && (cameraShareActive || remotePresenterPubkey !== null)}
+            disabled={
+              !screenShareActive &&
+              (cameraShareActive || remotePresenterPubkey !== null)
+            }
             aria-label={
               screenShareActive
                 ? "Stop screen share"

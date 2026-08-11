@@ -10,7 +10,8 @@ import {
 import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
-import { KIND_HUDDLE_STARTED } from "@/shared/constants/kinds";
+import { KIND_HUDDLE_STARTED, KIND_MANAGED_AGENT } from "@/shared/constants/kinds";
+import { addAgentToHuddle, type AgentAddResult } from "./lib/huddleAgents";
 import { HuddleAudioWs, type PeerInfo } from "./lib/huddleAudioWs";
 import { createHuddleEncoder, type HuddleEncoder } from "./lib/huddleCodec";
 import { HuddlePlayback } from "./lib/huddlePlayback";
@@ -47,6 +48,8 @@ interface HuddleState {
   screenShareActive: boolean;
   cameraShareActive: boolean;
   remotePresenterPubkey: string | null;
+  agentPubkeys: string[];
+  addAgentDialogOpen: boolean;
 }
 
 interface HuddleActions {
@@ -68,6 +71,8 @@ interface HuddleActions {
   stopScreenShare(): void;
   startCameraShare(): Promise<void>;
   stopCameraShare(): void;
+  setAddAgentDialogOpen(v: boolean): void;
+  addAgent(pubkey: string): Promise<AgentAddResult>;
 }
 
 export type HuddleCtx = HuddleState & HuddleActions;
@@ -94,6 +99,8 @@ function getInitialState(): HuddleState {
     screenShareActive: false,
     cameraShareActive: false,
     remotePresenterPubkey: null,
+    agentPubkeys: [],
+    addAgentDialogOpen: false,
   };
 }
 
@@ -106,6 +113,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const workletRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
+  const agentUnsubRef = useRef<(() => void) | null>(null);
   const tsRef = useRef(0);
   const videoWsRef = useRef<HuddleVideoWs | null>(null);
   // Used by hot-swap effect to skip initial mount
@@ -114,6 +122,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const cleanup = useCallback(async () => {
     unsubRef.current?.();
     unsubRef.current = null;
+    agentUnsubRef.current?.();
+    agentUnsubRef.current = null;
     workletRef.current?.disconnect();
     workletRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -185,6 +195,27 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
 
       if (audioCtx.state === "suspended") await audioCtx.resume();
       await ws.connect();
+
+      // Subscribe to agent definitions to mark agent peers
+      agentUnsubRef.current = getRelayClient(relayWsUrl()).subscribe({
+        id: `huddle-agents-${ephChanId}`,
+        filter: { kinds: [KIND_MANAGED_AGENT], limit: 100 },
+        onEvent: (raw) => {
+          const agentPubkey = (raw.tags as string[][]).find(
+            (t) => t[0] === "d",
+          )?.[1];
+          if (!agentPubkey) return;
+          setState((s) => ({
+            ...s,
+            agentPubkeys: s.agentPubkeys.includes(agentPubkey)
+              ? s.agentPubkeys
+              : [...s.agentPubkeys, agentPubkey],
+            peers: s.peers.map((p) =>
+              p.pubkey === agentPubkey ? { ...p, isAgent: true } : p,
+            ),
+          }));
+        },
+      });
 
       worklet.port.onmessage = (
         evt: MessageEvent<{ type: string; buffer: ArrayBuffer }>,
@@ -318,6 +349,39 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const setNotesOpen = useCallback(
     (v: boolean) => setState((s) => ({ ...s, notesOpen: v })),
     [],
+  );
+
+  const setAddAgentDialogOpen = useCallback(
+    (v: boolean) => setState((s) => ({ ...s, addAgentDialogOpen: v })),
+    [],
+  );
+
+  const addAgent = useCallback(
+    async (pubkey: string): Promise<AgentAddResult> => {
+      const { ephemeralChannelId, parentChannelId } = state;
+      if (!ephemeralChannelId || !parentChannelId) {
+        return {
+          ephemeralAdded: false,
+          parentAdded: false,
+          parentError: "Not in a huddle",
+        };
+      }
+      const result = await addAgentToHuddle(
+        pubkey,
+        ephemeralChannelId,
+        parentChannelId,
+      );
+      if (result.ephemeralAdded) {
+        setState((s) => ({
+          ...s,
+          agentPubkeys: s.agentPubkeys.includes(pubkey)
+            ? s.agentPubkeys
+            : [...s.agentPubkeys, pubkey],
+        }));
+      }
+      return result;
+    },
+    [state],
   );
 
   const setOutputDeviceId = useCallback((id: string) => {
@@ -504,6 +568,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     stopScreenShare,
     startCameraShare,
     stopCameraShare,
+    setAddAgentDialogOpen,
+    addAgent,
   };
   return (
     <HuddleContext.Provider value={value}>{children}</HuddleContext.Provider>

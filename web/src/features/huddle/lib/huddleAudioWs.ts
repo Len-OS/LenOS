@@ -3,6 +3,7 @@ import { signNostrEvent } from "@/shared/lib/nostr-signer";
 export interface PeerInfo {
   peerIndex: number;
   pubkey: string;
+  isAgent?: boolean;
 }
 
 export interface IncomingFrame {
