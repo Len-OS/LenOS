@@ -1,4 +1,4 @@
-import { FileText, Keyboard, Monitor, Phone, Smile, Users } from "lucide-react";
+import { FileText, Keyboard, Monitor, Phone, Smile, Users, Video } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useHuddle } from "../HuddleContext";
 import { MicControls } from "./MicControls";
@@ -20,10 +20,13 @@ export function HuddleBar() {
     notesOpen,
     setNotesOpen,
     screenShareActive,
+    cameraShareActive,
     remotePresenterPubkey,
     setRemotePresenterPubkey,
     startScreenShare,
     stopScreenShare,
+    startCameraShare,
+    stopCameraShare,
     parentChannelId,
     ephemeralChannelId,
   } = useHuddle();
@@ -47,6 +50,16 @@ export function HuddleBar() {
       stopScreenShare();
     } else {
       void startScreenShare();
+    }
+  };
+
+  const handleCameraShare = () => {
+    if (cameraShareActive) {
+      stopCameraShare();
+    } else {
+      void startCameraShare().catch((err: unknown) => {
+        console.error("[HuddleBar] camera share failed:", err);
+      });
     }
   };
 
@@ -195,6 +208,28 @@ export function HuddleBar() {
             }
           >
             <Monitor className="h-4 w-4" />
+          </button>
+
+          {/* Camera share */}
+          <button
+            type="button"
+            onClick={handleCameraShare}
+            disabled={!cameraShareActive && (screenShareActive || remotePresenterPubkey !== null)}
+            aria-label={
+              cameraShareActive
+                ? "Stop camera"
+                : screenShareActive || remotePresenterPubkey !== null
+                  ? "Presenter slot occupied"
+                  : "Share camera"
+            }
+            className={
+              "rounded-full p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
+              (cameraShareActive
+                ? "bg-purple-500/20 text-purple-500"
+                : "text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white")
+            }
+          >
+            <Video className="h-4 w-4" />
           </button>
 
           <button

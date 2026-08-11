@@ -45,6 +45,7 @@ interface HuddleState {
   selectedDeviceId: string;
   notesOpen: boolean;
   screenShareActive: boolean;
+  cameraShareActive: boolean;
   remotePresenterPubkey: string | null;
 }
 
@@ -65,6 +66,8 @@ interface HuddleActions {
   setRemotePresenterPubkey(pubkey: string | null): void;
   startScreenShare(): Promise<void>;
   stopScreenShare(): void;
+  startCameraShare(): Promise<void>;
+  stopCameraShare(): void;
 }
 
 export type HuddleCtx = HuddleState & HuddleActions;
@@ -89,6 +92,7 @@ function getInitialState(): HuddleState {
     selectedDeviceId: localStorage.getItem("huddle_device_id") ?? "",
     notesOpen: false,
     screenShareActive: false,
+    cameraShareActive: false,
     remotePresenterPubkey: null,
   };
 }
@@ -359,6 +363,40 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, screenShareActive: false }));
   }, []);
 
+  const startCameraShare = useCallback(async () => {
+    if (typeof VideoEncoder === "undefined") {
+      throw new Error("Camera share requires Chrome 94+ or Safari 17.4+");
+    }
+    const { ephemeralChannelId } = state;
+    if (!ephemeralChannelId) return;
+
+    // Stop screen share if active
+    if (state.screenShareActive) {
+      videoWsRef.current?.stopScreenShare();
+      videoWsRef.current?.close();
+      videoWsRef.current = null;
+      setState((s) => ({ ...s, screenShareActive: false }));
+    }
+
+    const ws = new HuddleVideoWs({
+      wsUrl: relayWsUrl(),
+      ephemeralChannelId,
+      onPresenter: () => {},
+      onPresenterLeft: () => {},
+    });
+    videoWsRef.current = ws;
+    await ws.connect();
+    await ws.startCameraShare();
+    setState((s) => ({ ...s, cameraShareActive: true }));
+  }, [state]);
+
+  const stopCameraShare = useCallback(() => {
+    videoWsRef.current?.stopCameraShare();
+    videoWsRef.current?.close();
+    videoWsRef.current = null;
+    setState((s) => ({ ...s, cameraShareActive: false }));
+  }, []);
+
   // PTT: Space key handler
   useEffect(() => {
     if (state.inputMode !== "push_to_talk" || state.phase !== "active") return;
@@ -456,6 +494,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     setRemotePresenterPubkey,
     startScreenShare,
     stopScreenShare,
+    startCameraShare,
+    stopCameraShare,
   };
   return (
     <HuddleContext.Provider value={value}>{children}</HuddleContext.Provider>

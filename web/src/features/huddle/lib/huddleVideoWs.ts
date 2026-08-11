@@ -96,7 +96,7 @@ export class HuddleVideoWs {
     let frameCount = 0;
     const encoder = new VideoEncoder({
       output: (chunk) => {
-        void this.sendVideoChunk(chunk);
+        void this.sendVideoChunk(chunk, true);
       },
       error: (e) => console.error("[HuddleVideoWs]", e),
     });
@@ -139,7 +139,7 @@ export class HuddleVideoWs {
     void readFrames();
   }
 
-  private sendVideoChunk(chunk: EncodedVideoChunk): void {
+  private sendVideoChunk(chunk: EncodedVideoChunk, isScreenShare = true): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
     const isKeyFrame = chunk.type === "key";
@@ -158,7 +158,7 @@ export class HuddleVideoWs {
       const v = new DataView(buf);
       v.setUint16(0, this.seq++ & 0xffff, false);
       v.setBigUint64(2, pts90k, false);
-      let flags = 0x04; // screen_share
+      let flags = isScreenShare ? 0x04 : 0x00;
       if (isKeyFrame && firstFragment) flags |= 0x01;
       if (isLast) flags |= 0x02;
       v.setUint8(10, flags);
@@ -170,6 +170,74 @@ export class HuddleVideoWs {
   }
 
   stopScreenShare(): void {
+    this.videoTrack?.stop();
+    this.videoTrack = null;
+    this.encoder?.close();
+    this.encoder = null;
+  }
+
+  async startCameraShare(): Promise<void> {
+    if (typeof VideoEncoder === "undefined") {
+      throw new Error("Camera share requires Chrome 94+ or Safari 17.4+");
+    }
+
+    const cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { max: 1280 },
+        height: { max: 720 },
+        frameRate: { max: 15 },
+      },
+      audio: false,
+    });
+    const [track] = cameraStream.getVideoTracks();
+    this.videoTrack = track;
+    track.addEventListener("ended", () => this.stopCameraShare());
+
+    let frameCount = 0;
+    const encoder = new VideoEncoder({
+      output: (chunk) => {
+        void this.sendVideoChunk(chunk, false);
+      },
+      error: (e) => console.error("[HuddleVideoWs camera]", e),
+    });
+    encoder.configure({
+      codec: "vp8",
+      width: 1280,
+      height: 720,
+      bitrate: 500_000,
+      framerate: 15,
+    });
+    this.encoder = encoder;
+
+    const TrackProcessor = (globalThis as Record<string, unknown>)
+      .MediaStreamTrackProcessor as
+      | (new (opts: { track: MediaStreamTrack }) => {
+          readable: ReadableStream<VideoFrame>;
+        })
+      | undefined;
+
+    if (!TrackProcessor) {
+      throw new Error(
+        "Camera share requires MediaStreamTrackProcessor (Chrome 94+)",
+      );
+    }
+
+    const processor = new TrackProcessor({ track });
+    const reader = processor.readable.getReader();
+    const readFrames = async () => {
+      while (!this.closed && this.encoder) {
+        const { done, value: frame } = await reader.read();
+        if (done || !frame) break;
+        if (encoder.encodeQueueSize <= 2) {
+          encoder.encode(frame, { keyFrame: frameCount++ % 60 === 0 });
+        }
+        frame.close();
+      }
+    };
+    void readFrames();
+  }
+
+  stopCameraShare(): void {
     this.videoTrack?.stop();
     this.videoTrack = null;
     this.encoder?.close();
