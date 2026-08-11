@@ -1,6 +1,6 @@
 # LenOS Web ↔ Desktop Parity Tracker
 
-**Last updated:** 2026-08-11  
+**Last updated:** 2026-08-11 (P2 complete)  
 **Branch:** feat/web-onboarding-p0  
 **Status legend:** ✅ Done · ⚠️ Partial · 🔲 Not built · 🚫 Desktop-only (expected gap)
 
@@ -11,8 +11,8 @@
 | Phase | Area | Status |
 |---|---|---|
 | P0 | Onboarding + local signer | ✅ Complete |
-| P1 | Navigation / sidebar + profile | ⚠️ Partial |
-| P2 | Agents + channels/messaging | ⚠️ Partial |
+| P1 | Navigation / sidebar + profile | ✅ Complete |
+| P2 | Agents + channels/messaging | ✅ Complete |
 | P3 | Inbox/home + settings | ⚠️ Partial |
 | P4 | Workflows + auth/identity | ⚠️ Partial |
 | P5 | Desktop-only infra (known gaps) | 🚫 Not planned |
@@ -44,21 +44,21 @@ All items complete as of 2026-08-10.
 
 | Feature | Desktop file | Web file | Status |
 |---|---|---|---|
-| App sidebar shell | `AppSidebar.tsx` | — | 🔲 |
+| App sidebar shell | `AppSidebar.tsx` | `channels/ui/ChannelsSidebar.tsx` (is the shell) | ✅ |
 | Channel list in sidebar | `ChannelList.tsx` | exists (wired) | ✅ |
 | Community rail | `CommunityRail.tsx` | `communities/ui/CommunityRail.tsx` | ✅ wired into WorkspaceShell |
-| Channel context menu (rename/delete/settings) | `ChannelContextMenu.tsx` | — | 🔲 |
-| Drag-and-drop channel reordering | native DnD | — | 🔲 |
-| Sidebar profile card with status | `SidebarProfileCard.tsx` | — | 🔲 |
-| Workspace switcher | `WorkspaceSwitcher.tsx` | — | 🔲 |
+| Channel context menu (rename/delete/settings) | `ChannelContextMenu.tsx` | `channels/ui/ChannelContextMenu.tsx` | ✅ |
+| Drag-and-drop channel reordering | native DnD | — | 🚫 Desktop-only (HTML DnD not planned) |
+| Sidebar profile card with status | `SidebarProfileCard.tsx` | `profile/ui/SidebarProfileCard.tsx` | ✅ |
+| Workspace switcher | `WorkspaceSwitcher.tsx` | `communities/ui/WorkspaceSwitcher.tsx` | ✅ |
 
 ### Profile / Identity
 
 | Feature | Desktop file | Web file | Status |
 |---|---|---|---|
-| Profile popover | `ProfilePopover.tsx` | `profiles/ui/ProfilePopover.tsx` | ✅ (needs wiring) |
-| Full user profile panel | `UserProfilePanel.tsx` | `profiles/ui/UserProfilePanel.tsx` | ✅ (needs wiring) |
-| Avatar editor | `AvatarEditor.tsx` | — | 🔲 |
+| Profile popover | `ProfilePopover.tsx` | `profiles/ui/ProfilePopover.tsx` | ✅ wired in MemberCard |
+| Full user profile panel | `UserProfilePanel.tsx` | `profiles/ui/UserProfilePanel.tsx` | ✅ wired in _workspace.tsx |
+| Avatar editor | `AvatarEditor.tsx` | `profiles/ui/AvatarEditor.tsx` | ✅ wired in UserProfilePanel |
 | Nostr bind consent dialog | `NostrBindDialog.tsx` | — | 🔲 |
 | Profile snapshot export | `ProfileExport.tsx` | — | 🔲 |
 | Profile panel context/provider | — | `profiles/profile-panel-context.tsx` | ✅ |
@@ -81,20 +81,20 @@ All items complete as of 2026-08-10.
 | Agent card viewer | `AgentCard.tsx` | `agents/ui/AgentCard.tsx` | ✅ updated |
 | Agent config/definition dialog | `AgentConfigDialog.tsx` | `agents/ui/AgentConfigDialog.tsx` | ✅ |
 | Activity render rows (thought/tool/message/plan/command) | `AgentActivityRow.tsx` | `agents/ui/AgentActivityRow.tsx` | ✅ |
-| Agent session transcript viewer | `AgentTranscriptViewer.tsx` | — | 🔲 |
-| Agent memory section | `AgentMemorySection.tsx` | — | 🔲 |
+| Agent session transcript viewer | `AgentTranscriptViewer.tsx` | `agents/ui/AgentTranscriptViewer.tsx` | ✅ |
+| Agent memory section | `AgentMemorySection.tsx` | `agents/ui/AgentMemorySection.tsx` | ✅ |
 | Agent list page | `AgentsPage.tsx` | `agents/ui/AgentsPage.tsx` | ✅ updated |
 
 ### Channels / Messaging
 
 | Feature | Desktop file | Web file | Status |
 |---|---|---|---|
-| Channel permissions settings | `ChannelPermissions.tsx` | — | 🔲 |
-| Bot activity bar / quick bot bar | `BotActivityBar.tsx` | — | 🔲 |
-| Forum thread panel | `ForumThreadPanel.tsx` | — | 🔲 |
+| Channel permissions settings | `ChannelPermissions.tsx` | `channels/ui/ChannelPermissions.tsx` | ✅ |
+| Bot activity bar / quick bot bar | `BotActivityBar.tsx` | `channels/ui/BotActivityBar.tsx` | ✅ |
+| Forum thread panel | `ForumThreadPanel.tsx` | `forum/ui/ForumThreadPanel.tsx` | ✅ |
 | Image editor in composer | `ImageEditor.tsx` | — | 🔲 |
 | Emoji picker in composer | `EmojiPicker.tsx` | emoji-mart wired | ✅ |
-| Drafts panel | `DraftsPanel.tsx` | — | 🔲 |
+| Drafts panel | `DraftsPanel.tsx` | `messages/ui/DraftsPanel.tsx` | ✅ |
 | Diff message viewer | `DiffMessageViewer.tsx` | — | 🔲 |
 | Member card | `MemberCard.tsx` | `channels/ui/MemberCard.tsx` | ✅ updated |
 
