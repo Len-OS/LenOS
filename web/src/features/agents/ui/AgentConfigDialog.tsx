@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot, Copy, Check } from "lucide-react";
 import {
   Dialog,
@@ -9,7 +9,9 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs";
 import { Separator } from "@/shared/ui/separator";
 import { Button } from "@/shared/ui/button";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import type { Agent } from "../useAgents";
+import { AgentMemorySection } from "./AgentMemorySection";
 
 interface Props {
   agent: Agent;
@@ -52,6 +54,13 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export function AgentConfigDialog({ agent, open, onClose }: Props) {
   const [tab, setTab] = useState("overview");
+  const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentPubkey().then(setCurrentPubkey).catch(() => {});
+  }, []);
+
+  const viewerIsOwner = currentPubkey === agent.pubkey;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -75,6 +84,7 @@ export function AgentConfigDialog({ agent, open, onClose }: Props) {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
             <TabsTrigger value="channels">Channels</TabsTrigger>
+            <TabsTrigger value="memory">Memory</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -132,6 +142,13 @@ export function AgentConfigDialog({ agent, open, onClose }: Props) {
             <p className="text-sm text-black/30 dark:text-white/30">
               Channel assignments will appear here when configured.
             </p>
+          </TabsContent>
+
+          <TabsContent value="memory">
+            <AgentMemorySection
+              agentPubkey={agent.pubkey}
+              viewerIsOwner={viewerIsOwner}
+            />
           </TabsContent>
         </Tabs>
 
