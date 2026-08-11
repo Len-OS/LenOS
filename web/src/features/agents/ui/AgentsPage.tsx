@@ -3,7 +3,7 @@ import { Bot } from "lucide-react";
 import { useCommunityId } from "@/shared/lib/workspace-context";
 import { useAgents, type Agent } from "../useAgents";
 import { AgentCard } from "./AgentCard";
-import { AgentSessionPanel } from "./AgentSessionPanel";
+import { AgentTranscriptViewer } from "./AgentTranscriptViewer";
 import { AgentConfigDialog } from "./AgentConfigDialog";
 
 export function AgentsPage() {
@@ -61,12 +61,11 @@ export function AgentsPage() {
       </div>
 
       {selectedAgent && (
-        <div className="w-80 shrink-0">
-          <AgentSessionPanel
-            agent={selectedAgent}
-            onClose={() => setSelectedAgent(null)}
-          />
-        </div>
+        <AgentTranscriptViewer
+          agentPubkey={selectedAgent.pubkey}
+          agentName={selectedAgent.name}
+          onClose={() => setSelectedAgent(null)}
+        />
       )}
 
       {configAgent && (
