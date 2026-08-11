@@ -344,6 +344,14 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     const { ephemeralChannelId } = state;
     if (!ephemeralChannelId) return;
 
+    // Stop camera share if active
+    if (state.cameraShareActive) {
+      videoWsRef.current?.stopCameraShare();
+      videoWsRef.current?.close();
+      videoWsRef.current = null;
+      setState((s) => ({ ...s, cameraShareActive: false }));
+    }
+
     const ws = new HuddleVideoWs({
       wsUrl: relayWsUrl(),
       ephemeralChannelId,

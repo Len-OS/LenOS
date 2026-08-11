@@ -1,4 +1,12 @@
-import { FileText, Keyboard, Monitor, Phone, Smile, Users, Video } from "lucide-react";
+import {
+  FileText,
+  Keyboard,
+  Monitor,
+  Phone,
+  Smile,
+  Users,
+  Video,
+} from "lucide-react";
 import { useCallback, useState } from "react";
 import { useHuddle } from "../HuddleContext";
 import { MicControls } from "./MicControls";
@@ -192,7 +200,7 @@ export function HuddleBar() {
           <button
             type="button"
             onClick={handleScreenShare}
-            disabled={!screenShareActive && remotePresenterPubkey !== null}
+            disabled={!screenShareActive && (cameraShareActive || remotePresenterPubkey !== null)}
             aria-label={
               screenShareActive
                 ? "Stop screen share"
@@ -214,7 +222,10 @@ export function HuddleBar() {
           <button
             type="button"
             onClick={handleCameraShare}
-            disabled={!cameraShareActive && (screenShareActive || remotePresenterPubkey !== null)}
+            disabled={
+              !cameraShareActive &&
+              (screenShareActive || remotePresenterPubkey !== null)
+            }
             aria-label={
               cameraShareActive
                 ? "Stop camera"

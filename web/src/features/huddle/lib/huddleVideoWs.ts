@@ -169,11 +169,15 @@ export class HuddleVideoWs {
     }
   }
 
-  stopScreenShare(): void {
+  private _stopCapture(): void {
     this.videoTrack?.stop();
     this.videoTrack = null;
     this.encoder?.close();
     this.encoder = null;
+  }
+
+  stopScreenShare(): void {
+    this._stopCapture();
   }
 
   async startCameraShare(): Promise<void> {
@@ -211,7 +215,9 @@ export class HuddleVideoWs {
 
     const TrackProcessor = (globalThis as Record<string, unknown>)
       .MediaStreamTrackProcessor as
-      | (new (opts: { track: MediaStreamTrack }) => {
+      | (new (opts: {
+          track: MediaStreamTrack;
+        }) => {
           readable: ReadableStream<VideoFrame>;
         })
       | undefined;
@@ -238,15 +244,12 @@ export class HuddleVideoWs {
   }
 
   stopCameraShare(): void {
-    this.videoTrack?.stop();
-    this.videoTrack = null;
-    this.encoder?.close();
-    this.encoder = null;
+    this._stopCapture();
   }
 
   close(): void {
     this.closed = true;
-    this.stopScreenShare();
+    this._stopCapture();
     this.ws?.close();
     this.ws = null;
   }
