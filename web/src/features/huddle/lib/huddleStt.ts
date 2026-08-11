@@ -34,10 +34,11 @@ export class HuddleStt {
     );
 
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error("STT model load timed out after 120s")),
-        120_000,
-      );
+      const timeout = setTimeout(() => {
+        this.worker?.terminate();
+        this.worker = null;
+        reject(new Error("STT model load timed out after 120s"));
+      }, 120_000);
 
       this.worker!.onmessage = (
         evt: MessageEvent<{ type: string; text?: string; message?: string }>,
@@ -50,6 +51,8 @@ export class HuddleStt {
           resolve();
         } else if (evt.data.type === "error") {
           clearTimeout(timeout);
+          this.worker?.terminate();
+          this.worker = null;
           reject(new Error(evt.data.message ?? "STT init failed"));
         }
       };
