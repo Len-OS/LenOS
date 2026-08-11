@@ -166,3 +166,21 @@ mod tests {
         assert!(!h.is_dtx());
     }
 }
+
+/// Length of the video frame header in bytes. The layout is:
+///
+/// ```text
+///  byte 0..=1 : seq         u16 BE
+///  byte 2..=9 : pts_90k     u64 BE  90 kHz presentation timestamp
+///  byte 10    : flags       u8      0x01=keyframe 0x02=last_fragment
+///                                   0x04=screen_share 0x08=presenter_only
+///  byte 11..=13: reserved   [u8;3]
+/// ```
+pub const VIDEO_HEADER_LEN: usize = 14;
+
+/// `flags & VIDEO_FLAG_KEYFRAME` indicates this fragment starts an IDR/keyframe.
+pub const VIDEO_FLAG_KEYFRAME: u8 = 0x01;
+/// `flags & VIDEO_FLAG_LAST_FRAGMENT` indicates this is the final fragment of a frame.
+pub const VIDEO_FLAG_LAST_FRAGMENT: u8 = 0x02;
+/// `flags & VIDEO_FLAG_SCREEN_SHARE` indicates the frame is a screen-share capture.
+pub const VIDEO_FLAG_SCREEN_SHARE: u8 = 0x04;

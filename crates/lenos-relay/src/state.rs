@@ -569,6 +569,8 @@ pub struct AppState {
     pub git_pack_cache: Arc<crate::api::git::pack_cache::GitPackCache>,
     /// Audio relay room manager — tracks active huddle audio rooms.
     pub audio_rooms: Arc<AudioRoomManager>,
+    /// Video relay room manager — tracks active huddle video rooms.
+    pub video_rooms: Arc<crate::audio::VideoRoomManager>,
     /// Set to `true` on SIGTERM — readiness probe returns 503.
     pub shutting_down: Arc<AtomicBool>,
     /// Process start time — used by `/_status` endpoint.
@@ -767,6 +769,7 @@ impl AppState {
             git_store,
             git_pack_cache,
             audio_rooms: Arc::new(AudioRoomManager::new()),
+            video_rooms: Arc::new(crate::audio::VideoRoomManager::new()),
             shutting_down: Arc::new(AtomicBool::new(false)),
             started_at: Instant::now(),
             nip98_replay,
