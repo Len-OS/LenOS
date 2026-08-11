@@ -27,20 +27,20 @@ export const STARTER_CHANNELS = [
 
 export const STARTER_AGENTS = [
   {
-    slug: "growth-guide",
-    name: "Growth Guide",
+    slug: "len",
+    name: "Len",
     agentType: "guide",
     description: "Turns growth context into clear next steps.",
   },
   {
-    slug: "market-analyst",
-    name: "Market Analyst",
+    slug: "scout",
+    name: "Scout",
     agentType: "analyst",
     description: "Researches markets, competitors, and customer signals.",
   },
   {
-    slug: "execution-partner",
-    name: "Execution Partner",
+    slug: "forge",
+    name: "Forge",
     agentType: "execution",
     description: "Helps turn decisions into shipped work.",
   },

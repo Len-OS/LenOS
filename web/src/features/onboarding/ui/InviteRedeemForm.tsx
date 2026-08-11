@@ -13,7 +13,11 @@ interface Props {
   initialCode?: string;
 }
 
-export function InviteRedeemForm({ communityId, onSuccess, initialCode = "" }: Props) {
+export function InviteRedeemForm({
+  communityId,
+  onSuccess,
+  initialCode = "",
+}: Props) {
   const [code, setCode] = useState(initialCode);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");

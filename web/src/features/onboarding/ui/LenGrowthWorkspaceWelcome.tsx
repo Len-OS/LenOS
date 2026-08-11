@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   Bot,
   CheckCircle2,
   Circle,
-  ExternalLink,
   Hash,
   KeyRound,
+  MessageSquare,
   Sparkles,
-  Users,
 } from "lucide-react";
 import { useAgents } from "@/features/agents/useAgents";
 import { useChannels } from "@/features/channels/use-channels";
@@ -20,10 +20,10 @@ import {
 } from "@/shared/lib/nostr-signer";
 import {
   provisionStarterWorkspace,
-  publishLenGrowthCommand,
   STARTER_AGENTS,
   STARTER_CHANNELS,
 } from "@/features/onboarding/starterWorkspace";
+import { ProfileSetupStep } from "@/features/onboarding/ui/ProfileSetupStep";
 
 function Step({
   complete,
@@ -70,13 +70,11 @@ export function LenGrowthWorkspaceWelcome() {
   const channels = useChannels(communityId);
   const agents = useAgents(communityId);
   const [pubkey, setPubkey] = useState<string | null>(null);
+  const [profileDone, setProfileDone] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDescription, setTaskDescription] = useState("");
-  const [commandStatus, setCommandStatus] = useState<string | null>(null);
-  const [commandSending, setCommandSending] = useState(false);
   const autoProvisioned = useRef(false);
+  const navigate = useNavigate();
 
   const channelNames = new Set(
     channels.map((channel) => channel.name.trim().toLowerCase()),
@@ -142,12 +140,31 @@ export function LenGrowthWorkspaceWelcome() {
     workspace.status,
   ]);
 
-  if (workspace.status !== "found") return null;
-  const growthChannel = channels.find(
-    (channel) => channel.name.trim().toLowerCase() === "lengrowth",
-  );
   const complete = Boolean(pubkey) && hasChannels && hasAgents;
+
+  useEffect(() => {
+    if (!complete) return;
+    const general = channels.find(
+      (c) => c.name.trim().toLowerCase() === "general",
+    );
+    if (general) {
+      void navigate({
+        to: "/channels/$channelId",
+        params: { channelId: general.id },
+      });
+    }
+  }, [complete, channels, navigate]);
+
+  if (workspace.status !== "found") return null;
   if (complete) return null;
+
+  if (pubkey && !profileDone) {
+    return (
+      <section className="mx-auto w-full max-w-3xl px-4 py-8">
+        <ProfileSetupStep onComplete={() => setProfileDone(true)} />
+      </section>
+    );
+  }
 
   const provision = async () => {
     if (!communityId || !hasDurableIdentity()) return;
@@ -161,50 +178,6 @@ export function LenGrowthWorkspaceWelcome() {
       );
     } finally {
       setProvisioning(false);
-    }
-  };
-
-  const sendTask = async () => {
-    if (!growthChannel || !taskTitle.trim() || !taskDescription.trim()) return;
-    setCommandSending(true);
-    setCommandStatus(null);
-    try {
-      await publishLenGrowthCommand(
-        growthChannel.id,
-        `create task: ${taskTitle.trim()} | ${taskDescription.trim()}`,
-      );
-      setCommandStatus("Task request sent to LenGrowth in #lengrowth.");
-      setTaskTitle("");
-      setTaskDescription("");
-    } catch (error) {
-      setCommandStatus(
-        error instanceof Error
-          ? error.message
-          : "Could not send the task request.",
-      );
-    } finally {
-      setCommandSending(false);
-    }
-  };
-
-  const runAgent = async (role: string) => {
-    if (!growthChannel || !taskDescription.trim()) return;
-    setCommandSending(true);
-    setCommandStatus(null);
-    try {
-      await publishLenGrowthCommand(
-        growthChannel.id,
-        `run agent ${role}: ${taskDescription.trim()}`,
-      );
-      setCommandStatus(`${role} request sent to LenGrowth in #lengrowth.`);
-    } catch (error) {
-      setCommandStatus(
-        error instanceof Error
-          ? error.message
-          : "Could not send the agent request.",
-      );
-    } finally {
-      setCommandSending(false);
     }
   };
 
@@ -258,8 +231,8 @@ export function LenGrowthWorkspaceWelcome() {
           <Step
             complete={hasAgents}
             icon={Bot}
-            title="Your LenGrowth team"
-            description="Your team will appear here automatically."
+            title="Your team — Len, Scout, Forge"
+            description="Your agents will appear here automatically."
             action={
               provisionError && !hasAgents ? (
                 <button
@@ -284,87 +257,30 @@ export function LenGrowthWorkspaceWelcome() {
 
         {hasChannels && (
           <div className="mt-5 rounded-lg border border-black/10 bg-white/50 p-4 dark:border-white/10 dark:bg-white/5">
-            <p className="text-sm font-medium text-black dark:text-white">
-              Start with LenGrowth
-            </p>
-            <p className="mt-1 text-xs leading-5 text-black/50 dark:text-white/50">
-              Create a task or ask a remote growth role from here. Requests are
-              sent to the workspace #lengrowth channel and require a linked
-              identity.
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <input
-                value={taskTitle}
-                onChange={(event) => setTaskTitle(event.target.value)}
-                placeholder="Task title"
-                disabled={!pubkey || !growthChannel || commandSending}
-                className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-white/10"
-              />
-              <input
-                value={taskDescription}
-                onChange={(event) => setTaskDescription(event.target.value)}
-                placeholder="What should LenGrowth work on?"
-                disabled={!pubkey || !growthChannel || commandSending}
-                className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-white/10"
-              />
+            <div className="flex items-start gap-3">
+              <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-black/40 dark:text-white/40" />
+              <div>
+                <p className="text-sm font-medium text-black dark:text-white">
+                  Talk to Len in #general
+                </p>
+                <p className="mt-1 text-xs leading-5 text-black/50 dark:text-white/50">
+                  Len will ask about your business and suggest the first tasks.
+                  Just reply naturally — no forms needed.
+                </p>
+                <p className="mt-2 text-xs text-black/40 dark:text-white/40 italic">
+                  Try: "What should we work on first?" or "Here's what we do:
+                  [your company in one line]"
+                </p>
+              </div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void sendTask()}
-                disabled={
-                  !pubkey ||
-                  !growthChannel ||
-                  !taskTitle.trim() ||
-                  !taskDescription.trim() ||
-                  commandSending
-                }
-                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Create task
-              </button>
-              {(["guide", "analyst", "execution"] as const).map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => void runAgent(role)}
-                  disabled={
-                    !pubkey ||
-                    !growthChannel ||
-                    !taskDescription.trim() ||
-                    commandSending
-                  }
-                  className="rounded-md border border-black/10 px-3 py-1.5 text-xs font-medium text-black/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white/70"
-                >
-                  Run {role}
-                </button>
-              ))}
-            </div>
-            {commandStatus && (
-              <p className="mt-2 text-xs text-black/60 dark:text-white/60">
-                {commandStatus}
-              </p>
-            )}
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-black/50 dark:text-white/50">
-          <a
-            href="https://lengrowth.com/settings/company?tab=team"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 hover:text-black dark:hover:text-white"
-          >
-            <Users className="h-3.5 w-3.5" />
-            Open Team Hub
-            <ExternalLink className="h-3 w-3" />
-          </a>
-          <span className="inline-flex items-center gap-1">
-            <Circle className="h-2.5 w-2.5 fill-current" />
-            {pubkey
-              ? "Workspace connected"
-              : "Finish opening LenOS from LenGrowth to continue"}
-          </span>
+        <div className="mt-4 flex items-center gap-2 text-xs text-black/50 dark:text-white/50">
+          <Circle className="h-2.5 w-2.5 fill-current" />
+          {pubkey
+            ? "Workspace connected"
+            : "Finish opening LenOS from LenGrowth to continue"}
         </div>
       </div>
     </section>

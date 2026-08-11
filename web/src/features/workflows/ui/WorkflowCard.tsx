@@ -9,9 +9,10 @@ import { WorkflowRunHistory } from "./WorkflowRunHistory";
 interface Props {
   workflow: Workflow;
   communityId: string;
+  onSelect?: () => void;
 }
 
-export function WorkflowCard({ workflow, communityId }: Props) {
+export function WorkflowCard({ workflow, communityId, onSelect }: Props) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,7 +41,10 @@ export function WorkflowCard({ workflow, communityId }: Props) {
   };
 
   return (
-    <div className="rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+    <div
+      onClick={onSelect}
+      className="cursor-pointer rounded-xl border border-black/10 bg-white p-4 transition-shadow hover:shadow-md dark:border-white/10 dark:bg-white/[0.03]"
+    >
       <div className="mb-2 flex items-start gap-3">
         <div className="mt-0.5 rounded-lg bg-black/5 p-2 dark:bg-white/5">
           <Zap className="h-4 w-4 text-black/50 dark:text-white/50" />

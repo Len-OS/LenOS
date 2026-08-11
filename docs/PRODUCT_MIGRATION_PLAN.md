@@ -127,6 +127,36 @@ Every LenGrowth user can be provisioned a Nostr identity. Every Nostr event rece
 - LenGrowth dashboard still works as-is for existing sessions
 - No database migrations — link tables already exist
 
+### Phase 0 — Web onboarding gap (🔲 Pending)
+
+Web is the first surface most users will hit (no download required), but its onboarding is significantly weaker than desktop:
+
+| Feature | Desktop | Web |
+|---|---|---|
+| Display name setup | ✅ Full step ("What should we call you?") | ❌ `ProfileSetupStep.tsx` exists but is **dead code** — never imported |
+| Avatar | ✅ Full avatar editor (file upload, emoji, color picker) | ❌ `ProfileSetupStep.tsx` has a URL input field — also dead code |
+| Agent intro choreography | ✅ Len sends opener, Scout/Forge reply, closer fires | ❌ Agents provision silently; no message is ever sent |
+| Post-onboarding navigation | ✅ Navigates to Welcome channel | ❌ Banner disappears, user left staring at empty inbox |
+| "What happens next" signal | ✅ Closer message: directed intake question | ❌ Nothing |
+
+**What to build for web:**
+
+**Step 1 — Wire `ProfileSetupStep` into `LenGrowthWorkspaceWelcome` (1 day)**
+
+`ProfileSetupStep.tsx` exists and is complete — it just isn't mounted. Show it before auto-provisioning starts, so user sets a display name first. Avatar URL field is acceptable for v1 (file upload can come later).
+
+Flow: workspace found + pubkey present → show ProfileSetupStep → on save/skip → auto-provision channels + agents → show checklist → on complete → navigate to `#general`.
+
+**Step 2 — Server-side opener trigger (1–2 days, LenGrowth backend)**
+
+When a workspace is created (Phase 0 backend pending work), LenGrowth backend posts Len's opener message to the relay server-side, signed with Len's managed Nostr identity. Same text as desktop's `buildWelcomeKickoffOpener`. This gives web users the same first experience as desktop — Len greets them, Scout and Forge respond, closer asks about the business — without the browser needing to orchestrate it.
+
+Until this is built: on provisioning completion, navigate to `#general` and surface the hint from the "Talk to Len" panel (already in place from this session).
+
+**Step 3 — Navigate to `#general` on completion (2 hours)**
+
+Currently `LenGrowthWorkspaceWelcome` returns `null` when `complete`. Instead, navigate to `#general` channel URL so the user lands somewhere useful. The `channels` array is already available in the component.
+
 ---
 
 ## 5. Phase 1 — Expose Existing Data to Agents via MCP ✅ Done
@@ -382,107 +412,130 @@ All 4 tools implemented natively in `LenGrowth/backend/mcp/server.js` as `BUILTI
 
 ---
 
-## 9. Phase 5 — Migrate Complex Dashboard Views into LenOS (3–5 months)
+## 9. Phase 5 — Cold Start & Proactive Growth
 
-Move high-value LenGrowth dashboard views into LenOS as workspace panels. Users never need to leave the workspace for daily work.
+**Goal:** New user opens workspace → Len takes over, asks about the business, proposes first tasks, creates them. Existing users get a weekly proactive pulse so the workspace never goes quiet.
 
-### 5a. Task list panel (low effort, high value — 2–3 days)
+Kanban, Growth Trees, and reporting charts stay in the LenGrowth dashboard (management plane). LenOS never needs to port them — Len narrates what matters conversationally, and links to dashboard for deep inspection.
 
-Sidebar panel in LenOS showing tasks from LenGrowth backend (`lengrowth_get_tasks` MCP tool — already exists). Click task → task detail. Create task from Len chat. List view first, Kanban later.
+### 5a. Welcome kickoff → directed intake (1–2 days)
 
-**Surface checklist:**
-| Surface | Work needed |
-|---|---|
-| **Desktop** | New sidebar panel component — task list, click-to-detail, create from chat |
-| **Web** | New sidebar or workspace panel — same task list UI |
-| **Mobile** | Dedicated Tasks screen in bottom nav or drawer — list view, tap to detail |
+**What exists today:** `welcomeKickoff.ts` `buildWelcomeKickoffCloser()` ends with:
+> *"What can we help you build? Bring us something you're working on, or give us a quick challenge."*
 
-### 5b. Metrics dashboard panel (medium effort — 3–4 days)
+Too open. Cold-start user stares at it and does nothing.
 
-Workspace home panel: north star metric, top 3 KPIs, weekly delta. Calls Phase 1 MCP tools. Simple numbers + sparklines, narrated by Len: "Traffic up 12% vs last week, mostly organic. MRR flat." Better than a chart nobody reads.
+**Change — `desktop/src/features/onboarding/welcomeKickoff.ts`:**
 
-**Surface checklist:**
-| Surface | Work needed |
-|---|---|
-| **Desktop** | Home route panel — metric tiles + Len narration block |
-| **Web** | Home page section — same metric tiles |
-| **Mobile** | Home screen widget or scroll section — simplified metric tiles (sparklines optional) |
+Replace `buildWelcomeKickoffCloser()` happy-path text with a directed first question:
 
-### 5c. Kanban pipeline view (high effort — 2–3 weeks)
+> "Before we dive in — what does your company do and who's your main customer? A sentence or two is enough."
 
-Port LenGrowth Kanban into LenOS workspace panel. Same stages (Queued → Active → Waiting → Monitoring → Done), same drag-and-drop, same task detail dialog.
+**The intake conversation (3 turns max, handled by Len via lenos-acp):**
+
+1. **Closer:** "What does your company do and who's your main customer?"
+2. **After user replies:** "Got it. What's the one growth metric that matters most right now — revenue, signups, traffic, something else?"
+3. **After user replies:** "Based on that, I'd start with [X] — it compounds fastest. I'll create 3 tasks and have Scout begin research. Does that work?"
+
+User says yes → Len calls `lengrowth_create_task` 3x → posts summary to `#tasks` → tells user "Done. Check #tasks — Scout is already on it."  
+User redirects → Len adjusts, re-confirms before creating anything. Never dumps 10 tasks silently.
 
 **Surface checklist:**
 | Surface | Work needed |
 |---|---|
-| **Desktop** | New route/panel — drag-and-drop Kanban board |
-| **Web** | New route/panel — same Kanban board |
-| **Mobile** | Simplified list-by-stage view (drag-and-drop impractical on mobile) — swipe to change stage |
+| **Desktop** | Replace `buildWelcomeKickoffCloser()` closer text in `welcomeKickoff.ts` |
+| **Web** | ⚠️ Partial: task form removed, agent names updated to Len/Scout/Forge, "Talk to Len" hint added. Still pending: wire `ProfileSetupStep.tsx` (dead code — exists but never mounted), navigate to `#general` on completion, server-side opener trigger (Phase 0 backend). See Phase 0 web gap section. |
+| **Mobile** | No onboarding flow — agents resolve from relay at runtime, no changes needed |
 
-### 5d. Growth Trees visualization (high effort — 2–3 weeks)
+### 5b. `generate_initial_tasks` MCP tool (1–2 days)
 
-Port React Flow Growth Trees into LenOS. Defer until after Kanban.
+Wraps the existing LenGrowth growth strategy engine to produce 3–5 prioritized tasks from collected company context.
 
-**Surface checklist:**
-| Surface | Work needed |
-|---|---|
-| **Desktop** | New panel — React Flow graph, same as LenGrowth dashboard |
-| **Web** | New panel — same React Flow graph |
-| **Mobile** | Read-only tree view (interactive graph impractical on mobile for v1) |
-
-### 5e. Reporting view (medium effort — 1 week)
-
-Replace decorative charts with Len-narrated reports. Len reads metrics, writes paragraph about what changed and why. Append chart if needed. Strictly better than the current dashboard view.
-
-**Surface checklist:**
-| Surface | Work needed |
-|---|---|
-| **Desktop** | Report panel — Len narrative text + optional chart |
-| **Web** | Report page — same narrative + chart |
-| **Mobile** | Report screen — narrative text first, chart scrolls below |
-
----
-
-## 10. Phase 6 — Specialists as Workspace Members (2–4 weeks)
-
-**Goal:** Instead of assigning a task to a specialist via a ticket form (current LenGrowth model), a specialist joins your workspace as a real participant — Nostr identity, appears in channels, @mentionable, picks up tasks directly.
-
-Reuses existing backend: `models/specialist.py`, Cerbos RBAC, Stripe specialist seats. Only the entry point changes — workspace invite instead of task assignment form.
-
-### Surface checklist
-| Surface | Work needed |
-|---|---|
-| **LenGrowth backend** | 2 new MCP tools (`request_specialist`, `list_workspace_members`); specialist Nostr provisioning on assignment |
-| **Desktop** | Specialist appears as workspace member automatically — no dedicated UI needed for v1; members list shows role "specialist" |
-| **Web** | Same — member list shows specialist role badge |
-| **Mobile** | Same — member list shows specialist role badge |
-
-### How it works
-
-1. User: "Len, I need a specialist for our SEO strategy"
-2. Len calls `request_specialist(nostr_pubkey, category="seo", description="...", channel_id="...")`
-3. LenGrowth matches + assigns specialist from talent pool
-4. Backend provisions Nostr identity for specialist via `managed_nostr_identities`
-5. Specialist invited to workspace channel (e.g. `#seo-strategy`) as real participant
-6. They see channel history, pick up tasks, post updates — same as any team member
-7. Billing: specialist seat ($990/mo Enterprise OS) charged via existing Stripe
-
-### New MCP tools
+**Add to `LenGrowth/backend/lengrowth_mcp/tools.py`:**
 
 ```python
 @mcp.tool()
-async def request_specialist(
+async def lengrowth_generate_initial_tasks(
+    nostr_pubkey: str,
+    company_description: str,
+    main_customer: str,
+    priority_metric: str,   # revenue | signups | traffic | retention | other
+    focus_area: str | None = None,
+) -> dict | str:
+    """
+    Generate 3-5 prioritized starter tasks using the growth strategy engine.
+    Called by Len after the welcome intake conversation.
+    Returns list of { title, description, agent_type, priority }.
+    Len calls lengrowth_create_task for each task the user approves.
+    Also persists company context to the company profile for all future conversations.
+    """
+```
+
+**Surface checklist:**
+| Surface | Work needed |
+|---|---|
+| **LenGrowth backend** | New MCP tool + `PATCH /api/company/{id}` to persist collected context |
+| **Desktop / Web / Mobile** | None — Len uses tool automatically via chat |
+
+### 5c. Weekly task pulse — proactive Celery job (1 day)
+
+Keeps workspace alive after cold start. Every Monday Len posts 2–3 task suggestions based on metrics delta and current task count.
+
+**Add to `LenGrowth/backend/worker/beat_schedule.py`:**
+```python
+"weekly-task-pulse": {
+    "task": "worker.tasks.task_pulse.check_task_pulse",
+    "schedule": crontab(hour=9, minute=0, day_of_week=1),  # Monday 9am UTC
+}
+```
+
+**`worker/tasks/task_pulse.py` logic:**
+1. For each company: check active task count + metrics delta (GA traffic, MRR, completed tasks this week)
+2. If active tasks < 3: compose proactive prompt with 2–3 suggestions + rationale
+3. Post to `#general` as Len via nostr_adapter
+4. User replies "yes" → Len creates tasks. User ignores → nothing, retries next Monday
+
+**Surface checklist:**
+| Surface | Work needed |
+|---|---|
+| **LenGrowth backend** | New file `worker/tasks/task_pulse.py` + entry in `beat_schedule.py` |
+| **Desktop / Web / Mobile** | None — output is a Len message in `#general` |
+
+### 5d. Specialists as workspace members (2–4 weeks)
+
+Specialist joins the workspace as a real participant — Nostr identity, in channels, @mentionable, picks up tasks directly. Reuses `models/specialist.py`, Cerbos RBAC, Stripe specialist seats. Only the entry point changes (workspace invite, not a ticket form).
+
+**How it works:**
+1. User: "Len, I need a specialist for our SEO strategy"
+2. Len calls `lengrowth_request_specialist(category="seo", description="...", channel_id="...")`
+3. LenGrowth matches + assigns from talent pool
+4. Backend provisions Nostr identity via `managed_nostr_identities`
+5. Specialist joins `#seo-strategy` — sees history, picks up tasks, posts updates like any member
+6. Billing: specialist seat ($990/mo Enterprise OS) via existing Stripe
+
+**New MCP tools:**
+```python
+@mcp.tool()
+async def lengrowth_request_specialist(
     nostr_pubkey: str,
     category: str,       # seo | ads | content | growth | aso | email
     description: str,
     channel_id: str | None = None,
 ) -> dict | str:
-    """Request specialist be added to workspace. Returns request_id."""
+    """Request a specialist be added to workspace. Returns request_id."""
 
 @mcp.tool()
-async def list_workspace_members(nostr_pubkey: str) -> dict | str:
-    """List all workspace members: users, agents (Len/Scout/Forge), active specialists."""
+async def lengrowth_list_workspace_members(nostr_pubkey: str) -> dict | str:
+    """List workspace members: users, agents (Len/Scout/Forge), active specialists."""
 ```
+
+**Surface checklist:**
+| Surface | Work needed |
+|---|---|
+| **LenGrowth backend** | 2 new MCP tools; specialist Nostr identity provisioning on assignment |
+| **Desktop** | Specialist appears as member automatically — members list shows "specialist" role badge |
+| **Web** | Same — member list shows specialist role badge |
+| **Mobile** | `agent_identity_provider.dart` resolves specialist from relay at runtime — no code change |
 
 ---
 
@@ -512,12 +565,10 @@ Never decommissioned. Grows into a management + marketplace surface. `lengrowth.
 | 4 | Free zero-auth tools (search, fetch, weather) | 1 day | Len can research anything |
 | 2 | Connect Your Tools settings tab (GitHub first) | 3–5 days | Phases 3 and 6 |
 | 3 | Agent-triggered crons + standup flow | 3–4 days | Proactive agents |
-| 5a | Task list panel in LenOS | 2–3 days | Phase 5c |
-| 5b | Metrics dashboard panel | 3–4 days | Phase 5e |
-| 5c | Kanban pipeline in LenOS | 2–3 weeks | Phase 5d |
-| 5d | Growth Trees in LenOS | 2–3 weeks | — |
-| 5e | Len-narrated reporting | 1 week | — |
-| 6 | Specialists as workspace members | 2–4 weeks | Marketplace growth |
+| 5a | Replace welcome closer → directed intake conversation | 1–2 days | Cold start solved |
+| 5b | `lengrowth_generate_initial_tasks` MCP tool | 1–2 days | Len creates first tasks from chat |
+| 5c | Weekly task pulse Celery job | 1 day | Workspace stays alive proactively |
+| 5d | Specialists as workspace members | 2–4 weeks | Marketplace growth |
 
 ---
 

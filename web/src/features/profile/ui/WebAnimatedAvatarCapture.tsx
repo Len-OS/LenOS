@@ -124,7 +124,9 @@ export function WebAnimatedAvatarCapture({ onApply, onCancel }: Props) {
         }
         gif.finish();
         const buffer = gif.bytesView();
-        const blob = new Blob([buffer.buffer as ArrayBuffer], { type: "image/gif" });
+        const blob = new Blob([buffer.buffer as ArrayBuffer], {
+          type: "image/gif",
+        });
         const reader = new FileReader();
         reader.onload = () => {
           setGifDataUrl(reader.result as string);

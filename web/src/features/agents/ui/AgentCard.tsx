@@ -1,8 +1,10 @@
+import { Settings2 } from "lucide-react";
 import type { Agent } from "../useAgents";
 
 interface Props {
   agent: Agent;
   onClick: () => void;
+  onConfigure?: () => void;
 }
 
 const STATUS_DOT: Record<Agent["status"], string> = {
@@ -28,7 +30,7 @@ function relativeTime(unix: number): string {
   return `${Math.floor(diffSec / 86400)}d ago`;
 }
 
-export function AgentCard({ agent, onClick }: Props) {
+export function AgentCard({ agent, onClick, onConfigure }: Props) {
   return (
     <button
       type="button"
@@ -74,9 +76,24 @@ export function AgentCard({ agent, onClick }: Props) {
           {agent.description}
         </p>
       )}
-      <p className="text-xs text-black/30 dark:text-white/30">
-        Created {relativeTime(agent.createdAt)}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-black/30 dark:text-white/30">
+          Created {relativeTime(agent.createdAt)}
+        </p>
+        {onConfigure && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfigure();
+            }}
+            className="rounded-md p-1 text-black/30 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+            aria-label="Configure agent"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
     </button>
   );
 }

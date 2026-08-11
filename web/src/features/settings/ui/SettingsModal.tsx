@@ -36,6 +36,21 @@ const AutomationsPanel = lazy(() =>
     default: m.AutomationsSettingsPanel,
   })),
 );
+const AgentDefaultsPanel = lazy(() =>
+  import("@/features/settings/ui/AgentDefaultsSettingsPanel").then((m) => ({
+    default: m.AgentDefaultsSettingsPanel,
+  })),
+);
+const KeyboardShortcutsPanel = lazy(() =>
+  import("@/features/settings/ui/KeyboardShortcutsPanel").then((m) => ({
+    default: m.KeyboardShortcutsPanel,
+  })),
+);
+const BackupPanel = lazy(() =>
+  import("@/features/settings/ui/BackupSettingsPanel").then((m) => ({
+    default: m.BackupSettingsPanel,
+  })),
+);
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
@@ -45,6 +60,9 @@ const SECTIONS = [
   { id: "relay", label: "Connection" },
   { id: "integrations", label: "Integrations" },
   { id: "automations", label: "Automations" },
+  { id: "agents", label: "Agents" },
+  { id: "shortcuts", label: "Shortcuts" },
+  { id: "backup", label: "Backup" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -140,6 +158,9 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                 {active === "relay" && <RelayPanel />}
                 {active === "integrations" && <IntegrationsPanel />}
                 {active === "automations" && <AutomationsPanel />}
+                {active === "agents" && <AgentDefaultsPanel />}
+                {active === "shortcuts" && <KeyboardShortcutsPanel />}
+                {active === "backup" && <BackupPanel />}
               </Suspense>
             </div>
           </main>

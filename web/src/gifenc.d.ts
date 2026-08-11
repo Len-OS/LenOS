@@ -10,5 +10,8 @@ declare module "gifenc" {
     bytesView(): Uint8Array;
   };
   export function quantize(pixels: Uint8Array, maxColors: number): Uint8Array;
-  export function applyPalette(pixels: Uint8Array, palette: Uint8Array): Uint8Array;
+  export function applyPalette(
+    pixels: Uint8Array,
+    palette: Uint8Array,
+  ): Uint8Array;
 }

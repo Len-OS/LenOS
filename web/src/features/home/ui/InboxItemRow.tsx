@@ -7,6 +7,7 @@ interface Props {
   item: InboxItem;
   channels: Channel[];
   onClick: () => void;
+  active?: boolean;
 }
 
 const TYPE_ICON = {
@@ -29,7 +30,7 @@ function relativeTime(unix: number): string {
   return `${Math.floor(diffSec / 86400)}d ago`;
 }
 
-export function InboxItemRow({ item, channels, onClick }: Props) {
+export function InboxItemRow({ item, channels, onClick, active }: Props) {
   const profile = useProfile(item.from);
   const authorName = profile?.name ?? item.from.slice(0, 8);
   const channel = channels.find((c) => c.id === item.channelId);
@@ -41,7 +42,11 @@ export function InboxItemRow({ item, channels, onClick }: Props) {
       onClick={onClick}
       className={[
         "flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5",
-        !item.isRead ? "bg-blue-50/50 dark:bg-blue-900/10" : "",
+        active
+          ? "bg-black/10 dark:bg-white/10"
+          : !item.isRead
+            ? "bg-blue-50/50 dark:bg-blue-900/10"
+            : "",
       ].join(" ")}
     >
       <div className="mt-0.5 shrink-0 rounded-full bg-black/5 p-1.5 dark:bg-white/5">

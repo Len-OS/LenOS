@@ -131,7 +131,9 @@ export function consumeManagedSignerSessionFromUrl(): boolean {
 
 /** True only for an identity that survives a page reload. */
 export function hasDurableIdentity(): boolean {
-  return hasNip07Provider() || getManagedSignerSession() !== null || hasLocalNsec();
+  return (
+    hasNip07Provider() || getManagedSignerSession() !== null || hasLocalNsec()
+  );
 }
 
 export async function getCurrentPubkey(): Promise<string | null> {

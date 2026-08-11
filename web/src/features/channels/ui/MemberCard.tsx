@@ -3,6 +3,7 @@ import { nip19 } from "nostr-tools";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
 import { useModerationActions } from "@/features/moderation/useModerationActions";
+import { useProfilePanel } from "@/features/profiles/profile-panel-context";
 import type { Member } from "@/features/channels/useMembers";
 
 function truncatePubkey(pk: string): string {
@@ -22,6 +23,7 @@ export function MemberCard({ member, channelId, isCurrentUserAdmin }: Props) {
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { muteUser, banUser } = useModerationActions();
+  const { openProfile } = useProfilePanel();
 
   useEffect(() => {
     if (!open) return;
@@ -75,7 +77,10 @@ export function MemberCard({ member, channelId, isCurrentUserAdmin }: Props) {
           <button
             type="button"
             className="w-full px-3 py-1.5 text-left text-sm text-black/80 hover:bg-black/5 dark:text-white/80 dark:hover:bg-white/5"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              openProfile(member.pubkey);
+              setOpen(false);
+            }}
           >
             View profile
           </button>

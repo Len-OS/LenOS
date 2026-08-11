@@ -94,7 +94,9 @@ export function KeyImportStep({ onComplete, onSkip }: Props) {
         setLocalNsec(trimmedInput);
         onComplete(pubkeyHex);
       } else {
-        setError("A public key (npub) cannot sign — paste your nsec or ncryptsec backup.");
+        setError(
+          "A public key (npub) cannot sign — paste your nsec or ncryptsec backup.",
+        );
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to import key.");
