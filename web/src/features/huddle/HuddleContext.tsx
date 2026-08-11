@@ -10,7 +10,10 @@ import {
 import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
-import { KIND_HUDDLE_STARTED, KIND_MANAGED_AGENT } from "@/shared/constants/kinds";
+import {
+  KIND_HUDDLE_STARTED,
+  KIND_MANAGED_AGENT,
+} from "@/shared/constants/kinds";
 import { addAgentToHuddle, type AgentAddResult } from "./lib/huddleAgents";
 import { HuddleAudioWs, type PeerInfo } from "./lib/huddleAudioWs";
 import { createHuddleEncoder, type HuddleEncoder } from "./lib/huddleCodec";
@@ -205,15 +208,21 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
             (t) => t[0] === "d",
           )?.[1];
           if (!agentPubkey) return;
-          setState((s) => ({
-            ...s,
-            agentPubkeys: s.agentPubkeys.includes(agentPubkey)
-              ? s.agentPubkeys
-              : [...s.agentPubkeys, agentPubkey],
-            peers: s.peers.map((p) =>
-              p.pubkey === agentPubkey ? { ...p, isAgent: true } : p,
-            ),
-          }));
+          setState((s) => {
+            const isPeer = s.peers.some((p) => p.pubkey === agentPubkey);
+            return {
+              ...s,
+              // Only track in agentPubkeys when already a peer (optimistic
+              // addAgent update handles the just-invited case before connect)
+              agentPubkeys:
+                isPeer && !s.agentPubkeys.includes(agentPubkey)
+                  ? [...s.agentPubkeys, agentPubkey]
+                  : s.agentPubkeys,
+              peers: s.peers.map((p) =>
+                p.pubkey === agentPubkey ? { ...p, isAgent: true } : p,
+              ),
+            };
+          });
         },
       });
 
