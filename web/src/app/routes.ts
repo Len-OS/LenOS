@@ -20,6 +20,7 @@ export const routes = rootRoute("root.tsx", [
     route("/reminders", "_workspace.reminders.tsx"),
     route("/pulse", "_workspace.pulse.tsx"),
     route("/agents", "_workspace.agents.tsx"),
+    route("/drafts", "_workspace.drafts.tsx"),
   ]),
   route("/invite/$code", "invite.$code.tsx"),
 ]);

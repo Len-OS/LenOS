@@ -16,6 +16,7 @@ import { Route as workspaceDotmessagesRouteImport } from "./routes/_workspace.me
 import { Route as workspaceDothomeRouteImport } from "./routes/_workspace.home";
 import { Route as workspaceDotchannelsRouteImport } from "./routes/_workspace.channels";
 import { Route as workspaceDotagentsRouteImport } from "./routes/_workspace.agents";
+import { Route as workspaceDotdraftsRouteImport } from "./routes/_workspace.drafts";
 import { Route as workspaceDotreposDotrepoIdRouteImport } from "./routes/_workspace.repos.$repoId";
 import { Route as workspaceDotmessagesDotnewRouteImport } from "./routes/_workspace.messages.new";
 import { Route as workspaceDotmessagesDotchannelIdRouteImport } from "./routes/_workspace.messages.$channelId";
@@ -77,6 +78,11 @@ const workspaceDotagentsRoute = workspaceDotagentsRouteImport.update({
   path: "/agents",
   getParentRoute: () => workspaceRoute,
 } as any);
+const workspaceDotdraftsRoute = workspaceDotdraftsRouteImport.update({
+  id: "/drafts",
+  path: "/drafts",
+  getParentRoute: () => workspaceRoute,
+} as any);
 const workspaceDotreposDotrepoIdRoute =
   workspaceDotreposDotrepoIdRouteImport.update({
     id: "/repos/$repoId",
@@ -117,6 +123,7 @@ const workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute =
 export interface FileRoutesByFullPath {
   "/": typeof indexRoute;
   "/agents": typeof workspaceDotagentsRoute;
+  "/drafts": typeof workspaceDotdraftsRoute;
   "/channels": typeof workspaceDotchannelsRoute;
   "/home": typeof workspaceDothomeRoute;
   "/messages": typeof workspaceDotmessagesRoute;
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/": typeof indexRoute;
   "/agents": typeof workspaceDotagentsRoute;
+  "/drafts": typeof workspaceDotdraftsRoute;
   "/channels": typeof workspaceDotchannelsRoute;
   "/home": typeof workspaceDothomeRoute;
   "/messages": typeof workspaceDotmessagesRoute;
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   "/": typeof indexRoute;
   "/_workspace": typeof workspaceRouteWithChildren;
   "/_workspace/agents": typeof workspaceDotagentsRoute;
+  "/_workspace/drafts": typeof workspaceDotdraftsRoute;
   "/_workspace/channels": typeof workspaceDotchannelsRoute;
   "/_workspace/home": typeof workspaceDothomeRoute;
   "/_workspace/messages": typeof workspaceDotmessagesRoute;
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/agents"
+    | "/drafts"
     | "/channels"
     | "/home"
     | "/messages"
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
   to:
     | "/"
     | "/agents"
+    | "/drafts"
     | "/channels"
     | "/home"
     | "/messages"
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | "/"
     | "/_workspace"
     | "/_workspace/agents"
+    | "/_workspace/drafts"
     | "/_workspace/channels"
     | "/_workspace/home"
     | "/_workspace/messages"
@@ -313,6 +325,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof workspaceDotagentsRouteImport;
       parentRoute: typeof workspaceRoute;
     };
+    "/_workspace/drafts": {
+      id: "/_workspace/drafts";
+      path: "/drafts";
+      fullPath: "/drafts";
+      preLoaderRoute: typeof workspaceDotdraftsRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
     "/_workspace/repos/$repoId": {
       id: "/_workspace/repos/$repoId";
       path: "/repos/$repoId";
@@ -360,6 +379,7 @@ declare module "@tanstack/react-router" {
 
 interface workspaceRouteChildren {
   workspaceDotagentsRoute: typeof workspaceDotagentsRoute;
+  workspaceDotdraftsRoute: typeof workspaceDotdraftsRoute;
   workspaceDotchannelsRoute: typeof workspaceDotchannelsRoute;
   workspaceDothomeRoute: typeof workspaceDothomeRoute;
   workspaceDotmessagesRoute: typeof workspaceDotmessagesRoute;
@@ -377,6 +397,7 @@ interface workspaceRouteChildren {
 
 const workspaceRouteChildren: workspaceRouteChildren = {
   workspaceDotagentsRoute: workspaceDotagentsRoute,
+  workspaceDotdraftsRoute: workspaceDotdraftsRoute,
   workspaceDotchannelsRoute: workspaceDotchannelsRoute,
   workspaceDothomeRoute: workspaceDothomeRoute,
   workspaceDotmessagesRoute: workspaceDotmessagesRoute,
