@@ -8,6 +8,8 @@ import {
   Subtitles,
   Users,
   Video,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useHuddle } from "../HuddleContext";
@@ -48,6 +50,9 @@ export function HuddleBar() {
     sttLoading,
     captions,
     setSttEnabled,
+    ttsEnabled,
+    ttsLoading,
+    setTtsEnabled,
   } = useHuddle();
   const [showP, setShowP] = useState(false);
   const [showR, setShowR] = useState(false);
@@ -250,6 +255,27 @@ export function HuddleBar() {
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             ) : (
               <Subtitles className="h-4 w-4" />
+            )}
+          </button>
+
+          {/* TTS toggle */}
+          <button
+            type="button"
+            onClick={() => setTtsEnabled(!ttsEnabled)}
+            aria-label={ttsEnabled ? "Disable agent voice" : "Enable agent voice"}
+            className={
+              "rounded-full p-2 transition-colors " +
+              (ttsEnabled
+                ? "bg-black/10 text-black dark:bg-white/10 dark:text-white"
+                : "text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white")
+            }
+          >
+            {ttsLoading ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : ttsEnabled ? (
+              <Volume2 className="h-4 w-4" />
+            ) : (
+              <VolumeX className="h-4 w-4" />
             )}
           </button>
 

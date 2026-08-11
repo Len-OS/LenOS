@@ -33,6 +33,7 @@
     "emoji-mart": "^5.6.0",
     "gifenc": "^1.0.3",
     "isomorphic-git": "^1.38.3",
+    "kokoro-js": "^1.2.1",
     "lucide-react": "^1.0.0",
     "nostr-tools": "^2.23.3",
     "opusscript": "^0.1.1",

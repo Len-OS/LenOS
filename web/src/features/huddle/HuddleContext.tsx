@@ -16,6 +16,7 @@ import {
 } from "@/shared/constants/kinds";
 import { addAgentToHuddle, type AgentAddResult } from "./lib/huddleAgents";
 import { HuddleStt } from "./lib/huddleStt";
+import { HuddleTts } from "./lib/huddleTts";
 import { HuddleAudioWs, type PeerInfo } from "./lib/huddleAudioWs";
 import { createHuddleEncoder, type HuddleEncoder } from "./lib/huddleCodec";
 import { HuddlePlayback } from "./lib/huddlePlayback";
@@ -57,6 +58,8 @@ interface HuddleState {
   sttEnabled: boolean;
   sttLoading: boolean;
   captions: string[];
+  ttsEnabled: boolean;
+  ttsLoading: boolean;
 }
 
 interface HuddleActions {
@@ -81,6 +84,7 @@ interface HuddleActions {
   setAddAgentDialogOpen(v: boolean): void;
   addAgent(pubkey: string): Promise<AgentAddResult>;
   setSttEnabled(v: boolean): void;
+  setTtsEnabled(v: boolean): void;
 }
 
 export type HuddleCtx = HuddleState & HuddleActions;
@@ -112,6 +116,8 @@ function getInitialState(): HuddleState {
     sttEnabled: localStorage.getItem("huddle_stt_enabled") === "true",
     sttLoading: false,
     captions: [],
+    ttsEnabled: localStorage.getItem("huddle_tts_enabled") === "true",
+    ttsLoading: false,
   };
 }
 
@@ -130,6 +136,10 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const huddleSttRef = useRef<HuddleStt | null>(null);
   const sttEnabledRef = useRef(
     localStorage.getItem("huddle_stt_enabled") === "true",
+  );
+  const huddleTtsRef = useRef<HuddleTts | null>(null);
+  const ttsEnabledRef = useRef(
+    localStorage.getItem("huddle_tts_enabled") === "true",
   );
   // Used by hot-swap effect to skip initial mount
   const prevDeviceIdRef = useRef<string>("");
@@ -156,6 +166,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     videoWsRef.current = null;
     huddleSttRef.current?.stop();
     huddleSttRef.current = null;
+    huddleTtsRef.current?.stop();
+    huddleTtsRef.current = null;
   }, []);
 
   const startPipeline = useCallback(
@@ -255,6 +267,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
           micLevel: Math.max(0, Math.min(1, (dbov + 90) / 90)),
         }));
         huddleSttRef.current?.feedPcm(pcm, dbov);
+        if (dbov > -40) huddleTtsRef.current?.onSpeaking();
         tsRef.current += 960;
       };
 
@@ -280,8 +293,22 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
           setState((s) => ({
             ...s,
             sttLoading: false,
-            error:
-              e instanceof Error ? e.message : "STT failed to start",
+            error: e instanceof Error ? e.message : "STT failed to start",
+          }));
+        });
+      }
+
+      if (ttsEnabledRef.current) {
+        const tts = new HuddleTts(
+          (loading) => setState((s) => ({ ...s, ttsLoading: loading })),
+        );
+        huddleTtsRef.current = tts;
+        // agentPubkeys will be synced via useEffect watching state.agentPubkeys
+        void tts.start(ephChanId, [], ctxRef.current!).catch((e: unknown) => {
+          setState((s) => ({
+            ...s,
+            ttsLoading: false,
+            error: e instanceof Error ? e.message : "TTS failed to start",
           }));
         });
       }
@@ -460,7 +487,11 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
 
       // Start STT if huddle is already active
       const { parentChannelId } = state;
-      if (state.phase === "active" && parentChannelId && !huddleSttRef.current) {
+      if (
+        state.phase === "active" &&
+        parentChannelId &&
+        !huddleSttRef.current
+      ) {
         const stt = new HuddleStt(
           parentChannelId,
           (text) =>
@@ -478,6 +509,43 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
             error: e instanceof Error ? e.message : "STT failed to start",
           }));
         });
+      }
+    },
+    [state],
+  );
+
+  const setTtsEnabled = useCallback(
+    (v: boolean) => {
+      localStorage.setItem("huddle_tts_enabled", String(v));
+      ttsEnabledRef.current = v;
+      setState((s) => ({ ...s, ttsEnabled: v }));
+
+      if (!v) {
+        huddleTtsRef.current?.stop();
+        huddleTtsRef.current = null;
+        return;
+      }
+
+      // Start TTS if huddle is already active
+      if (
+        state.phase === "active" &&
+        state.ephemeralChannelId &&
+        ctxRef.current &&
+        !huddleTtsRef.current
+      ) {
+        const tts = new HuddleTts(
+          (loading) => setState((s) => ({ ...s, ttsLoading: loading })),
+        );
+        huddleTtsRef.current = tts;
+        void tts
+          .start(state.ephemeralChannelId, state.agentPubkeys, ctxRef.current)
+          .catch((e: unknown) => {
+            setState((s) => ({
+              ...s,
+              ttsLoading: false,
+              error: e instanceof Error ? e.message : "TTS failed to start",
+            }));
+          });
       }
     },
     [state],
@@ -633,6 +701,11 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("beforeunload", h);
   }, [cleanup]);
 
+  // Keep HuddleTts agent pubkeys list in sync with state
+  useEffect(() => {
+    huddleTtsRef.current?.updateAgentPubkeys(state.agentPubkeys);
+  }, [state.agentPubkeys]);
+
   const value: HuddleCtx = {
     ...state,
     startHuddle,
@@ -653,6 +726,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     setAddAgentDialogOpen,
     addAgent,
     setSttEnabled,
+    setTtsEnabled,
   };
   return (
     <HuddleContext.Provider value={value}>{children}</HuddleContext.Provider>
