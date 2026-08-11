@@ -1,8 +1,23 @@
 import { Mic, MicOff } from "lucide-react";
 import { useHuddle } from "../HuddleContext";
 
+const canSetSinkId =
+  typeof AudioContext !== "undefined" && "setSinkId" in AudioContext.prototype;
+
 export function MicControls() {
-  const { muted, setMuted, micLevel } = useHuddle();
+  const {
+    muted,
+    setMuted,
+    micLevel,
+    audioDevices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    setOutputDeviceId,
+  } = useHuddle();
+
+  const inputDevices = audioDevices.filter((d) => d.kind === "audioinput");
+  const outputDevices = audioDevices.filter((d) => d.kind === "audiooutput");
+
   return (
     <div className="flex items-center gap-1">
       <div className="flex h-5 w-10 items-end gap-px overflow-hidden rounded">
@@ -38,6 +53,38 @@ export function MicControls() {
       >
         {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </button>
+
+      {inputDevices.length > 1 && (
+        <select
+          value={selectedDeviceId}
+          onChange={(e) => setSelectedDeviceId(e.target.value)}
+          aria-label="Select microphone"
+          className="max-w-[120px] truncate rounded border border-black/10 bg-transparent px-1 py-0.5 text-xs text-black/60 dark:border-white/10 dark:text-white/60"
+        >
+          <option value="">System default</option>
+          {inputDevices.map((d, i) => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || `Microphone ${i + 1}`}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {canSetSinkId && outputDevices.length > 1 && (
+        <select
+          defaultValue=""
+          onChange={(e) => setOutputDeviceId(e.target.value)}
+          aria-label="Select speaker"
+          className="max-w-[120px] truncate rounded border border-black/10 bg-transparent px-1 py-0.5 text-xs text-black/60 dark:border-white/10 dark:text-white/60"
+        >
+          <option value="">System default</option>
+          {outputDevices.map((d, i) => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || `Speaker ${i + 1}`}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

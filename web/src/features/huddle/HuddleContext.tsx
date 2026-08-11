@@ -20,6 +20,7 @@ import {
   publishHuddleReaction,
   type HuddleReaction,
 } from "./lib/huddleReactions";
+import { HuddleVideoWs } from "./lib/huddleVideoWs";
 
 const WORKLET_URL = new URL(
   "./worklets/huddle-capture-processor.js",
@@ -27,6 +28,7 @@ const WORKLET_URL = new URL(
 ).href;
 
 export type HuddlePhase = "idle" | "connecting" | "active" | "leaving";
+export type HuddleInputMode = "voice_activity" | "push_to_talk";
 
 interface HuddleState {
   phase: HuddlePhase;
@@ -38,6 +40,12 @@ interface HuddleState {
   micLevel: number;
   reactions: HuddleReaction[];
   error: string | null;
+  inputMode: HuddleInputMode;
+  audioDevices: MediaDeviceInfo[];
+  selectedDeviceId: string;
+  notesOpen: boolean;
+  screenShareActive: boolean;
+  remotePresenterPubkey: string | null;
 }
 
 interface HuddleActions {
@@ -50,26 +58,43 @@ interface HuddleActions {
   setMuted(v: boolean): void;
   sendReaction(emoji: string, senderName: string): Promise<void>;
   clearError(): void;
+  setInputMode(mode: HuddleInputMode): void;
+  setSelectedDeviceId(id: string): void;
+  setNotesOpen(v: boolean): void;
+  setOutputDeviceId(id: string): void;
+  setRemotePresenterPubkey(pubkey: string | null): void;
+  startScreenShare(): Promise<void>;
+  stopScreenShare(): void;
 }
 
 export type HuddleCtx = HuddleState & HuddleActions;
 
 const HuddleContext = createContext<HuddleCtx | null>(null);
 
-const INITIAL: HuddleState = {
-  phase: "idle",
-  parentChannelId: null,
-  ephemeralChannelId: null,
-  peers: [],
-  activeSpeakerIndexes: [],
-  muted: false,
-  micLevel: 0,
-  reactions: [],
-  error: null,
-};
+function getInitialState(): HuddleState {
+  return {
+    phase: "idle",
+    parentChannelId: null,
+    ephemeralChannelId: null,
+    peers: [],
+    activeSpeakerIndexes: [],
+    muted: false,
+    micLevel: 0,
+    reactions: [],
+    error: null,
+    inputMode:
+      (localStorage.getItem("huddle_input_mode") as HuddleInputMode) ??
+      "voice_activity",
+    audioDevices: [],
+    selectedDeviceId: localStorage.getItem("huddle_device_id") ?? "",
+    notesOpen: false,
+    screenShareActive: false,
+    remotePresenterPubkey: null,
+  };
+}
 
 export function HuddleProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<HuddleState>(INITIAL);
+  const [state, setState] = useState<HuddleState>(getInitialState);
   const audioWsRef = useRef<HuddleAudioWs | null>(null);
   const encoderRef = useRef<HuddleEncoder | null>(null);
   const playbackRef = useRef<HuddlePlayback | null>(null);
@@ -78,6 +103,9 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const streamRef = useRef<MediaStream | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
   const tsRef = useRef(0);
+  const videoWsRef = useRef<HuddleVideoWs | null>(null);
+  // Used by hot-swap effect to skip initial mount
+  const prevDeviceIdRef = useRef<string>("");
 
   const cleanup = useCallback(async () => {
     unsubRef.current?.();
@@ -95,21 +123,30 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     await ctxRef.current?.close();
     ctxRef.current = null;
     tsRef.current = 0;
+    videoWsRef.current?.close();
+    videoWsRef.current = null;
   }, []);
 
   const startPipeline = useCallback(
-    async (_parentChanId: string, ephChanId: string) => {
+    async (_parentChanId: string, ephChanId: string, deviceId?: string) => {
+      const audioConstraints: MediaTrackConstraints = {
+        sampleRate: 48000,
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      };
+      if (deviceId) audioConstraints.deviceId = { exact: deviceId };
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 48000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+        audio: audioConstraints,
         video: false,
       });
       streamRef.current = stream;
+
+      // Enumerate devices after getUserMedia so mic permission is granted
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setState((s) => ({ ...s, audioDevices: devices }));
 
       const audioCtx = new AudioContext({ sampleRate: 48000 });
       ctxRef.current = audioCtx;
@@ -175,6 +212,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const startHuddle = useCallback(
     async (parentChanId: string) => {
       const ephChanId = crypto.randomUUID();
+      const deviceId = localStorage.getItem("huddle_device_id") ?? "";
       setState((s) => ({
         ...s,
         phase: "connecting",
@@ -189,7 +227,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
           tags: [["h", parentChanId]],
         });
         getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
-        await startPipeline(parentChanId, ephChanId);
+        await startPipeline(parentChanId, ephChanId, deviceId || undefined);
         setState((s) => ({ ...s, phase: "active" }));
       } catch (e) {
         await cleanup();
@@ -207,6 +245,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
 
   const joinHuddle = useCallback(
     async (parentChanId: string, ephChanId: string) => {
+      const deviceId = localStorage.getItem("huddle_device_id") ?? "";
       setState((s) => ({
         ...s,
         phase: "connecting",
@@ -215,7 +254,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         ephemeralChannelId: ephChanId,
       }));
       try {
-        await startPipeline(parentChanId, ephChanId);
+        await startPipeline(parentChanId, ephChanId, deviceId || undefined);
         setState((s) => ({ ...s, phase: "active" }));
       } catch (e) {
         await cleanup();
@@ -234,7 +273,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const leaveHuddle = useCallback(async () => {
     setState((s) => ({ ...s, phase: "leaving" }));
     await cleanup();
-    setState(INITIAL);
+    setState(getInitialState);
   }, [cleanup]);
 
   const setMuted = useCallback((v: boolean) => {
@@ -256,6 +295,146 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const setInputMode = useCallback((mode: HuddleInputMode) => {
+    localStorage.setItem("huddle_input_mode", mode);
+    if (mode === "push_to_talk") {
+      workletRef.current?.port.postMessage({ type: "mute", value: true });
+      setState((s) => ({ ...s, inputMode: mode, muted: true }));
+    } else {
+      workletRef.current?.port.postMessage({ type: "mute", value: false });
+      setState((s) => ({ ...s, inputMode: mode, muted: false }));
+    }
+  }, []);
+
+  const setSelectedDeviceId = useCallback((id: string) => {
+    localStorage.setItem("huddle_device_id", id);
+    setState((s) => ({ ...s, selectedDeviceId: id }));
+  }, []);
+
+  const setNotesOpen = useCallback(
+    (v: boolean) => setState((s) => ({ ...s, notesOpen: v })),
+    [],
+  );
+
+  const setOutputDeviceId = useCallback((id: string) => {
+    localStorage.setItem("huddle_output_id", id);
+    if ("setSinkId" in AudioContext.prototype && ctxRef.current) {
+      void (
+        ctxRef.current as AudioContext & {
+          setSinkId(id: string): Promise<void>;
+        }
+      ).setSinkId(id);
+    }
+  }, []);
+
+  const setRemotePresenterPubkey = useCallback(
+    (pubkey: string | null) =>
+      setState((s) => ({ ...s, remotePresenterPubkey: pubkey })),
+    [],
+  );
+
+  const startScreenShare = useCallback(async () => {
+    if (typeof VideoEncoder === "undefined") {
+      throw new Error("Screen share requires Chrome 94+ or Safari 17.4+");
+    }
+    const { ephemeralChannelId } = state;
+    if (!ephemeralChannelId) return;
+
+    const ws = new HuddleVideoWs({
+      wsUrl: relayWsUrl(),
+      ephemeralChannelId,
+      onPresenter: () => {},
+      onPresenterLeft: () => {},
+    });
+    videoWsRef.current = ws;
+    await ws.connect();
+    await ws.startScreenShare();
+    setState((s) => ({ ...s, screenShareActive: true }));
+  }, [state]);
+
+  const stopScreenShare = useCallback(() => {
+    videoWsRef.current?.stopScreenShare();
+    videoWsRef.current?.close();
+    videoWsRef.current = null;
+    setState((s) => ({ ...s, screenShareActive: false }));
+  }, []);
+
+  // PTT: Space key handler
+  useEffect(() => {
+    if (state.inputMode !== "push_to_talk" || state.phase !== "active") return;
+
+    const isTyping = () => {
+      const el = document.activeElement;
+      return (
+        el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+      );
+    };
+
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat || isTyping()) return;
+      e.preventDefault();
+      workletRef.current?.port.postMessage({ type: "mute", value: false });
+      setState((s) => ({ ...s, muted: false }));
+    };
+
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || isTyping()) return;
+      e.preventDefault();
+      workletRef.current?.port.postMessage({ type: "mute", value: true });
+      setState((s) => ({ ...s, muted: true }));
+    };
+
+    document.addEventListener("keydown", down);
+    document.addEventListener("keyup", up);
+    return () => {
+      document.removeEventListener("keydown", down);
+      document.removeEventListener("keyup", up);
+    };
+  }, [state.inputMode, state.phase]);
+
+  // Hot-swap audio device when selectedDeviceId changes while active
+  useEffect(() => {
+    const id = state.selectedDeviceId;
+    if (prevDeviceIdRef.current === id) return;
+    prevDeviceIdRef.current = id;
+
+    if (
+      state.phase !== "active" ||
+      !streamRef.current ||
+      !ctxRef.current ||
+      !workletRef.current
+    )
+      return;
+
+    const doSwap = async () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      const constraints: MediaTrackConstraints = {
+        sampleRate: 48000,
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      };
+      if (id) constraints.deviceId = { exact: id };
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          audio: constraints,
+          video: false,
+        });
+        streamRef.current = newStream;
+        const newSource = ctxRef.current!.createMediaStreamSource(newStream);
+        workletRef.current!.disconnect();
+        newSource.connect(workletRef.current!);
+      } catch (e) {
+        setState((s) => ({
+          ...s,
+          error: e instanceof Error ? e.message : "Failed to switch device",
+        }));
+      }
+    };
+    void doSwap();
+  }, [state.selectedDeviceId, state.phase]);
+
   useEffect(() => {
     const h = () => void cleanup();
     window.addEventListener("beforeunload", h);
@@ -270,6 +449,13 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     setMuted,
     sendReaction,
     clearError,
+    setInputMode,
+    setSelectedDeviceId,
+    setNotesOpen,
+    setOutputDeviceId,
+    setRemotePresenterPubkey,
+    startScreenShare,
+    stopScreenShare,
   };
   return (
     <HuddleContext.Provider value={value}>{children}</HuddleContext.Provider>

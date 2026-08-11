@@ -102,7 +102,11 @@ class WebCodecsDecoder implements HuddleDecoder {
 // Uses opusscript (Emscripten-compiled libopus). Input/output is Int16, so we
 // convert Float32↔Int16 at the boundary.
 type OpusScriptCtor = {
-  new (rate: number, channels: number, application: number): {
+  new (
+    rate: number,
+    channels: number,
+    application: number,
+  ): {
     encode(pcm: Int16Array, frameSize: number): Uint8Array;
     decode(data: Uint8Array, frameSize?: number): Int16Array;
     encoder_ctl(ctl: number, value: number): void;
@@ -134,7 +138,11 @@ function int16ToFloat32(int16: Int16Array): Float32Array {
 
 async function createWasmEncoder(): Promise<HuddleEncoder> {
   const OpusScript = await loadOpusScript();
-  const enc = new OpusScript(SAMPLE_RATE, CHANNELS, OpusScript.Application.VOIP);
+  const enc = new OpusScript(
+    SAMPLE_RATE,
+    CHANNELS,
+    OpusScript.Application.VOIP,
+  );
   enc.encoder_ctl(4002 /* OPUS_SET_BITRATE_REQUEST */, BITRATE);
   return {
     encode: async (pcm) => enc.encode(float32ToInt16(pcm), FRAME_SIZE),
@@ -144,7 +152,11 @@ async function createWasmEncoder(): Promise<HuddleEncoder> {
 
 async function createWasmDecoder(): Promise<HuddleDecoder> {
   const OpusScript = await loadOpusScript();
-  const dec = new OpusScript(SAMPLE_RATE, CHANNELS, OpusScript.Application.VOIP);
+  const dec = new OpusScript(
+    SAMPLE_RATE,
+    CHANNELS,
+    OpusScript.Application.VOIP,
+  );
   return {
     decode: async (opus) => int16ToFloat32(dec.decode(opus, FRAME_SIZE)),
     close: () => dec.delete(),
