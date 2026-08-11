@@ -1,6 +1,6 @@
 # LenOS Web ↔ Desktop Parity Tracker
 
-**Last updated:** 2026-08-11 (P5 partial — presence badges + deep links complete)  
+**Last updated:** 2026-08-11 (P5 complete — huddle, presence, deep links all done)  
 **Branch:** feat/web-onboarding-p0  
 **Status legend:** ✅ Done · ⚠️ Partial · 🔲 Not built · 🚫 Desktop-only (expected gap)
 
@@ -15,7 +15,7 @@
 | P2 | Agents + channels/messaging | ✅ Complete |
 | P3 | Inbox/home + settings | ✅ Complete |
 | P4 | Workflows + auth/identity | ✅ Complete |
-| P5 | Desktop-only infra (known gaps) | ⚠️ Partial |
+| P5 | Desktop-only infra (known gaps) | ✅ Complete |
 
 ---
 
@@ -164,13 +164,13 @@ All items complete as of 2026-08-10.
 
 ---
 
-## Phase 5 — Desktop-only Infrastructure ⚠️
+## Phase 5 — Desktop-only Infrastructure ✅
 
 | Feature | Desktop file | Web file | Status |
 |---|---|---|---|
 | Presence badges (online/active) | native relay heartbeat | `presence/usePresenceHeartbeat.ts` + `presence/usePresence.ts` | ✅ |
 | `lenos://` deep links | OS URL scheme handler | `deep-links/deepLinkParser.ts` + `deep-links/useDeepLinkHandler.ts` + `/lenos/*` route | ✅ |
-| Huddle / voice chat | WebRTC peer mesh | — | 🚫 Separate project |
+| Huddle / voice chat | `huddle/` (Tauri + Rust relay WS) | `huddle/` (WebCodecs + opusscript relay WS) | ✅ |
 | Mesh compute settings | Tauri sidecar | — | 🚫 Desktop-only |
 | Local archive settings | Tauri filesystem | — | 🚫 Desktop-only |
 | Tauri updater | Binary distribution | — | 🚫 Desktop-only |
@@ -203,4 +203,4 @@ A phase is complete when:
 
 ## Next action
 
-P0–P5 largely complete. Remaining P5 gaps (huddle, mesh compute, local archive, Tauri updater, ACP sidecar) are intentional desktop-only features.
+P0–P5 complete. Remaining desktop-only gaps (mesh compute, local archive, Tauri updater, ACP sidecar, voice settings) are intentional — no web equivalent planned. See `docs/HUDDLE.md` for the full huddle roadmap (screen share, video, notes, mobile).
