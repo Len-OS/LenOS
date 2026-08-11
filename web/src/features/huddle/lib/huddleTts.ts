@@ -7,6 +7,7 @@ export class HuddleTts {
   private worker: Worker | null = null;
   private currentSource: AudioBufferSourceNode | null = null;
   private speaking = false;
+  private cancelled = false;
   private perAgentQueue = new Map<string, string[]>();
   private agentPubkeys: Set<string>;
   private unsub: (() => void) | null = null;
@@ -31,10 +32,11 @@ export class HuddleTts {
     );
 
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error("TTS model load timed out after 120s")),
-        120_000,
-      );
+      const timeout = setTimeout(() => {
+        this.worker?.terminate();
+        this.worker = null;
+        reject(new Error("TTS model load timed out after 120s"));
+      }, 120_000);
 
       this.worker!.onmessage = (
         evt: MessageEvent<{
@@ -52,6 +54,8 @@ export class HuddleTts {
           resolve();
         } else if (type === "error") {
           clearTimeout(timeout);
+          this.worker?.terminate();
+          this.worker = null;
           reject(new Error(evt.data.message ?? "TTS init failed"));
         }
       };
@@ -92,6 +96,12 @@ export class HuddleTts {
       (evt.data.type === "audio" && evt.data.buffer && evt.data.sampleRate) ||
       evt.data.type === "audio_error"
     ) {
+      // Drop stale audio if barge-in occurred during generation
+      if (this.cancelled) {
+        this.cancelled = false;
+        this.speaking = false;
+        return;
+      }
       if (evt.data.type === "audio" && evt.data.buffer) {
         void this.playAudio(evt.data.buffer, evt.data.sampleRate!);
       } else {
@@ -131,6 +141,7 @@ export class HuddleTts {
       const text = queue.shift();
       if (text) {
         this.speaking = true;
+        this.cancelled = false;
         this.worker.postMessage({ type: "speak", text });
         return;
       }
@@ -139,6 +150,7 @@ export class HuddleTts {
 
   onSpeaking(): void {
     if (!this.speaking) return;
+    this.cancelled = true;
     try {
       this.currentSource?.stop();
     } catch {
