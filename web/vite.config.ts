@@ -26,6 +26,16 @@ export default defineConfig({
   server: {
     port: parseInt(process.env.VITE_PORT || "5173", 10),
     strictPort: true,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
+  },
+  preview: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   build: {
     rollupOptions: {

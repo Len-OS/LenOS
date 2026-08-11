@@ -15,6 +15,7 @@ import {
   KIND_MANAGED_AGENT,
 } from "@/shared/constants/kinds";
 import { addAgentToHuddle, type AgentAddResult } from "./lib/huddleAgents";
+import { HuddleStt } from "./lib/huddleStt";
 import { HuddleAudioWs, type PeerInfo } from "./lib/huddleAudioWs";
 import { createHuddleEncoder, type HuddleEncoder } from "./lib/huddleCodec";
 import { HuddlePlayback } from "./lib/huddlePlayback";
@@ -53,6 +54,9 @@ interface HuddleState {
   remotePresenterPubkey: string | null;
   agentPubkeys: string[];
   addAgentDialogOpen: boolean;
+  sttEnabled: boolean;
+  sttLoading: boolean;
+  captions: string[];
 }
 
 interface HuddleActions {
@@ -76,6 +80,7 @@ interface HuddleActions {
   stopCameraShare(): void;
   setAddAgentDialogOpen(v: boolean): void;
   addAgent(pubkey: string): Promise<AgentAddResult>;
+  setSttEnabled(v: boolean): void;
 }
 
 export type HuddleCtx = HuddleState & HuddleActions;
@@ -104,6 +109,9 @@ function getInitialState(): HuddleState {
     remotePresenterPubkey: null,
     agentPubkeys: [],
     addAgentDialogOpen: false,
+    sttEnabled: localStorage.getItem("huddle_stt_enabled") === "true",
+    sttLoading: false,
+    captions: [],
   };
 }
 
@@ -119,6 +127,10 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
   const agentUnsubRef = useRef<(() => void) | null>(null);
   const tsRef = useRef(0);
   const videoWsRef = useRef<HuddleVideoWs | null>(null);
+  const huddleSttRef = useRef<HuddleStt | null>(null);
+  const sttEnabledRef = useRef(
+    localStorage.getItem("huddle_stt_enabled") === "true",
+  );
   // Used by hot-swap effect to skip initial mount
   const prevDeviceIdRef = useRef<string>("");
 
@@ -142,6 +154,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     tsRef.current = 0;
     videoWsRef.current?.close();
     videoWsRef.current = null;
+    huddleSttRef.current?.stop();
+    huddleSttRef.current = null;
   }, []);
 
   const startPipeline = useCallback(
@@ -240,6 +254,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
           ...s,
           micLevel: Math.max(0, Math.min(1, (dbov + 90) / 90)),
         }));
+        huddleSttRef.current?.feedPcm(pcm, dbov);
         tsRef.current += 960;
       };
 
@@ -249,6 +264,27 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
           reactions: [...s.reactions.slice(-19), r],
         })),
       );
+
+      if (sttEnabledRef.current && _parentChanId) {
+        const stt = new HuddleStt(
+          _parentChanId,
+          (text) =>
+            setState((s) => ({
+              ...s,
+              captions: [...s.captions.slice(-2), text],
+            })),
+          (loading) => setState((s) => ({ ...s, sttLoading: loading })),
+        );
+        huddleSttRef.current = stt;
+        void stt.start().catch((e: unknown) => {
+          setState((s) => ({
+            ...s,
+            sttLoading: false,
+            error:
+              e instanceof Error ? e.message : "STT failed to start",
+          }));
+        });
+      }
     },
     [],
   );
@@ -408,6 +444,43 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     (pubkey: string | null) =>
       setState((s) => ({ ...s, remotePresenterPubkey: pubkey })),
     [],
+  );
+
+  const setSttEnabled = useCallback(
+    (v: boolean) => {
+      localStorage.setItem("huddle_stt_enabled", String(v));
+      sttEnabledRef.current = v;
+      setState((s) => ({ ...s, sttEnabled: v, captions: v ? s.captions : [] }));
+
+      if (!v) {
+        huddleSttRef.current?.stop();
+        huddleSttRef.current = null;
+        return;
+      }
+
+      // Start STT if huddle is already active
+      const { parentChannelId } = state;
+      if (state.phase === "active" && parentChannelId && !huddleSttRef.current) {
+        const stt = new HuddleStt(
+          parentChannelId,
+          (text) =>
+            setState((s) => ({
+              ...s,
+              captions: [...s.captions.slice(-2), text],
+            })),
+          (loading) => setState((s) => ({ ...s, sttLoading: loading })),
+        );
+        huddleSttRef.current = stt;
+        void stt.start().catch((e: unknown) => {
+          setState((s) => ({
+            ...s,
+            sttLoading: false,
+            error: e instanceof Error ? e.message : "STT failed to start",
+          }));
+        });
+      }
+    },
+    [state],
   );
 
   const startScreenShare = useCallback(async () => {
@@ -579,6 +652,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     stopCameraShare,
     setAddAgentDialogOpen,
     addAgent,
+    setSttEnabled,
   };
   return (
     <HuddleContext.Provider value={value}>{children}</HuddleContext.Provider>

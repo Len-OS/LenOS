@@ -5,6 +5,7 @@ import {
   Monitor,
   Phone,
   Smile,
+  Subtitles,
   Users,
   Video,
 } from "lucide-react";
@@ -43,6 +44,10 @@ export function HuddleBar() {
     addAgentDialogOpen,
     setAddAgentDialogOpen,
     addAgent,
+    sttEnabled,
+    sttLoading,
+    captions,
+    setSttEnabled,
   } = useHuddle();
   const [showP, setShowP] = useState(false);
   const [showR, setShowR] = useState(false);
@@ -112,6 +117,20 @@ export function HuddleBar() {
             remotePresenterPubkey={remotePresenterPubkey}
             onPresenterChange={handlePresenterChange}
           />
+        </div>
+      )}
+
+      {phase === "active" && captions.length > 0 && (
+        <div className="fixed bottom-14 left-1/2 z-39 max-w-xl -translate-x-1/2 space-y-0.5 pb-1">
+          {captions.map((c, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <p
+              key={i}
+              className="rounded bg-black/70 px-2 py-0.5 text-center text-xs text-white"
+            >
+              {c}
+            </p>
+          ))}
         </div>
       )}
 
@@ -209,6 +228,29 @@ export function HuddleBar() {
             }
           >
             <FileText className="h-4 w-4" />
+          </button>
+
+          {/* STT toggle */}
+          <button
+            type="button"
+            onClick={() => setSttEnabled(!sttEnabled)}
+            aria-label={
+              sttEnabled
+                ? "Disable live transcription"
+                : "Enable live transcription"
+            }
+            className={
+              "rounded-full p-2 transition-colors " +
+              (sttEnabled
+                ? "bg-black/10 text-black dark:bg-white/10 dark:text-white"
+                : "text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white")
+            }
+          >
+            {sttLoading ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <Subtitles className="h-4 w-4" />
+            )}
           </button>
 
           {/* Add agent */}
