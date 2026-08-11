@@ -4,10 +4,22 @@ import { useChannelMutations } from "@/features/channels/useChannelMutations";
 
 type Visibility = "open" | "private" | "invite";
 
-const OPTIONS: Array<{ value: Visibility; label: string; description: string }> = [
+const OPTIONS: Array<{
+  value: Visibility;
+  label: string;
+  description: string;
+}> = [
   { value: "open", label: "Public", description: "Anyone can join and view" },
-  { value: "private", label: "Private", description: "Members only, visible in list" },
-  { value: "invite", label: "Invite-only", description: "Hidden, requires invite link" },
+  {
+    value: "private",
+    label: "Private",
+    description: "Members only, visible in list",
+  },
+  {
+    value: "invite",
+    label: "Invite-only",
+    description: "Hidden, requires invite link",
+  },
 ];
 
 interface Props {
@@ -21,9 +33,9 @@ export function ChannelPermissions({ channelId, visibility, isAdmin }: Props) {
   const [error, setError] = useState("");
   const { editChannelVisibility } = useChannelMutations();
 
-  const current = (["open", "private", "invite"].includes(visibility)
-    ? visibility
-    : "open") as Visibility;
+  const current = (
+    ["open", "private", "invite"].includes(visibility) ? visibility : "open"
+  ) as Visibility;
 
   const handleChange = async (next: Visibility) => {
     if (!isAdmin || next === current || saving) return;

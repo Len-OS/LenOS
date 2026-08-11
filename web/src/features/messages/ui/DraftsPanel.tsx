@@ -46,7 +46,9 @@ export function DraftsPanel() {
   const [sendError, setSendError] = useState<string | null>(null);
 
   function getChannelName(channelId: string): string {
-    return channels.find((c) => c.id === channelId)?.name ?? channelId.slice(0, 12);
+    return (
+      channels.find((c) => c.id === channelId)?.name ?? channelId.slice(0, 12)
+    );
   }
 
   function startEdit(id: string, content: string) {
@@ -99,9 +101,7 @@ export function DraftsPanel() {
           </div>
         ) : (
           <div className="space-y-2">
-            {sendError && (
-              <p className="text-xs text-red-500">{sendError}</p>
-            )}
+            {sendError && <p className="text-xs text-red-500">{sendError}</p>}
             {[...drafts]
               .sort((a, b) => b.createdAt - a.createdAt)
               .map((draft) => {

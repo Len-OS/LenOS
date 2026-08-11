@@ -42,7 +42,9 @@ export function useAgentMemory(agentPubkey: string): {
           };
           if (Array.isArray(parsed.memory)) {
             const valid: MemoryEntry[] = parsed.memory
-              .filter((m) => typeof m.slug === "string" && typeof m.body === "string")
+              .filter(
+                (m) => typeof m.slug === "string" && typeof m.body === "string",
+              )
               .map((m) => ({
                 slug: m.slug as string,
                 body: m.body as string,

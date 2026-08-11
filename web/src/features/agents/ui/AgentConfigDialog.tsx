@@ -57,7 +57,9 @@ export function AgentConfigDialog({ agent, open, onClose }: Props) {
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
 
   useEffect(() => {
-    getCurrentPubkey().then(setCurrentPubkey).catch(() => {});
+    getCurrentPubkey()
+      .then(setCurrentPubkey)
+      .catch(() => {});
   }, []);
 
   const viewerIsOwner = currentPubkey === agent.pubkey;

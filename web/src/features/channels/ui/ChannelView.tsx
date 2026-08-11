@@ -19,6 +19,7 @@ import { ChannelSettingsModal } from "@/features/channels/ui/ChannelSettingsModa
 import { useCustomEmoji } from "@/features/emoji/useCustomEmoji";
 import { BotActivityBar } from "@/features/channels/ui/BotActivityBar";
 import { AgentTranscriptViewer } from "@/features/agents/ui/AgentTranscriptViewer";
+import { HuddleIndicator } from "@/features/huddle/ui/HuddleIndicator";
 import { useProfile } from "@/features/profiles/use-profile";
 import { truncatePubkey } from "@/shared/lib/pubkey";
 
@@ -38,9 +39,13 @@ export function ChannelView() {
   const [findOpen, setFindOpen] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
-  const [selectedAgentPubkey, setSelectedAgentPubkey] = useState<string | null>(null);
+  const [selectedAgentPubkey, setSelectedAgentPubkey] = useState<string | null>(
+    null,
+  );
   const agentProfile = useProfile(selectedAgentPubkey ?? "");
-  const agentName = agentProfile?.name || (selectedAgentPubkey ? truncatePubkey(selectedAgentPubkey) : "");
+  const agentName =
+    agentProfile?.name ||
+    (selectedAgentPubkey ? truncatePubkey(selectedAgentPubkey) : "");
   const { typingPubkeys, notifyTyping } = useTypingState(
     channelId,
     currentPubkey,
@@ -101,10 +106,13 @@ export function ChannelView() {
             </span>
           )}
           <div className="ml-auto flex items-center gap-1">
+            <HuddleIndicator channelId={channelId} />
             <BotActivityBar
               channelId={channelId}
               onOpenAgentTranscript={(pubkey) => {
-                setSelectedAgentPubkey((prev) => (prev === pubkey ? null : pubkey));
+                setSelectedAgentPubkey((prev) =>
+                  prev === pubkey ? null : pubkey,
+                );
                 setThreadRootId(null);
               }}
             />

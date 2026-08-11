@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bot } from "lucide-react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/shared/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/shared/ui/popover";
 import { Avatar } from "@/shared/ui/Avatar";
 import { useProfile } from "@/features/profiles/use-profile";
 import { truncatePubkey } from "@/shared/lib/pubkey";

@@ -29,7 +29,16 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      input: {
+        index: "index.html",
+        "huddle-capture-processor":
+          "src/features/huddle/worklets/huddle-capture-processor.js",
+      },
       output: {
+        entryFileNames: (chunk) =>
+          chunk.name === "huddle-capture-processor"
+            ? "assets/[name].js"
+            : "assets/[name]-[hash].js",
         manualChunks(id) {
           if (
             id.includes("node_modules/prosemirror") ||

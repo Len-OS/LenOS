@@ -1,6 +1,6 @@
 # LenOS Web ↔ Desktop Parity Tracker
 
-**Last updated:** 2026-08-11 (P2 complete)  
+**Last updated:** 2026-08-11 (P5 partial — presence badges + deep links complete)  
 **Branch:** feat/web-onboarding-p0  
 **Status legend:** ✅ Done · ⚠️ Partial · 🔲 Not built · 🚫 Desktop-only (expected gap)
 
@@ -13,9 +13,9 @@
 | P0 | Onboarding + local signer | ✅ Complete |
 | P1 | Navigation / sidebar + profile | ✅ Complete |
 | P2 | Agents + channels/messaging | ✅ Complete |
-| P3 | Inbox/home + settings | ⚠️ Partial |
-| P4 | Workflows + auth/identity | ⚠️ Partial |
-| P5 | Desktop-only infra (known gaps) | 🚫 Not planned |
+| P3 | Inbox/home + settings | ✅ Complete |
+| P4 | Workflows + auth/identity | ✅ Complete |
+| P5 | Desktop-only infra (known gaps) | ⚠️ Partial |
 
 ---
 
@@ -59,8 +59,8 @@ All items complete as of 2026-08-10.
 | Profile popover | `ProfilePopover.tsx` | `profiles/ui/ProfilePopover.tsx` | ✅ wired in MemberCard |
 | Full user profile panel | `UserProfilePanel.tsx` | `profiles/ui/UserProfilePanel.tsx` | ✅ wired in _workspace.tsx |
 | Avatar editor | `AvatarEditor.tsx` | `profiles/ui/AvatarEditor.tsx` | ✅ wired in UserProfilePanel |
-| Nostr bind consent dialog | `NostrBindDialog.tsx` | — | 🔲 |
-| Profile snapshot export | `ProfileExport.tsx` | — | 🔲 |
+| Nostr bind consent dialog | `NostrBindDialog.tsx` | `profiles/ui/NostrBindDialog.tsx` | ✅ |
+| Profile snapshot export | `ProfileExport.tsx` | `profiles/ui/ProfileExport.tsx` | ✅ |
 | Profile panel context/provider | — | `profiles/profile-panel-context.tsx` | ✅ |
 
 **P1 targets to build:**
@@ -116,9 +116,9 @@ All items complete as of 2026-08-10.
 |---|---|---|---|
 | Inbox item rows | `InboxItemRow.tsx` | `home/ui/InboxItemRow.tsx` | ✅ updated |
 | Inbox detail pane | `InboxDetailPane.tsx` | `home/ui/InboxDetailPane.tsx` | ✅ |
-| Inbox filter menu | `InboxFilterMenu.tsx` | — | 🔲 |
-| Feed section | `FeedSection.tsx` | — | 🔲 |
-| Recent notes section | `RecentNotesSection.tsx` | — | 🔲 |
+| Inbox filter menu | `InboxFilterMenu.tsx` | `home/ui/InboxFilterMenu.tsx` | ✅ |
+| Feed section | `FeedSection.tsx` | `home/ui/FeedSection.tsx` | ✅ |
+| Recent notes section | `RecentNotesSection.tsx` | `home/ui/RecentNotesSection.tsx` | ✅ |
 | Home page | `HomePage.tsx` | `home/ui/HomePage.tsx` | ✅ updated |
 
 ### Settings
@@ -129,18 +129,12 @@ All items complete as of 2026-08-10.
 | Agent defaults panel | `AgentDefaultsSettings.tsx` | `settings/ui/AgentDefaultsSettingsPanel.tsx` | ✅ |
 | Private key backup row | `BackupSettings.tsx` | `settings/ui/BackupSettingsPanel.tsx` | ✅ |
 | Keyboard shortcuts card | `KeyboardShortcuts.tsx` | `settings/ui/KeyboardShortcutsPanel.tsx` | ✅ |
-| Harness settings | `HarnessSettings.tsx` | — | 🔲 |
+| Harness settings | `HarnessSettings.tsx` | `settings/ui/HarnessSettingsPanel.tsx` | ✅ |
 | Voice settings | `VoiceSettings.tsx` | — | 🚫 desktop-only (no web audio runtime) |
-| Mobile pairing card | `MobilePairing.tsx` | — | 🔲 |
-| Moderation queue | `ModerationQueue.tsx` | — | 🔲 |
+| Mobile pairing card | `MobilePairing.tsx` | `settings/ui/MobilePairingPanel.tsx` | ✅ |
+| Moderation queue | `ModerationQueue.tsx` | `settings/ui/ModerationQueuePanel.tsx` | ✅ |
 
-**P3 targets to build:**
-1. Inbox filter menu
-2. Feed section
-3. Recent notes section
-4. Harness settings panel
-5. Mobile pairing card
-6. Moderation queue panel
+**P3 targets — all complete.**
 
 ---
 
@@ -153,42 +147,48 @@ All items complete as of 2026-08-10.
 | Workflow card | `WorkflowCard.tsx` | `workflows/ui/WorkflowCard.tsx` | ✅ updated |
 | Workflow list page | `WorkflowsPage.tsx` | `workflows/ui/WorkflowsPage.tsx` | ✅ updated |
 | Workflow detail panel | `WorkflowDetailPanel.tsx` | `workflows/ui/WorkflowDetailPanel.tsx` | ✅ |
-| Workflow form builder | `WorkflowFormBuilder.tsx` | — | 🔲 |
-| Approval card | `WorkflowApprovalCard.tsx` | — | 🔲 |
-| Run trace viewer | `WorkflowRunTrace.tsx` | — | 🔲 |
-| Webhook secret dialog | `WebhookSecretDialog.tsx` | — | 🔲 |
+| Workflow form builder | `WorkflowFormBuilder.tsx` | `workflows/ui/WorkflowFormBuilder.tsx` | ✅ |
+| Approval card | `WorkflowApprovalCard.tsx` | `workflows/ui/WorkflowApprovalCard.tsx` | ✅ |
+| Run trace viewer | `WorkflowRunTrace.tsx` | `workflows/ui/WorkflowRunTrace.tsx` | ✅ |
+| Webhook secret dialog | `WebhookSecretDialog.tsx` | `workflows/ui/WebhookSecretDialog.tsx` | ✅ |
 
 ### Auth / Identity Polish
 
 | Feature | Desktop | Web | Status |
 |---|---|---|---|
-| Nostr bind consent dialog | `NostrBindDialog.tsx` | — | 🔲 |
-| Profile snapshot export | `ProfileExport.tsx` | — | 🔲 |
+| Nostr bind consent dialog | `NostrBindDialog.tsx` | `profiles/ui/NostrBindDialog.tsx` | ✅ |
+| Profile snapshot export | `ProfileExport.tsx` | `profiles/ui/ProfileExport.tsx` | ✅ |
 | LenGrowth managed signer session | backend provisioned | `nostr-signer.ts` (managed tier) | ✅ |
 
-**P4 targets to build:**
-1. Workflow form builder
-2. Approval card
-3. Run trace viewer
-4. Webhook secret dialog
-5. Nostr bind consent dialog
-6. Profile snapshot export
+**P4 targets — all complete.**
 
 ---
 
-## Phase 5 — Desktop-only Infrastructure 🚫
+## Phase 5 — Desktop-only Infrastructure ⚠️
 
-Expected gaps. No web equivalent planned unless product strategy changes.
+| Feature | Desktop file | Web file | Status |
+|---|---|---|---|
+| Presence badges (online/active) | native relay heartbeat | `presence/usePresenceHeartbeat.ts` + `presence/usePresence.ts` | ✅ |
+| `lenos://` deep links | OS URL scheme handler | `deep-links/deepLinkParser.ts` + `deep-links/useDeepLinkHandler.ts` + `/lenos/*` route | ✅ |
+| Huddle / voice chat | WebRTC peer mesh | — | 🚫 Separate project |
+| Mesh compute settings | Tauri sidecar | — | 🚫 Desktop-only |
+| Local archive settings | Tauri filesystem | — | 🚫 Desktop-only |
+| Tauri updater | Binary distribution | — | 🚫 Desktop-only |
+| Local agent runtime (ACP/sidecar) | native process spawn | — | 🚫 Browser limitation |
 
-| Feature | Reason not on web |
-|---|---|
-| Huddle / voice chat | Requires WebRTC peer mesh or relay — separate project |
-| Presence badges (online/active) | Requires persistent relay subscription + heartbeat service |
-| Mesh compute settings | Tauri sidecar + local process management |
-| Local archive settings | Local filesystem access via Tauri |
-| `lenos://` deep links | Native OS URL scheme handler |
-| Tauri updater | Binary distribution; web uses Cloudflare Pages deploy |
-| Local agent runtime (ACP/sidecar) | Native process spawn; browser cannot run sidecars |
+### Presence implementation notes
+
+- Ephemeral kind 20010 heartbeat every 30 s while workspace is active
+- Online TTL: 90 s (3 missed beats → offline)
+- Scoped per workspace (`#d` tag = communityId)
+- `MembersSidebar` shows online count + sorts online members first
+
+### Deep link implementation notes
+
+- URL-based: `/lenos/channel/<id>`, `/lenos/dm/<id>`, `/lenos/user/<pubkey>`, `/lenos/home`, etc.
+- Protocol handler: `web+lenos://` scheme registered via `navigator.registerProtocolHandler` → `/?_lenos=<encoded-uri>`
+- Handled in `WorkspaceLayoutInner` on mount; profile links open the right-panel ProfilePanel
+- Scheme map: `channel` → `/channels/$id`, `dm` → `/messages/$id`, `user` → profile panel, `invite` → `/invite/$code`
 
 ---
 
@@ -203,4 +203,4 @@ A phase is complete when:
 
 ## Next action
 
-Start **P1**: `AppSidebar.tsx` + channel context menu + sidebar profile card + wire profile popover/panel.
+P0–P5 largely complete. Remaining P5 gaps (huddle, mesh compute, local archive, Tauri updater, ACP sidecar) are intentional desktop-only features.

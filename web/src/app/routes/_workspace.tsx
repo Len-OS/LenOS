@@ -26,7 +26,14 @@ import {
   ProfilePanelProvider,
   useProfilePanel,
 } from "@/features/profiles/profile-panel-context";
+import { HuddleProvider } from "@/features/huddle/HuddleContext";
+import { HuddleBar } from "@/features/huddle/ui/HuddleBar";
 import { UserProfilePanel } from "@/features/profiles/ui/UserProfilePanel";
+import { usePresenceHeartbeat } from "@/features/presence/usePresenceHeartbeat";
+import {
+  useDeepLinkHandler,
+  registerWebPlusLenOSProtocol,
+} from "@/features/deep-links/useDeepLinkHandler";
 
 const IDENTITY_SEEN_KEY = "lenos_identity_seen";
 
@@ -88,16 +95,19 @@ function WorkspaceLayout() {
 
   return (
     <OnboardingGate>
-      <ProfilePanelProvider>
-        <WorkspaceLayoutInner
-          activeChannelId={activeChannelId}
-          navigate={navigate}
-          channels={channels}
-          searchOpen={searchOpen}
-          setSearchOpen={setSearchOpen}
-          currentPubkey={currentPubkey}
-        />
-      </ProfilePanelProvider>
+      <HuddleProvider>
+        <ProfilePanelProvider>
+          <WorkspaceLayoutInner
+            activeChannelId={activeChannelId}
+            navigate={navigate}
+            channels={channels}
+            searchOpen={searchOpen}
+            setSearchOpen={setSearchOpen}
+            currentPubkey={currentPubkey}
+          />
+        </ProfilePanelProvider>
+        <HuddleBar />
+      </HuddleProvider>
     </OnboardingGate>
   );
 }
@@ -119,7 +129,18 @@ function WorkspaceLayoutInner({
   setSearchOpen,
   currentPubkey,
 }: InnerProps) {
-  const { pubkey: profilePubkey, closeProfile } = useProfilePanel();
+  const {
+    pubkey: profilePubkey,
+    openProfile,
+    closeProfile,
+  } = useProfilePanel();
+  const communityId = useCommunityId();
+  usePresenceHeartbeat(currentPubkey, communityId);
+  useDeepLinkHandler({ navigate, openProfile });
+
+  useEffect(() => {
+    registerWebPlusLenOSProtocol();
+  }, []);
 
   return (
     <>

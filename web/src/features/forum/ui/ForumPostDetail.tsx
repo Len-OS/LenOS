@@ -60,7 +60,10 @@ export function ForumPostDetail({ channelId, postId, onBack }: Props) {
           onClick={() =>
             onBack
               ? onBack()
-              : void navigate({ to: "/channels/$channelId", params: { channelId } })
+              : void navigate({
+                  to: "/channels/$channelId",
+                  params: { channelId },
+                })
           }
           aria-label="Back to forum"
           className="mr-3 rounded p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"

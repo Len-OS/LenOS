@@ -1,5 +1,7 @@
 import { X } from "lucide-react";
 import { useMembers } from "@/features/channels/useMembers";
+import { useCommunityId } from "@/shared/lib/workspace-context";
+import { usePresence } from "@/features/presence/usePresence";
 import { MemberCard } from "./MemberCard";
 
 interface Props {
@@ -10,11 +12,25 @@ interface Props {
 
 export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
   const members = useMembers(channelId);
+  const communityId = useCommunityId();
+  const allPubkeys = members.map((m) => m.pubkey);
+  const onlinePubkeys = usePresence(allPubkeys, communityId);
 
-  const admins = members.filter((m) => m.role === "admin");
-  const others = members.filter((m) => m.role !== "admin");
+  const sortOnlineFirst = (a: { pubkey: string }, b: { pubkey: string }) => {
+    const aOnline = onlinePubkeys.has(a.pubkey) ? 0 : 1;
+    const bOnline = onlinePubkeys.has(b.pubkey) ? 0 : 1;
+    return aOnline - bOnline;
+  };
+
+  const admins = members
+    .filter((m) => m.role === "admin")
+    .sort(sortOnlineFirst);
+  const others = members
+    .filter((m) => m.role !== "admin")
+    .sort(sortOnlineFirst);
   const isCurrentUserAdmin =
     currentPubkey != null && admins.some((m) => m.pubkey === currentPubkey);
+  const onlineCount = onlinePubkeys.size;
 
   return (
     <div className="flex w-60 shrink-0 flex-col border-l border-black/10 dark:border-white/10">
@@ -23,6 +39,7 @@ export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
           Members
           {members.length > 0 && (
             <span className="ml-1.5 text-xs font-normal text-black/40 dark:text-white/40">
+              {onlineCount > 0 ? `${onlineCount} online · ` : ""}
               {members.length}
             </span>
           )}
@@ -49,6 +66,7 @@ export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
                 member={m}
                 channelId={channelId ?? ""}
                 isCurrentUserAdmin={isCurrentUserAdmin}
+                online={onlinePubkeys.has(m.pubkey)}
               />
             ))}
           </div>
@@ -65,6 +83,7 @@ export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
                 member={m}
                 channelId={channelId ?? ""}
                 isCurrentUserAdmin={isCurrentUserAdmin}
+                online={onlinePubkeys.has(m.pubkey)}
               />
             ))}
           </div>

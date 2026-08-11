@@ -11,7 +11,13 @@ export interface TranscriptFrame {
   timestamp: number;
 }
 
-const VALID_TYPES = new Set<string>(["thought", "tool", "message", "plan", "command"]);
+const VALID_TYPES = new Set<string>([
+  "thought",
+  "tool",
+  "message",
+  "plan",
+  "command",
+]);
 
 function parseActivityType(raw: string | undefined): ActivityType {
   if (raw && VALID_TYPES.has(raw)) return raw as ActivityType;

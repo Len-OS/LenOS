@@ -21,7 +21,15 @@ function renderBodyWithLinks(body: string) {
   });
 }
 
-function EntryRow({ slug, body, links }: { slug: string; body: string; links: string[] }) {
+function EntryRow({
+  slug,
+  body,
+  links,
+}: {
+  slug: string;
+  body: string;
+  links: string[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const preview = body.length > 120 ? `${body.slice(0, 120)}…` : body;
 

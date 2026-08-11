@@ -13,7 +13,13 @@ export interface ChannelAgent {
 }
 
 const ACTIVE_WINDOW_SECONDS = 300;
-const VALID_TYPES = new Set<string>(["thought", "tool", "message", "plan", "command"]);
+const VALID_TYPES = new Set<string>([
+  "thought",
+  "tool",
+  "message",
+  "plan",
+  "command",
+]);
 
 function parseActivityType(raw: string | undefined): ActivityType {
   if (raw && VALID_TYPES.has(raw)) return raw as ActivityType;
@@ -21,7 +27,9 @@ function parseActivityType(raw: string | undefined): ActivityType {
 }
 
 export function useChannelAgents(channelId: string): ChannelAgent[] {
-  const [agentMap, setAgentMap] = useState<Map<string, ChannelAgent>>(new Map());
+  const [agentMap, setAgentMap] = useState<Map<string, ChannelAgent>>(
+    new Map(),
+  );
 
   useEffect(() => {
     if (!channelId) return;

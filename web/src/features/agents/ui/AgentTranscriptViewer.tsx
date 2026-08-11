@@ -11,9 +11,15 @@ interface Props {
   onClose: () => void;
 }
 
-export function AgentTranscriptViewer({ agentPubkey, agentName, onClose }: Props) {
+export function AgentTranscriptViewer({
+  agentPubkey,
+  agentName,
+  onClose,
+}: Props) {
   const sessions = useAgentSessions(agentPubkey);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null,
+  );
 
   const activeSessionId = selectedSessionId ?? sessions[0]?.id ?? null;
   const { frames, isLoading } = useAgentTranscript(activeSessionId);

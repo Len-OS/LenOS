@@ -18,6 +18,7 @@ interface Props {
   onOpenSettings?: () => void;
   onSendDm?: (pubkey: string) => void;
   onViewProfile?: (pubkey: string) => void;
+  online?: boolean;
 }
 
 export function ProfilePopover({
@@ -27,6 +28,7 @@ export function ProfilePopover({
   onOpenSettings,
   onSendDm,
   onViewProfile,
+  online,
 }: Props) {
   const profile = useProfile(pubkey);
   const status = useUserStatus(pubkey);
@@ -52,7 +54,12 @@ export function ProfilePopover({
   return (
     <div className="w-64 rounded-lg border border-black/10 bg-white p-4 shadow-xl dark:border-white/10 dark:bg-[#1e1e1e]">
       <div className="flex items-start gap-3">
-        <Avatar src={profile?.picture} name={displayName} size={44} online />
+        <Avatar
+          src={profile?.picture}
+          name={displayName}
+          size={44}
+          online={online}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-black dark:text-white">
             {displayName}

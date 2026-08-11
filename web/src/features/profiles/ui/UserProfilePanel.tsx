@@ -1,12 +1,24 @@
 import { useState } from "react";
 import { nip19 } from "nostr-tools";
-import { Copy, Check, MessageSquare, X, UserPlus } from "lucide-react";
+import {
+  Camera,
+  Copy,
+  Check,
+  MessageSquare,
+  X,
+  UserPlus,
+  Link,
+} from "lucide-react";
 import { useProfile } from "@/features/profiles/use-profile";
 import { useUserStatus } from "@/features/profile/useUserStatus";
 import { Avatar } from "@/shared/ui/Avatar";
+import { AvatarEditor } from "@/features/profiles/ui/AvatarEditor";
+import { NostrBindDialog } from "@/features/profiles/ui/NostrBindDialog";
+import { ProfileExportButton } from "@/features/profiles/ui/ProfileExport";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs";
 import { Separator } from "@/shared/ui/separator";
 import { Button } from "@/shared/ui/button";
+import { hasNip07Provider } from "@/shared/lib/nostr-signer";
 
 interface Props {
   pubkey: string;
@@ -27,6 +39,8 @@ export function UserProfilePanel({
   const status = useUserStatus(pubkey);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState("about");
+  const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
+  const [bindOpen, setBindOpen] = useState(false);
 
   if (!open) return null;
 
@@ -61,7 +75,19 @@ export function UserProfilePanel({
       </div>
 
       <div className="flex flex-col items-center px-4 py-6">
-        <Avatar src={profile?.picture} name={displayName} size={72} online />
+        <div className="relative">
+          <Avatar src={profile?.picture} name={displayName} size={72} online />
+          {isSelf && (
+            <button
+              type="button"
+              onClick={() => setAvatarEditorOpen(true)}
+              aria-label="Edit avatar"
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80"
+            >
+              <Camera className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
         <h2 className="mt-3 text-lg font-semibold text-black dark:text-white">
           {displayName}
         </h2>
@@ -102,6 +128,23 @@ export function UserProfilePanel({
         </div>
       )}
 
+      {isSelf && (
+        <div className="flex flex-wrap gap-2 px-4 pb-4">
+          <ProfileExportButton pubkey={pubkey} profile={profile} />
+          {hasNip07Provider() && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBindOpen(true)}
+              className="gap-1.5"
+            >
+              <Link className="h-3.5 w-3.5" />
+              Link identity
+            </Button>
+          )}
+        </div>
+      )}
+
       <Separator />
 
       <Tabs
@@ -132,6 +175,20 @@ export function UserProfilePanel({
           </p>
         </TabsContent>
       </Tabs>
+
+      {avatarEditorOpen && (
+        <AvatarEditor
+          pubkey={pubkey}
+          onClose={() => setAvatarEditorOpen(false)}
+        />
+      )}
+
+      {bindOpen && (
+        <NostrBindDialog
+          onClose={() => setBindOpen(false)}
+          onBound={() => setBindOpen(false)}
+        />
+      )}
     </div>
   );
 }
