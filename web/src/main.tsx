@@ -9,8 +9,10 @@ import { Toaster } from "@/shared/ui/sonner";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 import { WorkspaceProvider } from "@/shared/lib/workspace-context";
 import { consumeManagedSignerSessionFromUrl } from "@/shared/lib/nostr-signer";
+import { consumePendingInviteFromUrl } from "@/features/onboarding/lib/pendingInvite";
 
 consumeManagedSignerSessionFromUrl();
+consumePendingInviteFromUrl();
 
 // A deployment can leave an already-open tab pointing at an older hashed
 // chunk. Ask Vite to reload the latest entrypoint instead of leaving the user

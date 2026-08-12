@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { nip19 } from "nostr-tools";
+import { useRef, useState } from "react";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
+import { ProfilePopover } from "@/features/profiles/ui/ProfilePopover";
 import { useModerationActions } from "@/features/moderation/useModerationActions";
+import { useProfilePanel } from "@/features/profiles/profile-panel-context";
 import type { Member } from "@/features/channels/useMembers";
 
 function truncatePubkey(pk: string): string {
@@ -13,44 +14,37 @@ interface Props {
   member: Member;
   channelId: string;
   isCurrentUserAdmin?: boolean;
+  onSendDm?: (pubkey: string) => void;
+  online?: boolean;
 }
 
-export function MemberCard({ member, channelId, isCurrentUserAdmin }: Props) {
+export function MemberCard({
+  member,
+  channelId,
+  isCurrentUserAdmin,
+  onSendDm,
+  online,
+}: Props) {
   const profile = useProfile(member.pubkey);
   const displayName = profile?.name || truncatePubkey(member.pubkey);
-  const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { muteUser, banUser } = useModerationActions();
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const copyPubkey = () => {
-    try {
-      const npub = nip19.npubEncode(member.pubkey);
-      void navigator.clipboard.writeText(npub);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {}
-  };
+  const { openProfile } = useProfilePanel();
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setPopoverOpen((v) => !v)}
         className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5"
       >
-        <Avatar src={profile?.picture} name={displayName} size={28} />
+        <Avatar
+          src={profile?.picture}
+          name={displayName}
+          size={28}
+          online={online}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-black dark:text-white">
             {displayName}
@@ -63,56 +57,43 @@ export function MemberCard({ member, channelId, isCurrentUserAdmin }: Props) {
         )}
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-44 rounded-lg border border-black/10 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
-          <button
-            type="button"
-            className="w-full px-3 py-1.5 text-left text-sm text-black/80 hover:bg-black/5 dark:text-white/80 dark:hover:bg-white/5"
-            onClick={() => setOpen(false)}
-          >
-            Send DM
-          </button>
-          <button
-            type="button"
-            className="w-full px-3 py-1.5 text-left text-sm text-black/80 hover:bg-black/5 dark:text-white/80 dark:hover:bg-white/5"
-            onClick={() => setOpen(false)}
-          >
-            View profile
-          </button>
-          <button
-            type="button"
-            className="w-full px-3 py-1.5 text-left text-sm text-black/80 hover:bg-black/5 dark:text-white/80 dark:hover:bg-white/5"
-            onClick={copyPubkey}
-          >
-            {copied ? "Copied!" : "Copy pubkey"}
-          </button>
-          {isCurrentUserAdmin && (
-            <>
-              <div className="my-1 border-t border-black/10 dark:border-white/10" />
-              <button
-                type="button"
-                className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-red-500/5"
-                onClick={() => {
-                  void muteUser(member.pubkey, channelId);
-                  setOpen(false);
-                }}
-              >
-                Mute user
-              </button>
-              <button
-                type="button"
-                className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-red-500/5"
-                onClick={() => {
-                  void banUser(member.pubkey, channelId);
-                  setOpen(false);
-                }}
-              >
-                Ban user
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      <div className="absolute left-full top-0 z-30 ml-2">
+        <ProfilePopover
+          pubkey={member.pubkey}
+          open={popoverOpen}
+          onClose={() => setPopoverOpen(false)}
+          online={online}
+          onViewProfile={(pk) => {
+            openProfile(pk);
+            setPopoverOpen(false);
+          }}
+          onSendDm={onSendDm}
+        />
+        {isCurrentUserAdmin && popoverOpen && (
+          <div className="mt-1 w-44 rounded-lg border border-black/10 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
+            <button
+              type="button"
+              className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-red-500/5"
+              onClick={() => {
+                void muteUser(member.pubkey, channelId);
+                setPopoverOpen(false);
+              }}
+            >
+              Mute user
+            </button>
+            <button
+              type="button"
+              className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-red-500/5"
+              onClick={() => {
+                void banUser(member.pubkey, channelId);
+                setPopoverOpen(false);
+              }}
+            >
+              Ban user
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

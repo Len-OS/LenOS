@@ -8,6 +8,7 @@ export interface Channel {
   description: string;
   picture?: string;
   type?: string;
+  visibility?: string;
   createdAt: number;
 }
 
@@ -42,6 +43,7 @@ export function useChannels(communityId: string | null): Channel[] {
         const description = tags.find((t) => t[0] === "about")?.[1] ?? "";
         const picture = tags.find((t) => t[0] === "picture")?.[1];
         const type = tags.find((t) => t[0] === "type")?.[1];
+        const visibility = tags.find((t) => t[0] === "visibility")?.[1];
 
         setChannels((prev) => {
           const filtered = prev.filter((c) => c.id !== dTag);
@@ -53,6 +55,7 @@ export function useChannels(communityId: string | null): Channel[] {
               description,
               picture,
               type,
+              visibility,
               createdAt: event.created_at,
             },
           ].sort((a, b) => a.name.localeCompare(b.name));

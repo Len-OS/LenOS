@@ -69,5 +69,25 @@ export function useChannelMutations() {
     );
   };
 
-  return { createChannel, editChannel, deleteChannel };
+  const editChannelVisibility = async (
+    channelId: string,
+    visibility: "open" | "private" | "invite",
+  ) => {
+    const signed = await signNostrEvent(
+      {
+        kind: 9002,
+        content: "",
+        tags: [
+          ["h", channelId],
+          ["visibility", visibility],
+        ],
+      },
+      { requireNip07: true },
+    );
+    await getRelayClient(relayWsUrl()).publishAndWait(
+      signed as Record<string, unknown>,
+    );
+  };
+
+  return { createChannel, editChannel, deleteChannel, editChannelVisibility };
 }

@@ -7,6 +7,7 @@ import {
   KIND_STREAM_MESSAGE_V2,
   KIND_SYSTEM_MESSAGE,
   KIND_DELETION,
+  KIND_HUDDLE_STARTED,
 } from "@/shared/constants/kinds";
 
 export interface Message {
@@ -22,6 +23,7 @@ const HISTORY_KINDS = [
   KIND_STREAM_MESSAGE,
   KIND_STREAM_MESSAGE_V2,
   KIND_SYSTEM_MESSAGE,
+  KIND_HUDDLE_STARTED,
 ];
 const LIVE_KINDS = [...HISTORY_KINDS, KIND_DELETION];
 const HISTORY_LIMIT = 50;

@@ -17,6 +17,11 @@ import { ChannelFindBar } from "@/features/search/ui/ChannelFindBar";
 import { MembersSidebar } from "@/features/channels/ui/MembersSidebar";
 import { ChannelSettingsModal } from "@/features/channels/ui/ChannelSettingsModal";
 import { useCustomEmoji } from "@/features/emoji/useCustomEmoji";
+import { BotActivityBar } from "@/features/channels/ui/BotActivityBar";
+import { AgentTranscriptViewer } from "@/features/agents/ui/AgentTranscriptViewer";
+import { HuddleIndicator } from "@/features/huddle/ui/HuddleIndicator";
+import { useProfile } from "@/features/profiles/use-profile";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 export function ChannelView() {
   const params = useParams({ strict: false }) as { channelId?: string };
@@ -34,6 +39,13 @@ export function ChannelView() {
   const [findOpen, setFindOpen] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
+  const [selectedAgentPubkey, setSelectedAgentPubkey] = useState<string | null>(
+    null,
+  );
+  const agentProfile = useProfile(selectedAgentPubkey ?? "");
+  const agentName =
+    agentProfile?.name ||
+    (selectedAgentPubkey ? truncatePubkey(selectedAgentPubkey) : "");
   const { typingPubkeys, notifyTyping } = useTypingState(
     channelId,
     currentPubkey,
@@ -94,6 +106,16 @@ export function ChannelView() {
             </span>
           )}
           <div className="ml-auto flex items-center gap-1">
+            <HuddleIndicator channelId={channelId} />
+            <BotActivityBar
+              channelId={channelId}
+              onOpenAgentTranscript={(pubkey) => {
+                setSelectedAgentPubkey((prev) =>
+                  prev === pubkey ? null : pubkey,
+                );
+                setThreadRootId(null);
+              }}
+            />
             <button
               type="button"
               onClick={() => setChannelSettingsOpen(true)}
@@ -166,6 +188,15 @@ export function ChannelView() {
           channelId={channelId}
           onClose={() => setShowMembers(false)}
           currentPubkey={currentPubkey}
+        />
+      )}
+
+      {/* Agent transcript panel */}
+      {selectedAgentPubkey && (
+        <AgentTranscriptViewer
+          agentPubkey={selectedAgentPubkey}
+          agentName={agentName}
+          onClose={() => setSelectedAgentPubkey(null)}
         />
       )}
 

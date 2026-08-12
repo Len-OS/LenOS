@@ -1,9 +1,13 @@
 import { useEffect, useRef } from "react";
 import type { Message } from "@/features/messages/use-messages";
 import type { Reaction } from "@/features/messages/use-reactions";
-import { KIND_SYSTEM_MESSAGE } from "@/shared/constants/kinds";
+import {
+  KIND_SYSTEM_MESSAGE,
+  KIND_HUDDLE_STARTED,
+} from "@/shared/constants/kinds";
 import { MessageRow } from "@/features/messages/ui/MessageRow";
 import { MessageThreadSummaryRow } from "@/features/messages/ui/MessageThreadSummaryRow";
+import { HuddleAttachment } from "@/features/huddle/ui/HuddleAttachment";
 
 interface Props {
   messages: Message[];
@@ -76,6 +80,20 @@ export function MessageTimeline({
             >
               {msg.content}
             </div>
+          );
+        }
+
+        if (msg.kind === KIND_HUDDLE_STARTED) {
+          return (
+            <HuddleAttachment
+              key={msg.id}
+              channelId={channelId}
+              startedEventContent={msg.content}
+              startedEventTags={msg.tags}
+              startedAt={msg.createdAt}
+              startedEventId={msg.id}
+              startedEventPubkey={msg.pubkey}
+            />
           );
         }
 

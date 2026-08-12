@@ -36,6 +36,36 @@ const AutomationsPanel = lazy(() =>
     default: m.AutomationsSettingsPanel,
   })),
 );
+const AgentDefaultsPanel = lazy(() =>
+  import("@/features/settings/ui/AgentDefaultsSettingsPanel").then((m) => ({
+    default: m.AgentDefaultsSettingsPanel,
+  })),
+);
+const KeyboardShortcutsPanel = lazy(() =>
+  import("@/features/settings/ui/KeyboardShortcutsPanel").then((m) => ({
+    default: m.KeyboardShortcutsPanel,
+  })),
+);
+const BackupPanel = lazy(() =>
+  import("@/features/settings/ui/BackupSettingsPanel").then((m) => ({
+    default: m.BackupSettingsPanel,
+  })),
+);
+const HarnessPanel = lazy(() =>
+  import("@/features/settings/ui/HarnessSettingsPanel").then((m) => ({
+    default: m.HarnessSettingsPanel,
+  })),
+);
+const MobilePairingPanel = lazy(() =>
+  import("@/features/settings/ui/MobilePairingPanel").then((m) => ({
+    default: m.MobilePairingPanel,
+  })),
+);
+const ModerationPanel = lazy(() =>
+  import("@/features/settings/ui/ModerationQueuePanel").then((m) => ({
+    default: m.ModerationQueuePanel,
+  })),
+);
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
@@ -45,6 +75,12 @@ const SECTIONS = [
   { id: "relay", label: "Connection" },
   { id: "integrations", label: "Integrations" },
   { id: "automations", label: "Automations" },
+  { id: "agents", label: "Agents" },
+  { id: "shortcuts", label: "Shortcuts" },
+  { id: "backup", label: "Backup" },
+  { id: "harness", label: "Harness" },
+  { id: "mobile", label: "Mobile" },
+  { id: "moderation", label: "Moderation" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -91,7 +127,7 @@ export function SettingsModal({ isOpen, onClose }: Props) {
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <aside className="flex w-52 shrink-0 flex-col border-r border-black/10 p-3 dark:border-white/10">
+          <aside className="flex w-52 shrink-0 flex-col overflow-y-auto border-r border-black/10 p-3 dark:border-white/10">
             <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-widest text-black/40 dark:text-white/40">
               Settings
             </p>
@@ -140,6 +176,12 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                 {active === "relay" && <RelayPanel />}
                 {active === "integrations" && <IntegrationsPanel />}
                 {active === "automations" && <AutomationsPanel />}
+                {active === "agents" && <AgentDefaultsPanel />}
+                {active === "shortcuts" && <KeyboardShortcutsPanel />}
+                {active === "backup" && <BackupPanel />}
+                {active === "harness" && <HarnessPanel />}
+                {active === "mobile" && <MobilePairingPanel />}
+                {active === "moderation" && <ModerationPanel />}
               </Suspense>
             </div>
           </main>

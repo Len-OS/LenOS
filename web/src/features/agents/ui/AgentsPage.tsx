@@ -3,12 +3,14 @@ import { Bot } from "lucide-react";
 import { useCommunityId } from "@/shared/lib/workspace-context";
 import { useAgents, type Agent } from "../useAgents";
 import { AgentCard } from "./AgentCard";
-import { AgentSessionPanel } from "./AgentSessionPanel";
+import { AgentTranscriptViewer } from "./AgentTranscriptViewer";
+import { AgentConfigDialog } from "./AgentConfigDialog";
 
 export function AgentsPage() {
   const communityId = useCommunityId();
   const agents = useAgents(communityId);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [configAgent, setConfigAgent] = useState<Agent | null>(null);
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -50,6 +52,7 @@ export function AgentsPage() {
                       prev?.pubkey === agent.pubkey ? null : agent,
                     )
                   }
+                  onConfigure={() => setConfigAgent(agent)}
                 />
               ))}
             </div>
@@ -58,12 +61,19 @@ export function AgentsPage() {
       </div>
 
       {selectedAgent && (
-        <div className="w-80 shrink-0">
-          <AgentSessionPanel
-            agent={selectedAgent}
-            onClose={() => setSelectedAgent(null)}
-          />
-        </div>
+        <AgentTranscriptViewer
+          agentPubkey={selectedAgent.pubkey}
+          agentName={selectedAgent.name}
+          onClose={() => setSelectedAgent(null)}
+        />
+      )}
+
+      {configAgent && (
+        <AgentConfigDialog
+          agent={configAgent}
+          open
+          onClose={() => setConfigAgent(null)}
+        />
       )}
     </div>
   );

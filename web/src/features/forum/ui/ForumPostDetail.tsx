@@ -41,9 +41,10 @@ function ReplyRow({ pubkey, content, createdAt }: ReplyRowProps) {
 interface Props {
   channelId: string;
   postId: string;
+  onBack?: () => void;
 }
 
-export function ForumPostDetail({ channelId, postId }: Props) {
+export function ForumPostDetail({ channelId, postId, onBack }: Props) {
   const navigate = useNavigate();
   const { post, replies, isLoading } = useForumThread(channelId, postId);
   const authorProfile = useProfile(post?.pubkey ?? "");
@@ -57,7 +58,12 @@ export function ForumPostDetail({ channelId, postId }: Props) {
         <button
           type="button"
           onClick={() =>
-            void navigate({ to: "/channels/$channelId", params: { channelId } })
+            onBack
+              ? onBack()
+              : void navigate({
+                  to: "/channels/$channelId",
+                  params: { channelId },
+                })
           }
           aria-label="Back to forum"
           className="mr-3 rounded p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"

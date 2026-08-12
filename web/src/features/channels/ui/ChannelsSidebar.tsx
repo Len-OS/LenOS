@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   Bell,
   Bot,
   ChevronDown,
   ChevronRight,
-  ExternalLink,
+  FileText,
   Hash,
   Inbox,
-  MoreHorizontal,
   Plus,
-  Settings,
-  Star,
   Zap,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -19,13 +16,15 @@ import { SettingsModal } from "@/features/settings/ui/SettingsModal";
 import { CommunitySettingsModal } from "@/features/communities/ui/CommunitySettingsModal";
 import { useMembers } from "@/features/channels/useMembers";
 import { CreateChannelModal } from "@/features/channels/ui/CreateChannelModal";
+import { ChannelContextMenu } from "@/features/channels/ui/ChannelContextMenu";
+import { ChannelSettingsModal } from "@/features/channels/ui/ChannelSettingsModal";
 import { DmList } from "@/features/messages/ui/DmList";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
-import { useUserStatus } from "@/features/profile/useUserStatus";
-import { StatusPicker } from "@/features/profile/ui/StatusPicker";
+import { SidebarProfileCard } from "@/features/profile/ui/SidebarProfileCard";
 import { useChannels } from "@/features/channels/use-channels";
 import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 import { useSidebarState } from "@/features/sidebar/useSidebarState";
+import { useProfilePanel } from "@/features/profiles/profile-panel-context";
 
 interface Props {
   activeChannelId: string | null;
@@ -39,15 +38,16 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [communitySettingsOpen, setCommunitySettingsOpen] = useState(false);
+  const [channelSettingsFor, setChannelSettingsFor] = useState<string | null>(
+    null,
+  );
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
   const members = useMembers(communityId);
   const isAdmin =
     currentPubkey != null &&
     members.some((m) => m.pubkey === currentPubkey && m.role === "admin");
-  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
-  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const currentStatus = useUserStatus(currentPubkey ?? "");
+  const { openProfile } = useProfilePanel();
 
   const {
     sections,
@@ -72,17 +72,6 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
     window.addEventListener("open-settings", openSettings);
     return () => window.removeEventListener("open-settings", openSettings);
   }, []);
-
-  useEffect(() => {
-    if (!menuOpenFor) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpenFor(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpenFor]);
 
   const workspaceName =
     workspace.status === "found" ? workspace.workspace.slug : "Workspace";
@@ -166,7 +155,6 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
                   {section.channels.map((ch) => {
                     const isActive = activeChannelId === ch.id;
                     const unread = isUnread(ch.id);
-                    const menuOpen = menuOpenFor === ch.id;
                     const isCurrentlyStarred = section.id === "starred";
                     const isCurrentlyMuted = section.id === "muted";
                     return (
@@ -187,55 +175,15 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
                             <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-500" />
                           )}
                         </button>
-                        <button
-                          type="button"
-                          aria-label="Channel options"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpenFor(menuOpen ? null : ch.id);
-                          }}
-                          className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded p-0.5 text-black/40 hover:bg-black/10 hover:text-black group-hover:flex dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
-                        >
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </button>
-                        {menuOpen && (
-                          <div
-                            ref={menuRef}
-                            className="absolute right-2 top-full z-40 mt-0.5 w-40 rounded-lg border border-black/10 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                toggleStar(ch.id);
-                                setMenuOpenFor(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
-                            >
-                              <Star className="h-3.5 w-3.5" />
-                              {isCurrentlyStarred ? "Unstar" : "Star"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                toggleMute(ch.id);
-                                setMenuOpenFor(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
-                            >
-                              {isCurrentlyMuted ? "Unmute" : "Mute"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                markRead(ch.id);
-                                setMenuOpenFor(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
-                            >
-                              Mark as read
-                            </button>
-                          </div>
-                        )}
+                        <ChannelContextMenu
+                          isStarred={isCurrentlyStarred}
+                          isMuted={isCurrentlyMuted}
+                          isAdmin={isAdmin}
+                          onStar={() => toggleStar(ch.id)}
+                          onMute={() => toggleMute(ch.id)}
+                          onMarkRead={() => markRead(ch.id)}
+                          onSettings={() => setChannelSettingsFor(ch.id)}
+                        />
                       </div>
                     );
                   })}
@@ -305,54 +253,30 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
             <Bot className="h-3.5 w-3.5 shrink-0 opacity-50" />
             Agents
           </Link>
+          <Link
+            to="/drafts"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            Drafts
+          </Link>
         </div>
       </nav>
 
-      <div className="relative shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">
-        {statusPickerOpen && currentPubkey && (
-          <div className="absolute bottom-full left-3 z-30 mb-1">
-            <StatusPicker
-              currentPubkey={currentPubkey}
-              onClose={() => setStatusPickerOpen(false)}
-            />
-          </div>
-        )}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setStatusPickerOpen((v) => !v)}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <span className="text-base leading-none">
-              {currentStatus?.emoji ?? "😶"}
-            </span>
-            <span className="truncate text-xs text-black/60 dark:text-white/60">
-              {currentStatus?.text || "Set a status"}
-            </span>
-          </button>
-          <a
-            href={
-              import.meta.env.VITE_DASHBOARD_URL ??
-              "https://dashboard.lengrowth.com"
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Advanced Dashboard"
-            title="Advanced Dashboard"
-            className="rounded-md p-1.5 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            className="rounded-md p-1.5 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      {currentPubkey && (
+        <SidebarProfileCard
+          pubkey={currentPubkey}
+          statusPickerOpen={statusPickerOpen}
+          onToggleStatusPicker={() => setStatusPickerOpen((v) => !v)}
+          onCloseStatusPicker={() => setStatusPickerOpen(false)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenProfile={() => openProfile(currentPubkey)}
+        />
+      )}
 
       <SettingsModal
         isOpen={settingsOpen}
@@ -371,6 +295,22 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
           onClose={() => setCommunitySettingsOpen(false)}
         />
       )}
+      {channelSettingsFor &&
+        (() => {
+          const ch = channels.find((c) => c.id === channelSettingsFor);
+          if (!ch) return null;
+          return (
+            <ChannelSettingsModal
+              isOpen
+              onClose={() => setChannelSettingsFor(null)}
+              channelId={ch.id}
+              channelName={ch.name}
+              channelDescription={ch.description}
+              channelVisibility={ch.visibility}
+              isAdmin={isAdmin}
+            />
+          );
+        })()}
     </div>
   );
 }

@@ -26,10 +26,29 @@ export default defineConfig({
   server: {
     port: parseInt(process.env.VITE_PORT || "5173", 10),
     strictPort: true,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
+  },
+  preview: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   build: {
     rollupOptions: {
+      input: {
+        index: "index.html",
+        "huddle-capture-processor":
+          "src/features/huddle/worklets/huddle-capture-processor.js",
+      },
       output: {
+        entryFileNames: (chunk) =>
+          chunk.name === "huddle-capture-processor"
+            ? "assets/[name].js"
+            : "assets/[name]-[hash].js",
         manualChunks(id) {
           if (
             id.includes("node_modules/prosemirror") ||
