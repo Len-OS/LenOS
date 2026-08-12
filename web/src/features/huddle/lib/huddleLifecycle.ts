@@ -76,13 +76,37 @@ export function reconstructHuddleLifecycle(
   };
 }
 
+/// Subscribe to DM huddle events by `#p` tag (self pubkey).
+/// Mirrors `subscribeHuddleLifecycle` but uses `#p` instead of `#h`.
+export function subscribeDmHuddleLifecycle(
+  selfPubkey: string,
+  store: LifecycleEvent[],
+  onUpdate: (evs: LifecycleEvent[]) => void,
+): () => void {
+  return getRelayClient(relayWsUrl()).subscribe({
+    id: `huddle-lifecycle-dm-${selfPubkey}`,
+    filter: {
+      kinds: [KIND_HUDDLE_STARTED, KIND_HUDDLE_ENDED],
+      "#p": [selfPubkey],
+      limit: 50,
+    },
+    onEvent: (raw) => {
+      const ev = raw as LifecycleEvent;
+      if (!store.some((e) => e.id === ev.id)) {
+        store.push(ev);
+        onUpdate([...store]);
+      }
+    },
+  });
+}
+
 export function subscribeHuddleLifecycle(
   parentChanId: string,
   store: LifecycleEvent[],
   onUpdate: (evs: LifecycleEvent[]) => void,
 ): () => void {
   return getRelayClient(relayWsUrl()).subscribe({
-    id: "huddle-lifecycle-" + parentChanId,
+    id: `huddle-lifecycle-${parentChanId}`,
     filter: {
       kinds: [
         KIND_HUDDLE_STARTED,

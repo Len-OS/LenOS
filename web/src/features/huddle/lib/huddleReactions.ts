@@ -31,7 +31,7 @@ export function subscribeHuddleReactions(
   onReaction: (r: HuddleReaction) => void,
 ): () => void {
   return getRelayClient(relayWsUrl()).subscribe({
-    id: "huddle-reactions-" + ephChanId,
+    id: `huddle-reactions-${ephChanId}`,
     filter: { kinds: [KIND_HUDDLE_REACTION], "#h": [ephChanId], limit: 0 },
     onEvent: (raw) => {
       onReaction({

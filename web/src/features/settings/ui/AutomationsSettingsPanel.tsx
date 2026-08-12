@@ -38,7 +38,7 @@ export function AutomationsSettingsPanel() {
     const cid = localStorage.getItem("lengrowth-company-id") ?? "";
     setCompanyId(cid);
     if (cid) fetchCrons(cid);
-  }, []);
+  }, [fetchCrons]);
 
   const handleDelete = async (cronId: string) => {
     await fetch(

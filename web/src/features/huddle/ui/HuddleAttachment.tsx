@@ -53,7 +53,7 @@ export function HuddleAttachment({
     const store: LifecycleEvent[] = [...events];
     return subscribeHuddleLifecycle(channelId, store, setEvents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ephId, channelId]);
+  }, [ephId, channelId, events]);
 
   return (
     <div className="my-1 flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.03] px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">

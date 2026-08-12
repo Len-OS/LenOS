@@ -184,3 +184,31 @@ pub const VIDEO_FLAG_KEYFRAME: u8 = 0x01;
 pub const VIDEO_FLAG_LAST_FRAGMENT: u8 = 0x02;
 /// `flags & VIDEO_FLAG_SCREEN_SHARE` indicates the frame is a screen-share capture.
 pub const VIDEO_FLAG_SCREEN_SHARE: u8 = 0x04;
+
+/// Length of the v2 video frame header (46 bytes, includes sender pubkey). Layout:
+///
+/// ```text
+///  byte 0       : version     u8 = 0x02
+///  byte 1..=2   : seq         u16 BE
+///  byte 3..=10  : pts_us      u64 BE (microseconds since capture start)
+///  byte 11      : flags       u8  (0x01=keyframe, 0x02=last_fragment, 0x04=screen_share)
+///  byte 12      : reserved    u8 = 0x00
+///  byte 13..=44 : sender_pk   [u8; 32] raw Nostr pubkey (big-endian)
+///  byte 45      : reserved    u8 = 0x00
+/// ```
+pub const VIDEO_HEADER_V2_LEN: usize = 46;
+
+/// Parse a v2 video header from `bytes`.
+/// Returns `(seq, pts_us, flags, sender_pk)` or `None` if the buffer is too short
+/// or the version byte is not 0x02.
+pub fn parse_video_v2_header(bytes: &[u8]) -> Option<(u16, u64, u8, [u8; 32])> {
+    if bytes.len() < VIDEO_HEADER_V2_LEN || bytes[0] != 0x02 {
+        return None;
+    }
+    let seq = u16::from_be_bytes([bytes[1], bytes[2]]);
+    let pts_us = u64::from_be_bytes(bytes[3..11].try_into().ok()?);
+    let flags = bytes[11];
+    let mut sender_pk = [0u8; 32];
+    sender_pk.copy_from_slice(&bytes[13..45]);
+    Some((seq, pts_us, flags, sender_pk))
+}

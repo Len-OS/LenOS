@@ -57,7 +57,7 @@ export class HuddleStt {
         }
       };
 
-      this.worker!.postMessage({ type: "init" });
+      this.worker?.postMessage({ type: "init" });
     });
   }
 

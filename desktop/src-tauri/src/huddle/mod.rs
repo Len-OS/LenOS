@@ -41,6 +41,7 @@ pub mod tts;
 pub mod tts_settings;
 mod tts_voice_import;
 mod tts_voice_registry;
+pub mod video;
 pub mod wire;
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
@@ -68,6 +69,7 @@ pub(super) fn drain_until_shutdown<T>(
 pub use state::{HuddleJoinInfo, HuddlePhase, HuddleState, VoiceInputMode};
 pub use transcription::{set_huddle_transcription_enabled, start_stt_pipeline};
 pub use tts_settings::set_tts_enabled;
+pub use video::{start_camera_share, start_screen_share, stop_video_share};
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
@@ -175,8 +177,30 @@ pub async fn start_huddle(
     parent_channel_id: String,
     member_pubkeys: Vec<String>,
     channel_name: Option<String>,
+    dm_pubkeys: Option<Vec<String>>,
     state: State<'_, AppState>,
 ) -> Result<HuddleJoinInfo, String> {
+    // Compute effective parent ID (synthetic for DM, UUID for channel).
+    let (effective_parent_id, is_dm, other_pubkey_for_event) =
+        if let Some(ref dm_pks) = dm_pubkeys {
+            let mut sorted = dm_pks.clone();
+            sorted.sort();
+            let synthetic_id = sorted.join(":");
+            let own_pk = state
+                .keys
+                .lock()
+                .map(|k| k.public_key().to_hex())
+                .unwrap_or_default();
+            let other_pk = sorted
+                .iter()
+                .find(|pk| **pk != own_pk)
+                .cloned()
+                .unwrap_or_else(|| sorted.first().cloned().unwrap_or_default());
+            (synthetic_id, true, Some(other_pk))
+        } else {
+            (parent_channel_id.clone(), false, None)
+        };
+
     // Validate inputs at the Tauri boundary.
     if member_pubkeys.len() > MAX_HUDDLE_AGENTS {
         return Err(format!(
@@ -209,7 +233,7 @@ pub async fn start_huddle(
         }
         let generation = hs.begin_huddle_lifetime();
         hs.phase = HuddlePhase::Creating;
-        hs.parent_channel_id = Some(parent_channel_id.clone());
+        hs.parent_channel_id = Some(effective_parent_id.clone());
         generation
     };
 
@@ -240,7 +264,7 @@ pub async fn start_huddle(
         //    Agents auto-subscribe on membership notification (kind:9000) and may
         //    complete EOSE before guidelines are stored if we post them after.
         //    Best-effort: don't fail the huddle if this fails.
-        let guidelines = agents::voice_mode_guidelines(&parent_channel_id);
+        let guidelines = agents::voice_mode_guidelines(&effective_parent_id);
         if let Ok(guidelines_builder) =
             events::build_huddle_guidelines(&ephemeral_channel_id, &guidelines)
         {
@@ -262,9 +286,16 @@ pub async fn start_huddle(
             }
         }
 
-        // 4. Emit HUDDLE_STARTED to parent channel.
-        let started_builder =
-            events::build_huddle_started(&parent_channel_id, &ephemeral_channel_id)?;
+        // 4. Emit HUDDLE_STARTED to parent channel (or DM synthetic channel).
+        let started_builder = if is_dm {
+            events::build_huddle_started_for_dm(
+                &effective_parent_id,
+                &ephemeral_channel_id,
+                other_pubkey_for_event.as_deref().unwrap_or(""),
+            )?
+        } else {
+            events::build_huddle_started(&effective_parent_id, &ephemeral_channel_id)?
+        };
         submit_event(started_builder, &state).await?;
 
         Ok(successful_agents)
@@ -299,7 +330,7 @@ pub async fn start_huddle(
                 }
             };
             if !committed {
-                emit_end_and_archive(&parent_channel_id, &ephemeral_channel_id, &state).await;
+                emit_end_and_archive(&effective_parent_id, &ephemeral_channel_id, &state).await;
                 return Err("huddle start was superseded".to_owned());
             }
 
@@ -321,7 +352,7 @@ pub async fn start_huddle(
                         .map(|hs| hs.is_current_huddle(&ephemeral_channel_id, huddle_generation))
                         .unwrap_or(false);
                     if still_current {
-                        emit_end_and_archive(&parent_channel_id, &ephemeral_channel_id, &state)
+                        emit_end_and_archive(&effective_parent_id, &ephemeral_channel_id, &state)
                             .await;
                         if let Ok(mut hs) = state.huddle_state.lock() {
                             if hs.is_current_huddle(&ephemeral_channel_id, huddle_generation) {
