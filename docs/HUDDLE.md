@@ -1,6 +1,6 @@
 # LenOS Huddle — Complete Reference
 
-**Last updated:** 2026-08-11  
+**Last updated:** 2026-08-12  
 **Platforms:** Web · Desktop (Tauri) · Mobile (Flutter — roadmap)
 
 Huddle is LenOS's in-channel voice room. Any member can start one from a channel header; the room persists until explicitly ended. Audio is routed through the relay (server-mixed, not peer-to-peer), so it works across every client type simultaneously.
@@ -16,7 +16,7 @@ Huddle is LenOS's in-channel voice room. Any member can start one from a channel
 5. [Web](#web)
 6. [Mobile (Flutter)](#mobile-flutter)
 7. [Cross-Platform Parity](#cross-platform-parity)
-8. [Roadmap — Screen Share · Video · Notes](#roadmap)
+8. [Roadmap — Desktop · Mobile](#roadmap)
 
 ---
 
@@ -30,6 +30,8 @@ Huddle is LenOS's in-channel voice room. Any member can start one from a channel
   Desktop (Tauri) ────┤   WS + NIP-42 auth           ├──── Nostr event fanout
   Mobile (future) ────┤   Opaque Opus fan-out         │     KIND 48100-48103
                       │   Active-speaker hints        │
+                      │  /huddle/{eph_ch_id}/video    │
+                      │   VP8 screen share + camera   │
                       └─────────────────────────────┘
 ```
 
@@ -51,10 +53,11 @@ Mic → PCM (48 kHz mono) → 20 ms frames (960 samples)
 
 ## Wire Protocol
 
-### WebSocket endpoint
+### WebSocket endpoints
 
 ```
 wss://<relay-host>/huddle/{ephemeral_channel_id}/audio
+wss://<relay-host>/huddle/{ephemeral_channel_id}/video
 ```
 
 ### Handshake sequence
@@ -70,7 +73,7 @@ Relay → Client   {"type":"peer_left","pubkey":"<hex>"}     (when others leave)
 
 Auth timeout: 5 s. Unauthenticated connections are dropped.
 
-### Binary frame layout (v2)
+### Binary frame layout — audio (v2)
 
 Every audio frame is a binary WebSocket message structured as:
 
@@ -85,6 +88,20 @@ Every audio frame is a binary WebSocket message structured as:
 ```
 
 `level_dbov` is authored by the sender. The relay clamps it to `[-127, 0]` and forwards it unchanged. Clients MUST NOT use it for trust decisions (admission, moderation). It is used only for active-speaker detection UI.
+
+### Binary frame layout — video
+
+```
+ Offset  Size   Field         Type      Notes
+ ──────  ────   ────────────  ────────  ──────────────────────────────────────
+  0      2      seq           u16 BE    Wraps at 65 535
+  2      8      pts_90k       u64 BE    90 kHz presentation timestamp
+ 10      1      flags         u8        0x01=keyframe, 0x02=last_fragment, 0x04=screen_share
+ 11      3      reserved      bytes     Future use; zero
+ 14      N      vp8_payload   bytes     VP8 encoded video; may be fragmented (max 60 KB/fragment)
+```
+
+`flags=0x00` = camera frame. `flags=0x04` = screen share frame. The relay enforces one presenter per room; a second presenter is rejected until the first disconnects.
 
 ### Active-speaker detection (client-side rule)
 
@@ -104,6 +121,9 @@ not_speaking = 3 consecutive frames with level_dbov <= −40 (reset speaking fla
 | 48102 | KIND_HUDDLE_PARTICIPANT_LEFT  | relay   | Signed by relay on WS disconnect |
 | 48103 | KIND_HUDDLE_ENDED           | client    | Sent by creator to end huddle |
 | 24810 | KIND_HUDDLE_REACTION        | client    | Ephemeral emoji reaction during huddle |
+| 9     | KIND_STREAM_MESSAGE         | client    | STT transcript published to parent channel |
+| 9000  | KIND_NIP29_ADD_USER         | client    | NIP-29 add-user; adds agent to ephemeral/parent channel |
+| 30177 | KIND_MANAGED_AGENT          | agent     | Agent definition event; used to identify agent peers |
 
 All lifecycle events carry `#h [parent_channel_id]` and `#e [started_event_id]` tags so subscribers can reconstruct state from any point.
 
@@ -131,18 +151,18 @@ A huddle is considered **stale** (join button hidden) if `created_at` on KIND_HU
 | Voice activity mode | ✅ | Toggle: push-to-talk ↔ continuous voice activity |
 | Input device picker | ✅ | `enumerateDevices()` + per-session mic gain slider |
 | Output device picker | ✅ | `rodio` output device enumeration + `SpeakerControls` UI |
-| Live transcription (STT) | ✅ | Parakeet TDT-CTC 110 M (sherpa-onnx); publishes kind 9 to channel |
+| Live transcription (STT) | ✅ | Parakeet TDT-CTC 110 M (sherpa-onnx); publishes kind:9 to channel |
 | TTS for agents | ✅ | Pocket TTS; queued per-agent; barge-in cancels on human speech |
 | Transcription toggle | ✅ | Captions button in HuddleBar; `set_huddle_transcription_enabled` Tauri command |
 | TTS toggle | ✅ | Toggle in HuddleBar; `set_tts_enabled` command |
-| Emoji reactions | ✅ | KIND_HUDDLE_REACTION (24810); animated burst overlay |
+| Emoji reactions | ✅ | 8 presets; animated bounce; KIND_HUDDLE_REACTION |
 | Participant list | ✅ | Agents + humans; agents have a remove button |
 | Add agent dynamically | ✅ | `AddAgentDialog`; adds agent to ephemeral + parent channels |
 | Model download UI | ✅ | Progress tracking for Parakeet + Pocket model files |
 | Persistent timeline card | ✅ | `HuddleAttachment` in `MessageTimeline`; shows live/ended state + join button |
 | HuddleIndicator in channel header | ✅ | Headphone icon; green when active; participant count badge |
 | Screen share | 🔲 | Not implemented — see Roadmap |
-| Video | 🔲 | Not implemented — see Roadmap |
+| Video (camera) | 🔲 | Not implemented — see Roadmap |
 | Huddle notes | 🔲 | Not implemented — see Roadmap |
 
 ### State machine
@@ -200,7 +220,7 @@ desktop/src/features/huddle/
 
 ## Web
 
-**Status: Production (P0 feature set)**  
+**Status: Production (full feature parity with desktop, except output device UI)**  
 **Location:** `web/src/features/huddle/`
 
 ### Feature set
@@ -213,7 +233,7 @@ desktop/src/features/huddle/
 | Opus WASM fallback | ✅ | `opusscript` (Emscripten-compiled libopus); loaded only when WebCodecs absent |
 | Audio relay WS | ✅ | NIP-42 auth; v2 binary frame protocol; `huddleAudioWs.ts` |
 | Opus decode + Web Audio playback | ✅ | Per-peer `AudioDecoder` + `AudioContext` scheduler; 3-frame (60 ms) jitter buffer |
-| VAD | ✅ | Energy-based RMS dBov in AudioWorklet (less accurate than earshot) |
+| VAD | ✅ | Energy-based RMS dBov in AudioWorklet |
 | Active-speaker detection | ✅ | Per-peer frame counter; 5-frame / 3-silent threshold |
 | Emoji reactions | ✅ | 8 presets; animated bounce; KIND_HUDDLE_REACTION |
 | Participant list | ✅ | Popover with avatars; green speaking ring |
@@ -222,51 +242,63 @@ desktop/src/features/huddle/
 | Lifecycle subscription | ✅ | Subscribes to kinds 48100–48103 for in-channel UI state |
 | Mute / unmute | ✅ | Worklet message; 8-bar level meter |
 | beforeunload cleanup | ✅ | Leaves huddle on tab close |
-| Push-to-talk | 🔲 | Not implemented — see Roadmap |
-| Input device picker | 🔲 | Not implemented (uses system default) — see Roadmap |
+| Push-to-talk | ✅ | Space key (configurable); PTT indicator in HuddleBar; localStorage persistence |
+| Voice activity / PTT toggle | ✅ | `inputMode` state; persisted to localStorage |
+| Input device picker | ✅ | `enumerateDevices()` after mic permission; hot-swap without leaving huddle |
+| Huddle notes | ✅ | Side panel; kind:30810 Nostr-based; persists after huddle ends |
+| Screen share | ✅ | WebCodecs VP8; `/video` WS endpoint; `flags=0x04`; relay presenter slot |
+| Camera video | ✅ | WebCodecs VP8; same `/video` endpoint; `flags=0x00`; mutual exclusion with screen share |
+| STT (live transcription) | ✅ | Whisper small INT8 WASM (`@huggingface/transformers`); Web Worker; VAD-gated; kind:9 publish |
+| TTS for agents | ✅ | Kokoro-82M-v1.0 q8 WASM (`kokoro-js`); Web Worker; per-agent FIFO; barge-in on speech |
+| Add agent dynamically | ✅ | NIP-29 kind:9000; `AddAgentDialog` filtered to online agents not in current huddle |
 | Output device picker | ⚠️ | Chrome only via `AudioContext.setSinkId`; no UI yet |
-| STT | 🔲 | Roadmap (Phase 2): `window.SpeechRecognition` |
-| TTS for agents | 🔲 | Roadmap (Phase 2): `window.speechSynthesis` |
-| Screen share | 🔲 | Not implemented — see Roadmap |
-| Video | 🔲 | Not implemented — see Roadmap |
-| Huddle notes | 🔲 | Not implemented — see Roadmap |
 
 ### Browser compatibility
 
-| Browser | Audio encode | WASM fallback | Notes |
-|---------|-------------|---------------|-------|
-| Chrome 94+ | ✅ WebCodecs | — | Full support |
-| Edge 94+ | ✅ WebCodecs | — | Full support |
-| Safari 17.4+ | ✅ WebCodecs | — | Full support |
-| Firefox | ⚠️ | ✅ opusscript | WebCodecs AudioEncoder not supported in Firefox; WASM path active |
-| Safari < 17.4 | ⚠️ | ✅ opusscript | Older Safari falls back to WASM |
+| Browser | Audio encode | Video encode | WASM (STT/TTS) | Notes |
+|---------|-------------|--------------|-----------------|-------|
+| Chrome 94+ | ✅ WebCodecs | ✅ VideoEncoder | ✅ | Full support |
+| Edge 94+ | ✅ WebCodecs | ✅ VideoEncoder | ✅ | Full support |
+| Safari 17.4+ | ✅ WebCodecs | ✅ VideoEncoder | ✅ (COOP/COEP required) | Full support |
+| Firefox | ⚠️ opusscript | ❌ no VideoEncoder | ✅ | Audio works; camera/screen share blocked |
+
+COOP/COEP headers are set in `vite.config.ts` (both `server` and `preview` blocks) to enable `SharedArrayBuffer` for the ONNX WASM runtime on Safari/Firefox.
 
 ### File map
 
 ```
 web/src/features/huddle/
-├── HuddleContext.tsx           State provider; pipeline setup; startHuddle/joinHuddle
-├── useHuddle.ts                Re-export of context hook
+├── HuddleContext.tsx               State provider; all feature state + actions
+├── useHuddle.ts                    Re-export of context hook
 ├── worklets/
 │   └── huddle-capture-processor.js   Vite entry for the AudioWorklet bundle
 ├── lib/
-│   ├── huddleCapture.worklet.ts   AudioWorklet processor (960-sample accumulation)
-│   ├── huddleCodec.ts          WebCodecs + opusscript encoder/decoder
-│   ├── huddleAudioWs.ts        WS connect, NIP-42 auth, frame send/recv
-│   ├── huddlePlayback.ts       Per-peer jitter buffer + AudioContext scheduler
-│   ├── huddleVad.ts            pcmToDbov() — RMS energy to dBov
-│   ├── huddleLifecycle.ts      Relay subscription + lifecycle state reconstruction
-│   ├── huddleReactions.ts      Publish + subscribe KIND_HUDDLE_REACTION
-│   └── huddleCardState.ts      isHuddleStale() — 3 600 s threshold
+│   ├── huddleCapture.worklet.ts    AudioWorklet processor (960-sample accumulation)
+│   ├── huddleCodec.ts              WebCodecs + opusscript encoder/decoder
+│   ├── huddleAudioWs.ts            Audio WS: NIP-42 auth, frame send/recv, PeerInfo
+│   ├── huddleVideoWs.ts            Video WS: screen share + camera (VP8, flags byte)
+│   ├── huddlePlayback.ts           Per-peer jitter buffer + AudioContext scheduler
+│   ├── huddleVad.ts                pcmToDbov() — RMS energy to dBov
+│   ├── huddleLifecycle.ts          Relay subscription + lifecycle state reconstruction
+│   ├── huddleReactions.ts          Publish + subscribe KIND_HUDDLE_REACTION
+│   ├── huddleCardState.ts          isHuddleStale() — 3 600 s threshold
+│   ├── huddleAgents.ts             addAgentToHuddle() — kind:9000 NIP-29 publish
+│   ├── huddleStt.ts                STT orchestrator: PCM accumulator, worker lifecycle, kind:9
+│   └── huddleTts.ts                TTS orchestrator: relay sub, per-agent queue, barge-in
+├── workers/
+│   ├── huddleSttWorker.ts          Web Worker: Whisper small WASM inference
+│   └── huddleTtsWorker.ts          Web Worker: Kokoro-82M-v1.0 q8 synthesis
 └── ui/
-    ├── HuddleBar.tsx           Fixed bottom bar (mute, reactions, participants, leave)
-    ├── MicControls.tsx         8-bar level meter + mute button
-    ├── HuddleParticipants.tsx  Popover participant list with speaking ring
-    ├── HuddleAttachment.tsx    Timeline card for KIND_HUDDLE_STARTED events
-    └── HuddleIndicator.tsx     Channel header icon with participant count badge
+    ├── HuddleBar.tsx               Fixed bottom bar: mute, PTT, STT, TTS, camera, screen share,
+    │                               reactions, notes, add-agent, participants, leave
+    ├── MicControls.tsx             8-bar level meter + mute button
+    ├── HuddleParticipants.tsx      Popover participant list with speaking ring
+    ├── HuddleAttachment.tsx        Timeline card for KIND_HUDDLE_STARTED events
+    ├── HuddleIndicator.tsx         Channel header icon with participant count badge
+    └── AddAgentDialog.tsx          Agent selector (online, not in current huddle)
 ```
 
-### Vite build
+### Vite build notes
 
 The AudioWorklet runs in a dedicated browser thread and must be loaded as a separate script. Vite emits it at a fixed path:
 
@@ -286,11 +318,7 @@ rollupOptions: {
 }
 ```
 
-`HuddleContext.tsx` references the worklet via `new URL(...)` which Vite rewrites to the correct asset URL at build time:
-
-```ts
-const WORKLET_URL = new URL("./worklets/huddle-capture-processor.js", import.meta.url).href;
-```
+STT and TTS workers are bundled as separate chunks via `new URL("../workers/huddleSttWorker.ts", import.meta.url)` — Vite handles this automatically without extra `rollupOptions` entries. The ONNX WASM runtime (~23.5 MB) is emitted as a dist asset; model weights (~40 MB for Whisper, ~80 MB for Kokoro) are fetched lazily from HuggingFace CDN on first use and browser-cached.
 
 ---
 
@@ -332,113 +360,39 @@ Phase 2 (STT via on-device model, TTS): 2–3 additional weeks.
 | Persistent timeline card | ✅ | ✅ | 🔲 |
 | Channel header indicator | ✅ | ✅ | 🔲 |
 | Lifecycle Nostr events | ✅ | ✅ | 🔲 |
-| Push-to-talk | ✅ | 🔲 | 🔲 |
-| Input device picker | ✅ | 🔲 | 🔲 |
-| Output device picker | ✅ | ⚠️ Chrome only | 🔲 |
-| STT (live transcription) | ✅ Parakeet | 🔲 Phase 2 | 🔲 |
-| TTS (agent voice) | ✅ Pocket | 🔲 Phase 2 | 🔲 |
-| Add agent dynamically | ✅ | 🔲 | 🔲 |
-| Voice mode toggle (PTT/VAD) | ✅ | 🔲 | 🔲 |
-| Screen share | 🔲 | 🔲 | 🔲 |
-| Video | 🔲 | 🔲 | 🔲 |
-| Huddle notes | 🔲 | 🔲 | 🔲 |
+| Push-to-talk | ✅ | ✅ | 🔲 |
+| Voice activity / PTT toggle | ✅ | ✅ | 🔲 |
+| Input device picker | ✅ | ✅ | 🔲 |
+| Output device picker | ✅ | ⚠️ Chrome only, no UI | 🔲 |
+| STT (live transcription) | ✅ Parakeet | ✅ Whisper WASM | 🔲 |
+| TTS (agent voice) | ✅ Pocket | ✅ Kokoro WASM | 🔲 |
+| Add agent dynamically | ✅ | ✅ | 🔲 |
+| Huddle notes | 🔲 | ✅ | 🔲 |
+| Screen share | 🔲 | ✅ | 🔲 |
+| Camera video | 🔲 | ✅ | 🔲 |
 
 ---
 
 ## Roadmap
 
-### Push-to-talk — Web
+### Desktop — Screen share, Camera video, Huddle notes
 
-**Effort:** ~0.5 days
+**Status:** Not implemented. Web shipped all three; desktop is next.
 
-`document.addEventListener("keydown/keyup")` for `Space` (or configurable key). Send mute/unmute message to the AudioWorklet. Show PTT indicator in `HuddleBar` while held. Persist preference to localStorage.
+**Screen share / Camera video — Desktop**
 
-```ts
-// HuddleContext.tsx addition
-useEffect(() => {
-  if (inputMode !== "push_to_talk") return;
-  const down = (e: KeyboardEvent) => { if (e.code === "Space") setMuted(false); };
-  const up   = (e: KeyboardEvent) => { if (e.code === "Space") setMuted(true);  };
-  document.addEventListener("keydown", down);
-  document.addEventListener("keyup",   up);
-  return () => { document.removeEventListener("keydown", down); document.removeEventListener("keyup", up); };
-}, [inputMode]);
-```
+- Capture: Tauri screen-capture API (screen share) / `getUserMedia` via webview (camera)
+- Encode: Rust `vpx` crate (VP8); same wire protocol as web (`/video` endpoint, same flags byte)
+- Relay: endpoint already live (`/huddle/{eph_id}/video`); desktop just needs the client
+- Receive + render: VP8 decode → `<canvas>` or `ImageBitmap` overlay in the Tauri window
 
-### Audio device picker — Web
+**Huddle notes — Desktop**
 
-**Effort:** ~1 day
+Port the web implementation: kind:30810 replaceable event, `#e [started_event_id]` + `#h [channel_id]` tags, textarea side panel. Desktop signs via existing Tauri Nostr signer.
 
-`navigator.mediaDevices.enumerateDevices()` (requires microphone permission). Store selected `deviceId` in context state. Re-call `getUserMedia({ audio: { deviceId: { exact: selectedDeviceId } } })` on change. For output: `AudioContext.setSinkId(deviceId)` (Chrome only; guard with `"setSinkId" in AudioContext.prototype`). Add a `<select>` in the `MicControls` component.
+### Desktop — Output device picker (web)
 
-### Screen share — All platforms
-
-**Effort:** 1–2 weeks per platform
-
-Screen share requires a **second media track** alongside the audio track. Architecturally:
-
-- **Capture:** `getDisplayMedia({ video: true, audio: false })` on web; `Tauri` screen-capture API on desktop; `flutter_screen_capture` on mobile.
-- **Encode:** VP8 / VP9 / AV1 via WebCodecs `VideoEncoder` on web; Rust `vpx` crate on desktop.
-- **Transport:** A second WebSocket connection to a new relay endpoint, e.g. `/huddle/{eph_id}/video`, using a similar binary frame protocol but with a video-specific header (frame type, timestamp, keyframe flag). Alternatively, extend the existing endpoint with a `flags` byte that differentiates audio vs. video frames — but a separate WS is cleaner for rate limiting and routing.
-- **Relay changes:** The relay must handle a new `/huddle/{eph_id}/video` endpoint with its own room state, fan-out, and permission checks (only presenter sends; all peers receive).
-- **Receive + render:** `VideoDecoder` → `<canvas>` or `ImageBitmap` on web; `rodio`-equivalent video output on desktop.
-
-**Recommended wire protocol for video frames:**
-
-```
-Offset  Size   Field         Notes
- 0       2     seq           u16 BE
- 2       8     pts_90k       u64 BE  90 kHz presentation timestamp
-10       1     flags         0x01=keyframe, 0x02=last_fragment, 0x04=screen_share
-11       3     reserved      future use
-12       N     vp8/vp9/av1   encoded video data (may be fragmented)
-```
-
-**Relay endpoint:**
-
-```
-wss://<host>/huddle/{eph_channel_id}/video
-```
-
-Same NIP-42 handshake. Only the huddle creator (or a designated presenter) should be admitted to send; all authenticated members receive.
-
-### Video (camera) — All platforms
-
-Same architecture as screen share but sourced from `getUserMedia({ video: true })` instead of `getDisplayMedia`. The relay endpoint and wire format are identical. The two can share the same `/video` endpoint with the `flags` byte distinguishing screen share vs. camera frames.
-
-### Huddle notes — All platforms
-
-**Effort:** 1 week
-
-A collaborative text pad attached to a huddle session. Design options:
-
-**Option A — Nostr-based (recommended):** Use a new replaceable event kind (e.g. `kind: 30810`) with `#e [started_event_id]` and `#h [channel_id]` tags. Each save publishes a new version; clients take the latest `created_at`. Simple, relay-stored, no extra infra.
-
-**Option B — CRDT (OT/Yjs):** Full real-time collaborative editing. Requires a sync WebSocket endpoint on the relay or a sidecar. Significantly more complex.
-
-**Recommended UI flow:**
-1. Notes button in `HuddleBar` (notebook icon). Opens a side panel.
-2. Panel has a textarea (Option A) or `<Editor>` component (Option B).
-3. On `blur` or explicit save, publish the Nostr event.
-4. Subscribe to `kind: 30810` with `#e [started_event_id]`; update textarea on new events from other participants.
-5. Notes survive huddle end (stored on relay as a normal replaceable event).
-
-**Proposed kind:**
-
-```
-kind:   30810
-tags:   ["e", "<started_event_id>"], ["h", "<parent_channel_id>"]
-content: plain text (markdown rendered client-side)
-```
-
-### STT / TTS — Web (Phase 2)
-
-Desktop already ships Parakeet (STT) and Pocket (TTS). The web equivalent uses browser APIs:
-
-- **STT:** `window.SpeechRecognition` / `webkitSpeechRecognition`. Accuracy and language support are browser-dependent and lower quality than Parakeet. Suitable for English-only MVP; a WASM Whisper model would be equivalent to desktop quality but is ~150 MB.
-- **TTS:** `window.speechSynthesis`. Voice quality varies by OS. For parity with desktop, a WASM TTS model (e.g. Kokoro) can be loaded lazily on first TTS use.
-
-Both are toggled independently and must not block the audio pipeline. Same Nostr events as desktop (kind 9 for transcripts).
+Web `AudioContext.setSinkId` (Chrome 110+) sets the output device without re-creating the context. A `<select>` in `MicControls` or a dedicated `SpeakerControls` component would complete parity. No relay changes needed.
 
 ### Mobile huddle (Phase 1)
 
@@ -453,3 +407,4 @@ See [Mobile section](#mobile-flutter) for package list and scope estimate.
 - The relay validates channel membership before admitting peers to a room. Clients that are not members of the ephemeral channel are rejected.
 - Ephemeral channels are auto-created by the relay on `start_huddle` with the creator as owner. Membership is managed by the relay.
 - For screen share / video: the relay MUST check that the sender is the designated presenter before forwarding video frames to prevent video injection attacks.
+- STT transcripts (kind:9) are published to the **parent** channel, not the ephemeral channel — they are visible to channel members who were not in the huddle.
