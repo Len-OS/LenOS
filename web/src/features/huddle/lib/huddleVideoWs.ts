@@ -9,6 +9,7 @@ export interface HuddleVideoWsOptions {
   onPresenter: (pubkey: string) => void;
   onPresenterLeft: () => void;
   onFrame?: (data: ArrayBuffer) => void;
+  onClose?: () => void;
 }
 
 export class HuddleVideoWs {
@@ -71,6 +72,7 @@ export class HuddleVideoWs {
 
       ws.addEventListener("close", () => {
         this.ws = null;
+        this.opts.onClose?.();
       });
 
       ws.addEventListener("error", () => {
@@ -93,6 +95,7 @@ export class HuddleVideoWs {
     this.videoTrack = track;
     track.addEventListener("ended", () => this.stopScreenShare());
 
+    const { width: tw = 1280, height: th = 720 } = track.getSettings();
     let frameCount = 0;
     const encoder = new VideoEncoder({
       output: (chunk) => {
@@ -102,8 +105,8 @@ export class HuddleVideoWs {
     });
     encoder.configure({
       codec: "vp8",
-      width: 1280,
-      height: 720,
+      width: tw,
+      height: th,
       bitrate: 500_000,
       framerate: 15,
     });
@@ -197,6 +200,7 @@ export class HuddleVideoWs {
     this.videoTrack = track;
     track.addEventListener("ended", () => this.stopCameraShare());
 
+    const { width: cw = 1280, height: ch = 720 } = track.getSettings();
     let frameCount = 0;
     const encoder = new VideoEncoder({
       output: (chunk) => {
@@ -206,8 +210,8 @@ export class HuddleVideoWs {
     });
     encoder.configure({
       codec: "vp8",
-      width: 1280,
-      height: 720,
+      width: cw,
+      height: ch,
       bitrate: 500_000,
       framerate: 15,
     });

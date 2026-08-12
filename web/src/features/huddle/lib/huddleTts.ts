@@ -7,7 +7,8 @@ export class HuddleTts {
   private worker: Worker | null = null;
   private currentSource: AudioBufferSourceNode | null = null;
   private speaking = false;
-  private cancelled = false;
+  private jobId = 0;
+  private activeJobId = 0;
   private perAgentQueue = new Map<string, string[]>();
   private agentPubkeys: Set<string>;
   private unsub: (() => void) | null = null;
@@ -90,15 +91,15 @@ export class HuddleTts {
       type: string;
       buffer?: ArrayBuffer;
       sampleRate?: number;
+      jobId?: number;
     }>,
   ): void {
     if (
       (evt.data.type === "audio" && evt.data.buffer && evt.data.sampleRate) ||
       evt.data.type === "audio_error"
     ) {
-      // Drop stale audio if barge-in occurred during generation
-      if (this.cancelled) {
-        this.cancelled = false;
+      // Drop stale audio from a cancelled job
+      if (evt.data.jobId !== this.activeJobId) {
         this.speaking = false;
         return;
       }
@@ -141,8 +142,9 @@ export class HuddleTts {
       const text = queue.shift();
       if (text) {
         this.speaking = true;
-        this.cancelled = false;
-        this.worker.postMessage({ type: "speak", text });
+        const id = ++this.jobId;
+        this.activeJobId = id;
+        this.worker.postMessage({ type: "speak", text, jobId: id });
         return;
       }
     }
@@ -150,7 +152,8 @@ export class HuddleTts {
 
   onSpeaking(): void {
     if (!this.speaking) return;
-    this.cancelled = true;
+    // Advance activeJobId so any in-flight worker response is discarded
+    this.activeJobId = ++this.jobId;
     try {
       this.currentSource?.stop();
     } catch {

@@ -23,9 +23,9 @@ function flattenAudio(
 }
 
 self.onmessage = async (
-  evt: MessageEvent<{ type: string; text?: string }>,
+  evt: MessageEvent<{ type: string; text?: string; jobId?: number }>,
 ) => {
-  const { type, text } = evt.data;
+  const { type, text, jobId } = evt.data;
 
   if (type === "init") {
     try {
@@ -53,13 +53,13 @@ self.onmessage = async (
         pcm.byteOffset + pcm.byteLength,
       );
       workerPost(
-        { type: "audio", buffer: buf, sampleRate: audio.sampling_rate },
+        { type: "audio", buffer: buf, sampleRate: audio.sampling_rate, jobId },
         [buf],
       );
     } catch (e) {
       console.error("[TtsWorker]", e);
       // Signal completion even on error so the queue advances
-      workerPost({ type: "audio_error" });
+      workerPost({ type: "audio_error", jobId });
     }
   }
 };

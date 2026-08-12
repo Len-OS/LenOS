@@ -260,8 +260,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         const dbov = pcmToDbov(pcm);
         const ts = tsRef.current;
         void encoderRef
-          .current!.encode(pcm, ts)
-          .then((opus) => ws.sendFrame(opus, ts, dbov));
+          .current?.encode(pcm, ts)
+          ?.then((opus) => ws.sendFrame(opus, ts, dbov));
         setState((s) => ({
           ...s,
           micLevel: Math.max(0, Math.min(1, (dbov + 90) / 90)),
@@ -299,8 +299,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
       }
 
       if (ttsEnabledRef.current) {
-        const tts = new HuddleTts(
-          (loading) => setState((s) => ({ ...s, ttsLoading: loading })),
+        const tts = new HuddleTts((loading) =>
+          setState((s) => ({ ...s, ttsLoading: loading })),
         );
         huddleTtsRef.current = tts;
         // agentPubkeys will be synced via useEffect watching state.agentPubkeys
@@ -533,8 +533,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         ctxRef.current &&
         !huddleTtsRef.current
       ) {
-        const tts = new HuddleTts(
-          (loading) => setState((s) => ({ ...s, ttsLoading: loading })),
+        const tts = new HuddleTts((loading) =>
+          setState((s) => ({ ...s, ttsLoading: loading })),
         );
         huddleTtsRef.current = tts;
         void tts
@@ -571,6 +571,10 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
       ephemeralChannelId,
       onPresenter: () => {},
       onPresenterLeft: () => {},
+      onClose: () => {
+        videoWsRef.current = null;
+        setState((s) => ({ ...s, screenShareActive: false, cameraShareActive: false }));
+      },
     });
     videoWsRef.current = ws;
     await ws.connect();
@@ -605,6 +609,10 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
       ephemeralChannelId,
       onPresenter: () => {},
       onPresenterLeft: () => {},
+      onClose: () => {
+        videoWsRef.current = null;
+        setState((s) => ({ ...s, screenShareActive: false, cameraShareActive: false }));
+      },
     });
     videoWsRef.current = ws;
     await ws.connect();

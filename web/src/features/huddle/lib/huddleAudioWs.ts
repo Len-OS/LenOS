@@ -101,6 +101,7 @@ export class HuddleAudioWs {
       ws.addEventListener("error", () => {
         clearTimeout(timeout);
         this.opts.onError("WebSocket error");
+        reject(new Error("WebSocket error"));
       });
     });
   }
