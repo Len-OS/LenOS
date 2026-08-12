@@ -42,7 +42,7 @@ export function IntegrationsSettingsPanel() {
     if (cid) {
       fetchStatus(cid);
     }
-  }, []);
+  }, [fetchStatus]);
 
   const handleConnect = (platform: string) => {
     window.open(

@@ -35,7 +35,7 @@ export function MicControls() {
                       : "#22c55e"
                   : "currentColor",
               opacity: micLevel > i / 8 ? 1 : 0.15,
-              height: (i + 1) * 12.5 + "%",
+              height: `${(i + 1) * 12.5}%`,
             }}
           />
         ))}

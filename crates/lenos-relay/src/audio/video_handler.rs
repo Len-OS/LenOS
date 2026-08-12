@@ -12,7 +12,7 @@ use axum::extract::ws::{Message as WsMessage, WebSocket};
 use bytes::Bytes;
 use dashmap::DashMap;
 use futures_util::{SinkExt, StreamExt};
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, mpsc};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
@@ -21,7 +21,7 @@ use lenos_auth::generate_challenge;
 use lenos_core::tenant::TenantContext;
 use lenos_core::CommunityId;
 
-use crate::audio::wire::VIDEO_HEADER_LEN;
+use crate::audio::wire::{VIDEO_HEADER_LEN, VIDEO_HEADER_V2_LEN, parse_video_v2_header};
 use crate::state::AppState;
 
 const AUTH_TIMEOUT: Duration = Duration::from_secs(5);
@@ -34,12 +34,14 @@ const BROADCAST_CAPACITY: usize = 16;
 /// Per-channel video relay room. Holds the frame broadcast channel and
 /// per-peer control senders.
 pub struct VideoRoom {
-    /// Broadcast channel for video frames from the presenter.
+    /// Broadcast channel for video frames from all senders.
     pub(crate) frame_tx: broadcast::Sender<Bytes>,
     /// Per-peer control channel: peer_id → JSON sender.
     ctrl_peers: DashMap<Uuid, mpsc::Sender<String>>,
-    /// Current presenter: (peer_id, pubkey_hex). None when no one is sharing.
-    presenter: Mutex<Option<(Uuid, String)>>,
+    /// Active video senders: pubkey_bytes → peer_id.
+    senders: DashMap<[u8; 32], Uuid>,
+    /// Sender mode: pubkey_bytes → "camera" | "screen".
+    sender_modes: DashMap<[u8; 32], &'static str>,
 }
 
 impl VideoRoom {
@@ -48,7 +50,8 @@ impl VideoRoom {
         Self {
             frame_tx,
             ctrl_peers: DashMap::new(),
-            presenter: Mutex::new(None),
+            senders: DashMap::new(),
+            sender_modes: DashMap::new(),
         }
     }
 
@@ -78,6 +81,17 @@ impl VideoRoom {
 
     fn peer_count(&self) -> usize {
         self.ctrl_peers.len()
+    }
+
+    fn publishers_snapshot(&self) -> Vec<serde_json::Value> {
+        self.senders
+            .iter()
+            .map(|e| {
+                let hex: String = e.key().iter().map(|b| format!("{b:02x}")).collect();
+                let mode = self.sender_modes.get(e.key()).map(|m| *m).unwrap_or("camera");
+                serde_json::json!({"pubkey": hex, "mode": mode})
+            })
+            .collect()
     }
 }
 
@@ -320,17 +334,20 @@ async fn handle_video_connection(
 
     let mut frame_rx = room.subscribe_frames();
 
-    // Notify new peer if there's already a presenter
+    // Send existing publishers snapshot to new peer
     {
-        let presenter = room.presenter.lock().await;
-        if let Some((_, ref pk)) = *presenter {
-            let msg =
-                serde_json::json!({"type":"presenter_joined","pubkey": pk}).to_string();
+        let publishers = room.publishers_snapshot();
+        if !publishers.is_empty() {
+            let msg = serde_json::json!({
+                "type": "video_started_batch",
+                "publishers": publishers,
+            }).to_string();
             room.send_ctrl_to(peer_id, msg);
         }
     }
 
-    let joined_msg = serde_json::json!({"type":"joined"}).to_string();
+    let publishers = room.publishers_snapshot();
+    let joined_msg = serde_json::json!({"type":"joined","publishers": publishers}).to_string();
     if ws_send
         .send(WsMessage::Text(joined_msg.into()))
         .await
@@ -384,7 +401,7 @@ async fn handle_video_connection(
     });
 
     // ── Recv loop ────────────────────────────────────────────────────────────
-    let mut is_presenter = false;
+    let mut my_sender_pk: Option<[u8; 32]> = None;
     loop {
         tokio::select! {
             biased;
@@ -396,31 +413,57 @@ async fn handle_video_connection(
                             warn!(peer_id = %peer_id, "video frame too large — dropping");
                             continue;
                         }
-                        if data.len() <= VIDEO_HEADER_LEN {
+
+                        // Parse v2 header; fall back to v1 minimum size check
+                        let parsed_v2 = if data.len() >= VIDEO_HEADER_V2_LEN {
+                            parse_video_v2_header(&data)
+                        } else {
+                            None
+                        };
+
+                        let (sender_pk, flags) = match parsed_v2 {
+                            Some((_, _, fl, pk)) => (pk, fl),
+                            None => {
+                                if data.len() <= VIDEO_HEADER_LEN { continue; }
+                                // v1: use authenticated pubkey as sender identity
+                                let fl = if data.len() > 10 { data[10] } else { 0 };
+                                let mut pk = [0u8; 32];
+                                let src = &pubkey_bytes[..pubkey_bytes.len().min(32)];
+                                pk[..src.len()].copy_from_slice(src);
+                                (pk, fl)
+                            }
+                        };
+
+                        // Security: sender_pk must match the authenticated pubkey
+                        if sender_pk[..] != pubkey_bytes[..] {
+                            warn!(peer_id = %peer_id, "video: sender_pk mismatch — dropping");
                             continue;
                         }
 
-                        if !is_presenter {
-                            // Try to become presenter
-                            let mut presenter = room.presenter.lock().await;
-                            if presenter.is_none() {
-                                *presenter = Some((peer_id, pubkey_hex.clone()));
-                                is_presenter = true;
-                                drop(presenter);
-                                // Notify everyone else
-                                let join_msg = serde_json::json!({
-                                    "type": "presenter_joined",
-                                    "pubkey": pubkey_hex,
-                                }).to_string();
-                                room.broadcast_ctrl(&join_msg);
-                                info!(channel_id = %channel_id, pubkey = %pubkey_hex, "video presenter started");
-                            } else {
-                                // Someone else is presenting, drop this frame
-                                continue;
-                            }
+                        // Register as new sender on first frame
+                        if !room.senders.contains_key(&sender_pk) {
+                            let mode: &'static str =
+                                if (flags & 0x04) != 0 { "screen" } else { "camera" };
+                            room.senders.insert(sender_pk, peer_id);
+                            room.sender_modes.insert(sender_pk, mode);
+                            my_sender_pk = Some(sender_pk);
+                            let pk_hex: String =
+                                sender_pk.iter().map(|b| format!("{b:02x}")).collect();
+                            let msg = serde_json::json!({
+                                "type": "video_started",
+                                "pubkey": pk_hex,
+                                "mode": mode,
+                            }).to_string();
+                            room.broadcast_ctrl(&msg);
+                            info!(
+                                channel_id = %channel_id,
+                                pubkey = %pk_hex,
+                                mode,
+                                "video sender started"
+                            );
                         }
 
-                        // Forward to all receivers
+                        // Broadcast frame to all subscribers
                         let _ = room.frame_tx.send(Bytes::copy_from_slice(&data));
                     }
                     Some(Ok(WsMessage::Text(text))) => {
@@ -442,15 +485,17 @@ async fn handle_video_connection(
     let _ = send_task.await;
 
     // ── Cleanup ───────────────────────────────────────────────────────────────
-    if is_presenter {
-        let mut presenter = room.presenter.lock().await;
-        if presenter.as_ref().map(|(id, _)| *id) == Some(peer_id) {
-            *presenter = None;
-            drop(presenter);
-            let left_msg =
-                serde_json::json!({"type":"presenter_left","pubkey": pubkey_hex}).to_string();
-            room.broadcast_ctrl(&left_msg);
-            info!(channel_id = %channel_id, pubkey = %pubkey_hex, "video presenter stopped");
+    if let Some(pk) = my_sender_pk {
+        if room.senders.get(&pk).map(|v| *v) == Some(peer_id) {
+            room.senders.remove(&pk);
+            room.sender_modes.remove(&pk);
+            let pk_hex: String = pk.iter().map(|b| format!("{b:02x}")).collect();
+            let msg = serde_json::json!({
+                "type": "video_stopped",
+                "pubkey": pk_hex,
+            }).to_string();
+            room.broadcast_ctrl(&msg);
+            info!(channel_id = %channel_id, pubkey = %pk_hex, "video sender stopped");
         }
     }
 

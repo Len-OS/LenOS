@@ -156,6 +156,10 @@ export function ChannelMembersBar({
       channelId={channel.id}
       onStart={async () => {
         try {
+          const dmPubkeys =
+            channel.channelType === "dm"
+              ? channel.participantPubkeys
+              : undefined;
           await startHuddle(
             channel.id,
             [...huddleMemberPubkeys],
@@ -164,6 +168,7 @@ export function ChannelMembersBar({
               currentPubkey,
               members,
             }),
+            dmPubkeys,
           );
           // Refetch channels so the new ephemeral channel appears in the sidebar immediately
           // (default poll interval is 60s — too slow for huddle UX).

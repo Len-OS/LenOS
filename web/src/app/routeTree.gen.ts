@@ -14,16 +14,16 @@ import { Route as workspaceDotremindersRouteImport } from "./routes/_workspace.r
 import { Route as workspaceDotpulseRouteImport } from "./routes/_workspace.pulse";
 import { Route as workspaceDotmessagesRouteImport } from "./routes/_workspace.messages";
 import { Route as workspaceDothomeRouteImport } from "./routes/_workspace.home";
+import { Route as workspaceDotdraftsRouteImport } from "./routes/_workspace.drafts";
 import { Route as workspaceDotchannelsRouteImport } from "./routes/_workspace.channels";
 import { Route as workspaceDotagentsRouteImport } from "./routes/_workspace.agents";
-import { Route as workspaceDotdraftsRouteImport } from "./routes/_workspace.drafts";
 import { Route as workspaceDotreposDotrepoIdRouteImport } from "./routes/_workspace.repos.$repoId";
 import { Route as workspaceDotmessagesDotnewRouteImport } from "./routes/_workspace.messages.new";
 import { Route as workspaceDotmessagesDotchannelIdRouteImport } from "./routes/_workspace.messages.$channelId";
+import { Route as workspaceDotlenosDotsplatRouteImport } from "./routes/_workspace.lenos.$";
 import { Route as workspaceDotchannelsDotchannelIdRouteImport } from "./routes/_workspace.channels.$channelId";
 import { Route as workspaceDotreposDotrepoIdDotblobDotsplatRouteImport } from "./routes/_workspace.repos.$repoId.blob.$";
 import { Route as workspaceDotchannelsDotchannelIdDotpostsDotpostIdRouteImport } from "./routes/_workspace.channels.$channelId.posts.$postId";
-import { Route as workspaceDotlenosDotsplatRouteImport } from "./routes/_workspace.lenos.$";
 
 const workspaceRoute = workspaceRouteImport.update({
   id: "/_workspace",
@@ -69,6 +69,11 @@ const workspaceDothomeRoute = workspaceDothomeRouteImport.update({
   path: "/home",
   getParentRoute: () => workspaceRoute,
 } as any);
+const workspaceDotdraftsRoute = workspaceDotdraftsRouteImport.update({
+  id: "/drafts",
+  path: "/drafts",
+  getParentRoute: () => workspaceRoute,
+} as any);
 const workspaceDotchannelsRoute = workspaceDotchannelsRouteImport.update({
   id: "/channels",
   path: "/channels",
@@ -77,11 +82,6 @@ const workspaceDotchannelsRoute = workspaceDotchannelsRouteImport.update({
 const workspaceDotagentsRoute = workspaceDotagentsRouteImport.update({
   id: "/agents",
   path: "/agents",
-  getParentRoute: () => workspaceRoute,
-} as any);
-const workspaceDotdraftsRoute = workspaceDotdraftsRouteImport.update({
-  id: "/drafts",
-  path: "/drafts",
   getParentRoute: () => workspaceRoute,
 } as any);
 const workspaceDotreposDotrepoIdRoute =
@@ -102,6 +102,12 @@ const workspaceDotmessagesDotchannelIdRoute =
     path: "/messages/$channelId",
     getParentRoute: () => workspaceRoute,
   } as any);
+const workspaceDotlenosDotsplatRoute =
+  workspaceDotlenosDotsplatRouteImport.update({
+    id: "/lenos/$",
+    path: "/lenos/$",
+    getParentRoute: () => workspaceRoute,
+  } as any);
 const workspaceDotchannelsDotchannelIdRoute =
   workspaceDotchannelsDotchannelIdRouteImport.update({
     id: "/channels/$channelId",
@@ -120,18 +126,12 @@ const workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute =
     path: "/channels/$channelId/posts/$postId",
     getParentRoute: () => workspaceRoute,
   } as any);
-const workspaceDotlenosDotsplatRoute =
-  workspaceDotlenosDotsplatRouteImport.update({
-    id: "/_workspace/lenos/$",
-    path: "/lenos/$",
-    getParentRoute: () => workspaceRoute,
-  } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof indexRoute;
   "/agents": typeof workspaceDotagentsRoute;
-  "/drafts": typeof workspaceDotdraftsRoute;
   "/channels": typeof workspaceDotchannelsRoute;
+  "/drafts": typeof workspaceDotdraftsRoute;
   "/home": typeof workspaceDothomeRoute;
   "/messages": typeof workspaceDotmessagesRoute;
   "/pulse": typeof workspaceDotpulseRoute;
@@ -140,18 +140,18 @@ export interface FileRoutesByFullPath {
   "/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
+  "/lenos/$": typeof workspaceDotlenosDotsplatRoute;
   "/messages/$channelId": typeof workspaceDotmessagesDotchannelIdRoute;
   "/messages/new": typeof workspaceDotmessagesDotnewRoute;
   "/repos/$repoId": typeof workspaceDotreposDotrepoIdRoute;
   "/channels/$channelId/posts/$postId": typeof workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute;
   "/repos/$repoId/blob/$": typeof workspaceDotreposDotrepoIdDotblobDotsplatRoute;
-  "/lenos/$": typeof workspaceDotlenosDotsplatRoute;
 }
 export interface FileRoutesByTo {
   "/": typeof indexRoute;
   "/agents": typeof workspaceDotagentsRoute;
-  "/drafts": typeof workspaceDotdraftsRoute;
   "/channels": typeof workspaceDotchannelsRoute;
+  "/drafts": typeof workspaceDotdraftsRoute;
   "/home": typeof workspaceDothomeRoute;
   "/messages": typeof workspaceDotmessagesRoute;
   "/pulse": typeof workspaceDotpulseRoute;
@@ -160,20 +160,20 @@ export interface FileRoutesByTo {
   "/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
+  "/lenos/$": typeof workspaceDotlenosDotsplatRoute;
   "/messages/$channelId": typeof workspaceDotmessagesDotchannelIdRoute;
   "/messages/new": typeof workspaceDotmessagesDotnewRoute;
   "/repos/$repoId": typeof workspaceDotreposDotrepoIdRoute;
   "/channels/$channelId/posts/$postId": typeof workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute;
   "/repos/$repoId/blob/$": typeof workspaceDotreposDotrepoIdDotblobDotsplatRoute;
-  "/lenos/$": typeof workspaceDotlenosDotsplatRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/": typeof indexRoute;
   "/_workspace": typeof workspaceRouteWithChildren;
   "/_workspace/agents": typeof workspaceDotagentsRoute;
-  "/_workspace/drafts": typeof workspaceDotdraftsRoute;
   "/_workspace/channels": typeof workspaceDotchannelsRoute;
+  "/_workspace/drafts": typeof workspaceDotdraftsRoute;
   "/_workspace/home": typeof workspaceDothomeRoute;
   "/_workspace/messages": typeof workspaceDotmessagesRoute;
   "/_workspace/pulse": typeof workspaceDotpulseRoute;
@@ -182,20 +182,20 @@ export interface FileRoutesById {
   "/_workspace/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/_workspace/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
+  "/_workspace/lenos/$": typeof workspaceDotlenosDotsplatRoute;
   "/_workspace/messages/$channelId": typeof workspaceDotmessagesDotchannelIdRoute;
   "/_workspace/messages/new": typeof workspaceDotmessagesDotnewRoute;
   "/_workspace/repos/$repoId": typeof workspaceDotreposDotrepoIdRoute;
   "/_workspace/channels/$channelId/posts/$postId": typeof workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute;
   "/_workspace/repos/$repoId/blob/$": typeof workspaceDotreposDotrepoIdDotblobDotsplatRoute;
-  "/_workspace/lenos/$": typeof workspaceDotlenosDotsplatRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | "/"
     | "/agents"
-    | "/drafts"
     | "/channels"
+    | "/drafts"
     | "/home"
     | "/messages"
     | "/pulse"
@@ -204,18 +204,18 @@ export interface FileRouteTypes {
     | "/workflows"
     | "/invite/$code"
     | "/channels/$channelId"
+    | "/lenos/$"
     | "/messages/$channelId"
     | "/messages/new"
     | "/repos/$repoId"
     | "/channels/$channelId/posts/$postId"
-    | "/repos/$repoId/blob/$"
-    | "/lenos/$";
+    | "/repos/$repoId/blob/$";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/"
     | "/agents"
-    | "/drafts"
     | "/channels"
+    | "/drafts"
     | "/home"
     | "/messages"
     | "/pulse"
@@ -224,19 +224,19 @@ export interface FileRouteTypes {
     | "/workflows"
     | "/invite/$code"
     | "/channels/$channelId"
+    | "/lenos/$"
     | "/messages/$channelId"
     | "/messages/new"
     | "/repos/$repoId"
     | "/channels/$channelId/posts/$postId"
-    | "/repos/$repoId/blob/$"
-    | "/lenos/$";
+    | "/repos/$repoId/blob/$";
   id:
     | "__root__"
     | "/"
     | "/_workspace"
     | "/_workspace/agents"
-    | "/_workspace/drafts"
     | "/_workspace/channels"
+    | "/_workspace/drafts"
     | "/_workspace/home"
     | "/_workspace/messages"
     | "/_workspace/pulse"
@@ -245,12 +245,12 @@ export interface FileRouteTypes {
     | "/_workspace/workflows"
     | "/invite/$code"
     | "/_workspace/channels/$channelId"
+    | "/_workspace/lenos/$"
     | "/_workspace/messages/$channelId"
     | "/_workspace/messages/new"
     | "/_workspace/repos/$repoId"
     | "/_workspace/channels/$channelId/posts/$postId"
-    | "/_workspace/repos/$repoId/blob/$"
-    | "/_workspace/lenos/$";
+    | "/_workspace/repos/$repoId/blob/$";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -324,6 +324,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof workspaceDothomeRouteImport;
       parentRoute: typeof workspaceRoute;
     };
+    "/_workspace/drafts": {
+      id: "/_workspace/drafts";
+      path: "/drafts";
+      fullPath: "/drafts";
+      preLoaderRoute: typeof workspaceDotdraftsRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
     "/_workspace/channels": {
       id: "/_workspace/channels";
       path: "/channels";
@@ -336,13 +343,6 @@ declare module "@tanstack/react-router" {
       path: "/agents";
       fullPath: "/agents";
       preLoaderRoute: typeof workspaceDotagentsRouteImport;
-      parentRoute: typeof workspaceRoute;
-    };
-    "/_workspace/drafts": {
-      id: "/_workspace/drafts";
-      path: "/drafts";
-      fullPath: "/drafts";
-      preLoaderRoute: typeof workspaceDotdraftsRouteImport;
       parentRoute: typeof workspaceRoute;
     };
     "/_workspace/repos/$repoId": {
@@ -366,6 +366,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof workspaceDotmessagesDotchannelIdRouteImport;
       parentRoute: typeof workspaceRoute;
     };
+    "/_workspace/lenos/$": {
+      id: "/_workspace/lenos/$";
+      path: "/lenos/$";
+      fullPath: "/lenos/$";
+      preLoaderRoute: typeof workspaceDotlenosDotsplatRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
     "/_workspace/channels/$channelId": {
       id: "/_workspace/channels/$channelId";
       path: "/channels/$channelId";
@@ -387,20 +394,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof workspaceDotchannelsDotchannelIdDotpostsDotpostIdRouteImport;
       parentRoute: typeof workspaceRoute;
     };
-    "/_workspace/lenos/$": {
-      id: "/_workspace/lenos/$";
-      path: "/lenos/$";
-      fullPath: "/lenos/$";
-      preLoaderRoute: typeof workspaceDotlenosDotsplatRouteImport;
-      parentRoute: typeof workspaceRoute;
-    };
   }
 }
 
 interface workspaceRouteChildren {
   workspaceDotagentsRoute: typeof workspaceDotagentsRoute;
-  workspaceDotdraftsRoute: typeof workspaceDotdraftsRoute;
   workspaceDotchannelsRoute: typeof workspaceDotchannelsRoute;
+  workspaceDotdraftsRoute: typeof workspaceDotdraftsRoute;
   workspaceDothomeRoute: typeof workspaceDothomeRoute;
   workspaceDotmessagesRoute: typeof workspaceDotmessagesRoute;
   workspaceDotpulseRoute: typeof workspaceDotpulseRoute;
@@ -408,18 +408,18 @@ interface workspaceRouteChildren {
   workspaceDotreposRoute: typeof workspaceDotreposRoute;
   workspaceDotworkflowsRoute: typeof workspaceDotworkflowsRoute;
   workspaceDotchannelsDotchannelIdRoute: typeof workspaceDotchannelsDotchannelIdRoute;
+  workspaceDotlenosDotsplatRoute: typeof workspaceDotlenosDotsplatRoute;
   workspaceDotmessagesDotchannelIdRoute: typeof workspaceDotmessagesDotchannelIdRoute;
   workspaceDotmessagesDotnewRoute: typeof workspaceDotmessagesDotnewRoute;
   workspaceDotreposDotrepoIdRoute: typeof workspaceDotreposDotrepoIdRoute;
   workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute: typeof workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute;
   workspaceDotreposDotrepoIdDotblobDotsplatRoute: typeof workspaceDotreposDotrepoIdDotblobDotsplatRoute;
-  workspaceDotlenosDotsplatRoute: typeof workspaceDotlenosDotsplatRoute;
 }
 
 const workspaceRouteChildren: workspaceRouteChildren = {
   workspaceDotagentsRoute: workspaceDotagentsRoute,
-  workspaceDotdraftsRoute: workspaceDotdraftsRoute,
   workspaceDotchannelsRoute: workspaceDotchannelsRoute,
+  workspaceDotdraftsRoute: workspaceDotdraftsRoute,
   workspaceDothomeRoute: workspaceDothomeRoute,
   workspaceDotmessagesRoute: workspaceDotmessagesRoute,
   workspaceDotpulseRoute: workspaceDotpulseRoute,
@@ -427,6 +427,7 @@ const workspaceRouteChildren: workspaceRouteChildren = {
   workspaceDotreposRoute: workspaceDotreposRoute,
   workspaceDotworkflowsRoute: workspaceDotworkflowsRoute,
   workspaceDotchannelsDotchannelIdRoute: workspaceDotchannelsDotchannelIdRoute,
+  workspaceDotlenosDotsplatRoute: workspaceDotlenosDotsplatRoute,
   workspaceDotmessagesDotchannelIdRoute: workspaceDotmessagesDotchannelIdRoute,
   workspaceDotmessagesDotnewRoute: workspaceDotmessagesDotnewRoute,
   workspaceDotreposDotrepoIdRoute: workspaceDotreposDotrepoIdRoute,
@@ -434,7 +435,6 @@ const workspaceRouteChildren: workspaceRouteChildren = {
     workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute,
   workspaceDotreposDotrepoIdDotblobDotsplatRoute:
     workspaceDotreposDotrepoIdDotblobDotsplatRoute,
-  workspaceDotlenosDotsplatRoute: workspaceDotlenosDotsplatRoute,
 };
 
 const workspaceRouteWithChildren = workspaceRoute._addFileChildren(

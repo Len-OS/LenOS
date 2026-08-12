@@ -61,7 +61,7 @@ export class HuddleTts {
         }
       };
 
-      this.worker!.postMessage({ type: "init" });
+      this.worker?.postMessage({ type: "init" });
     });
 
     // Subscribe to kind:9 messages from agents in this huddle
@@ -80,7 +80,7 @@ export class HuddleTts {
         if (!this.perAgentQueue.has(pubkey)) {
           this.perAgentQueue.set(pubkey, []);
         }
-        this.perAgentQueue.get(pubkey)!.push(text);
+        this.perAgentQueue.get(pubkey)?.push(text);
         this.dequeue();
       },
     });
