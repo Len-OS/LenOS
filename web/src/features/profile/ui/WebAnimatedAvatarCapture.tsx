@@ -105,7 +105,7 @@ export function WebAnimatedAvatarCapture({ onApply, onCancel }: Props) {
     }, 1000);
 
     recordTimerRef.current = setTimeout(async () => {
-      clearInterval(frameTimerRef.current!);
+      if (frameTimerRef.current !== null) clearInterval(frameTimerRef.current);
       clearInterval(countInterval);
       frameTimerRef.current = null;
       setCaptureState("encoding");

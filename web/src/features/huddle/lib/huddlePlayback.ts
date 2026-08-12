@@ -47,7 +47,8 @@ export class HuddlePlayback {
 
   async handleFrame(frame: IncomingFrame): Promise<void> {
     if (!this.peers.has(frame.peerIndex)) await this.addPeer(frame.peerIndex);
-    const p = this.peers.get(frame.peerIndex)!;
+    const p = this.peers.get(frame.peerIndex);
+    if (!p) return;
 
     if (frame.levelDbov > SPEECH_THR) {
       p.frames++;

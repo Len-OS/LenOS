@@ -158,7 +158,9 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     agentUnsubRef.current = null;
     workletRef.current?.disconnect();
     workletRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => {
+      t.stop();
+    });
     streamRef.current = null;
     encoderRef.current?.close();
     encoderRef.current = null;
@@ -311,13 +313,14 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         );
         huddleTtsRef.current = tts;
         // agentPubkeys will be synced via useEffect watching state.agentPubkeys
-        void tts.start(ephChanId, [], ctxRef.current!).catch((e: unknown) => {
-          setState((s) => ({
-            ...s,
-            ttsLoading: false,
-            error: e instanceof Error ? e.message : "TTS failed to start",
-          }));
-        });
+        if (ctxRef.current)
+          void tts.start(ephChanId, [], ctxRef.current).catch((e: unknown) => {
+            setState((s) => ({
+              ...s,
+              ttsLoading: false,
+              error: e instanceof Error ? e.message : "TTS failed to start",
+            }));
+          });
       }
     },
     [],
@@ -734,7 +737,9 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
       return;
 
     const doSwap = async () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t) => {
+        t.stop();
+      });
       const constraints: MediaTrackConstraints = {
         sampleRate: 48000,
         channelCount: 1,
@@ -751,7 +756,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         streamRef.current = newStream;
         const newSource = ctxRef.current?.createMediaStreamSource(newStream);
         workletRef.current?.disconnect();
-        newSource?.connect(workletRef.current!);
+        if (newSource && workletRef.current)
+          newSource.connect(workletRef.current);
       } catch (e) {
         setState((s) => ({
           ...s,

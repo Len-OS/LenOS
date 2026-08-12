@@ -32,6 +32,7 @@ export class HuddleStt {
       new URL("../workers/huddleSttWorker.ts", import.meta.url),
       { type: "module" },
     );
+    const worker = this.worker;
 
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -40,14 +41,14 @@ export class HuddleStt {
         reject(new Error("STT model load timed out after 120s"));
       }, 120_000);
 
-      this.worker!.onmessage = (
+      worker.onmessage = (
         evt: MessageEvent<{ type: string; text?: string; message?: string }>,
       ) => {
         if (evt.data.type === "ready") {
           clearTimeout(timeout);
           this.loading = false;
           this.onLoadingChange(false);
-          this.worker!.onmessage = this.handleWorkerMessage.bind(this);
+          worker.onmessage = this.handleWorkerMessage.bind(this);
           resolve();
         } else if (evt.data.type === "error") {
           clearTimeout(timeout);

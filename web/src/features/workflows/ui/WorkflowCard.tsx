@@ -41,9 +41,10 @@ export function WorkflowCard({ workflow, communityId, onSelect }: Props) {
   };
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onSelect}
-      className="cursor-pointer rounded-xl border border-black/10 bg-white p-4 transition-shadow hover:shadow-md dark:border-white/10 dark:bg-white/[0.03]"
+      className="w-full cursor-pointer rounded-xl border border-black/10 bg-white p-4 text-left transition-shadow hover:shadow-md dark:border-white/10 dark:bg-white/[0.03]"
     >
       <div className="mb-2 flex items-start gap-3">
         <div className="mt-0.5 rounded-lg bg-black/5 p-2 dark:bg-white/5">
@@ -77,6 +78,6 @@ export function WorkflowCard({ workflow, communityId, onSelect }: Props) {
       </div>
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
       <WorkflowRunHistory workflowId={workflow.eventId} />
-    </div>
+    </button>
   );
 }

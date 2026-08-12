@@ -3,12 +3,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use axum::extract::ws::{Message as WsMessage, WebSocket};
 use axum::{
     extract::{Path, State, WebSocketUpgrade},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
-use axum::extract::ws::{Message as WsMessage, WebSocket};
 use bytes::Bytes;
 use dashmap::DashMap;
 use futures_util::{SinkExt, StreamExt};
@@ -21,7 +21,7 @@ use lenos_auth::generate_challenge;
 use lenos_core::tenant::TenantContext;
 use lenos_core::CommunityId;
 
-use crate::audio::wire::{VIDEO_HEADER_LEN, VIDEO_HEADER_V2_LEN, parse_video_v2_header};
+use crate::audio::wire::{parse_video_v2_header, VIDEO_HEADER_LEN, VIDEO_HEADER_V2_LEN};
 use crate::state::AppState;
 
 const AUTH_TIMEOUT: Duration = Duration::from_secs(5);
@@ -88,7 +88,11 @@ impl VideoRoom {
             .iter()
             .map(|e| {
                 let hex: String = e.key().iter().map(|b| format!("{b:02x}")).collect();
-                let mode = self.sender_modes.get(e.key()).map(|m| *m).unwrap_or("camera");
+                let mode = self
+                    .sender_modes
+                    .get(e.key())
+                    .map(|m| *m)
+                    .unwrap_or("camera");
                 serde_json::json!({"pubkey": hex, "mode": mode})
             })
             .collect()
@@ -215,8 +219,7 @@ async fn handle_video_connection(
     };
 
     let auth_tag_json = crate::handlers::auth::extract_auth_tag_json(&auth_msg.event);
-    let relay_url =
-        crate::api::bridge::nip42_expected_relay_url(&state.config.relay_url, &tenant);
+    let relay_url = crate::api::bridge::nip42_expected_relay_url(&state.config.relay_url, &tenant);
     let auth_ctx = match state
         .auth
         .verify_auth_event(auth_msg.event, &challenge, &relay_url)
@@ -341,7 +344,8 @@ async fn handle_video_connection(
             let msg = serde_json::json!({
                 "type": "video_started_batch",
                 "publishers": publishers,
-            }).to_string();
+            })
+            .to_string();
             room.send_ctrl_to(peer_id, msg);
         }
     }
@@ -493,7 +497,8 @@ async fn handle_video_connection(
             let msg = serde_json::json!({
                 "type": "video_stopped",
                 "pubkey": pk_hex,
-            }).to_string();
+            })
+            .to_string();
             room.broadcast_ctrl(&msg);
             info!(channel_id = %channel_id, pubkey = %pk_hex, "video sender stopped");
         }

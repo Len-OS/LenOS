@@ -115,10 +115,9 @@ export function HuddleBar() {
 
       {phase === "active" && captions.length > 0 && (
         <div className="fixed bottom-14 left-1/2 z-39 max-w-xl -translate-x-1/2 space-y-0.5 pb-1">
-          {captions.map((c, i) => (
-            // eslint-disable-next-line react/no-array-index-key
+          {captions.map((c) => (
             <p
-              key={i}
+              key={c}
               className="rounded bg-black/70 px-2 py-0.5 text-center text-xs text-white"
             >
               {c}
@@ -326,9 +325,8 @@ export function HuddleBar() {
         </div>
 
         <div className="flex w-48 justify-end gap-1 overflow-hidden">
-          {reactions.slice(-5).map((r, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <span key={i} className="animate-bounce text-xl">
+          {reactions.slice(-5).map((r) => (
+            <span key={r.emoji} className="animate-bounce text-xl">
               {r.emoji}
             </span>
           ))}

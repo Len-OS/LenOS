@@ -219,7 +219,8 @@ export class HuddleVideoWs {
     if (!this.fragmentBuffers.has(senderPubkey)) {
       this.fragmentBuffers.set(senderPubkey, new Map());
     }
-    const buf = this.fragmentBuffers.get(senderPubkey)!;
+    const buf = this.fragmentBuffers.get(senderPubkey);
+    if (!buf) return;
     if (!buf.has(seq)) buf.set(seq, []);
     buf.get(seq)?.push(new Uint8Array(payload));
 

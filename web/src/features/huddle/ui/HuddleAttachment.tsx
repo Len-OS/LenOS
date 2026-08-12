@@ -46,7 +46,7 @@ export function HuddleAttachment({
   const count = lifecycle?.participants.size ?? 0;
   const stale = isHuddleStale(startedAt);
   const isIn = activeEph === ephId;
-  const canJoin = !ended && !stale && !isIn && phase === "idle";
+  const canJoin = !!ephId && !ended && !stale && !isIn && phase === "idle";
 
   useEffect(() => {
     if (!ephId) return;
@@ -82,7 +82,9 @@ export function HuddleAttachment({
       {canJoin && (
         <button
           type="button"
-          onClick={() => void joinHuddle(channelId, ephId!)}
+          onClick={() => {
+            if (ephId) void joinHuddle(channelId, ephId);
+          }}
           className="shrink-0 rounded-lg bg-green-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-600"
         >
           Join

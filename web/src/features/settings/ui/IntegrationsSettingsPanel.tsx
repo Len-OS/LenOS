@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const LENGROWTH_API = "https://growth-api.lenquant.com";
 
@@ -14,7 +14,7 @@ export function IntegrationsSettingsPanel() {
   const [loading, setLoading] = useState(false);
   const [companyId, setCompanyId] = useState("");
 
-  const fetchStatus = async (cid: string) => {
+  const fetchStatus = useCallback(async (cid: string) => {
     const token = localStorage.getItem("lenos_managed_signer_token");
     setLoading(true);
     try {
@@ -34,7 +34,7 @@ export function IntegrationsSettingsPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const cid = localStorage.getItem("lengrowth-company-id") ?? "";

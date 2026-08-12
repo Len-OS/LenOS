@@ -74,6 +74,7 @@ export function HuddleFloatingBar() {
         Huddle active
       </span>
       <button
+        type="button"
         onClick={() => setMuted(!muted)}
         style={{ cursor: "pointer" }}
         title={muted ? "Unmute" : "Mute"}
@@ -81,6 +82,7 @@ export function HuddleFloatingBar() {
         {muted ? "🔇" : "🔊"}
       </button>
       <button
+        type="button"
         onClick={handleExpand}
         style={{ cursor: "pointer" }}
         title="Go to channel"
@@ -88,6 +90,7 @@ export function HuddleFloatingBar() {
         ⬆
       </button>
       <button
+        type="button"
         onClick={() => void leaveHuddle()}
         style={{ cursor: "pointer" }}
         title="Leave"
