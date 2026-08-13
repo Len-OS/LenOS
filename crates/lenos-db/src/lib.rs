@@ -1022,6 +1022,14 @@ impl Db {
 
     /// Returns pool utilisation stats for metrics emission.
     ///
+    /// Exposes the writer pool for direct sqlx queries on relay-internal tables
+    /// (e.g. `outgoing_webhooks`, `export`). Prefer typed `Db` methods for all
+    /// tables that lenos-db owns; use this only for tables that don't have a
+    /// lenos-db method yet.
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
+
     /// `size`  — total connections (idle + active)
     /// `idle`  — connections available for immediate reuse
     /// `max`   — pool ceiling set at construction

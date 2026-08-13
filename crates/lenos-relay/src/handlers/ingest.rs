@@ -2765,6 +2765,21 @@ async fn ingest_event_inner(
         )
         .await;
 
+        {
+            let state_wh = state.clone();
+            let community_id_wh = *tenant.community().as_uuid();
+            let event_wh = event.clone();
+            tokio::spawn(async move {
+                crate::api::webhooks::dispatch_webhooks(
+                    &state_wh,
+                    community_id_wh,
+                    &event_wh,
+                    channel_id,
+                )
+                .await;
+            });
+        }
+
         info!(event_id = %event_id_hex, kind = kind_u32, "Event ingested via pipeline");
         return Ok(IngestResult {
             event_id: event_id_hex,
@@ -2907,6 +2922,21 @@ async fn ingest_event_inner(
         threaded_visibility.clone(),
     )
     .await;
+
+    {
+        let state_wh = state.clone();
+        let community_id_wh = *tenant.community().as_uuid();
+        let event_wh = event.clone();
+        tokio::spawn(async move {
+            crate::api::webhooks::dispatch_webhooks(
+                &state_wh,
+                community_id_wh,
+                &event_wh,
+                channel_id,
+            )
+            .await;
+        });
+    }
 
     info!(event_id = %event_id_hex, kind = kind_u32, "Event ingested via pipeline");
 

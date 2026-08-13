@@ -7,12 +7,16 @@ import {
   useOwnCustomEmojiQuery,
   useRemoveCustomEmojiMutation,
   useSetCustomEmojiMutation,
+  useWorkspaceCustomEmojiQuery,
+  useSetWorkspaceEmojiMutation,
+  useRemoveWorkspaceEmojiMutation,
 } from "@/features/custom-emoji/hooks";
 import {
   normalizeShortcode,
   suggestShortcodeFromFilename,
 } from "@/shared/api/customEmoji";
 import { pickAndUploadMedia } from "@/shared/api/tauri";
+import { useMyRelayMembershipQuery } from "@/features/community-members/hooks";
 import { rewriteRelayUrl } from "@/shared/lib/mediaUrl";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -27,6 +31,10 @@ import { SettingsSectionHeader } from "@/features/settings/ui/SettingsSectionHea
  * every member's set) separately, since a member cannot remove someone else's
  * emoji. When shortcodes collide across members, the palette shows one
  * deterministic winner (see `unionCustomEmoji`).
+ *
+ * Admins additionally see a "Workspace emoji" section backed by kind:30078
+ * (d:"custom-emoji"). Workspace emoji are merged into the community palette for
+ * all members — admins can add and remove entries.
  */
 export function CustomEmojiSettingsCard() {
   const { data: own = [], isLoading: ownLoading } = useOwnCustomEmojiQuery();
@@ -34,6 +42,10 @@ export function CustomEmojiSettingsCard() {
     useCustomEmojiQuery();
   const setEmoji = useSetCustomEmojiMutation();
   const removeEmoji = useRemoveCustomEmojiMutation();
+
+  const { data: membership } = useMyRelayMembershipQuery();
+  const relayRole = membership?.role;
+  const isAdmin = relayRole === "admin" || relayRole === "owner";
 
   const [name, setName] = React.useState("");
   const [pendingUpload, setPendingUpload] = React.useState<{
@@ -192,7 +204,7 @@ export function CustomEmojiSettingsCard() {
               <div className="min-w-0 flex-[1_1_22rem]">
                 <h4 className="text-sm font-medium">Give it a name</h4>
                 <p className="text-sm font-normal text-muted-foreground">
-                  This is what you’ll type to add this emoji to messages and
+                  This is what you'll type to add this emoji to messages and
                   reactions.
                 </p>
               </div>
@@ -332,7 +344,280 @@ export function CustomEmojiSettingsCard() {
             </SettingsOptionGroup>
           </div>
         ) : null}
+
+        {/* Workspace emoji — admin only */}
+        {isAdmin ? <WorkspaceEmojiSection /> : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * Admin-only section for managing workspace-level emoji (kind:30078).
+ * Rendered only when the current user has admin or owner role.
+ */
+function WorkspaceEmojiSection() {
+  const { data: workspaceEmoji = [], isLoading } =
+    useWorkspaceCustomEmojiQuery();
+  const setWorkspaceEmoji = useSetWorkspaceEmojiMutation();
+  const removeWorkspaceEmoji = useRemoveWorkspaceEmojiMutation();
+
+  const [name, setName] = React.useState("");
+  const [pendingUpload, setPendingUpload] = React.useState<{
+    url: string;
+    filename: string | null;
+  } | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+
+  const normalized = normalizeShortcode(name);
+  const nameInvalid = name.trim().length > 0 && normalized === null;
+  const canSubmit =
+    pendingUpload !== null &&
+    normalized !== null &&
+    !isUploading &&
+    !setWorkspaceEmoji.isPending;
+
+  const handleUpload = React.useCallback(async () => {
+    setIsUploading(true);
+    try {
+      const blobs = await pickAndUploadMedia();
+      const blob = blobs[0];
+      if (!blob?.url) return;
+      if (!blob.type.startsWith("image/")) {
+        toast.error("Choose an image file for custom emoji.");
+        return;
+      }
+      setPendingUpload({ url: blob.url, filename: blob.filename ?? null });
+      const suggested = blob.filename
+        ? suggestShortcodeFromFilename(blob.filename)
+        : null;
+      if (suggested && name.trim().length === 0) {
+        setName(suggested);
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to upload emoji image.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  }, [name]);
+
+  const handleAdd = React.useCallback(async () => {
+    if (normalized === null || pendingUpload === null) return;
+    try {
+      await setWorkspaceEmoji.mutateAsync({
+        shortcode: normalized,
+        url: pendingUpload.url,
+      });
+      setName("");
+      setPendingUpload(null);
+      toast.success(`Added workspace emoji :${normalized}:`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to add workspace emoji.",
+      );
+    }
+  }, [normalized, pendingUpload, setWorkspaceEmoji]);
+
+  const handleReset = React.useCallback(() => {
+    setName("");
+    setPendingUpload(null);
+  }, []);
+
+  const handleRemove = React.useCallback(
+    async (shortcode: string) => {
+      try {
+        await removeWorkspaceEmoji.mutateAsync(shortcode);
+        toast.success(`Removed workspace emoji :${shortcode}:`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to remove workspace emoji.",
+        );
+      }
+    },
+    [removeWorkspaceEmoji],
+  );
+
+  return (
+    <div
+      className="space-y-4 border-t pt-6"
+      data-testid="settings-workspace-emoji"
+    >
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">
+          Workspace emoji
+        </h2>
+        <p className="text-sm font-normal text-muted-foreground">
+          Emoji available to all workspace members. Only admins can manage
+          these.
+        </p>
+      </div>
+
+      {/* Upload form */}
+      <form
+        className="w-full"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canSubmit) void handleAdd();
+        }}
+      >
+        <SettingsOptionGroup>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+            <div className="min-w-0 flex-[1_1_22rem]">
+              <h4 className="text-sm font-medium">Upload workspace emoji</h4>
+              <p className="text-sm font-normal text-muted-foreground">
+                PNG, GIF, or WebP. Square images work best.
+              </p>
+            </div>
+            <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border bg-background">
+                {pendingUpload ? (
+                  <img
+                    alt="Workspace emoji preview"
+                    src={rewriteRelayUrl(pendingUpload.url)}
+                    className="h-14 w-14 object-contain"
+                    draggable={false}
+                  />
+                ) : (
+                  <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0 space-y-2">
+                {pendingUpload?.filename ? (
+                  <p className="max-w-full truncate text-sm font-normal text-muted-foreground">
+                    {pendingUpload.filename}
+                  </p>
+                ) : null}
+                <Button
+                  type="button"
+                  data-testid="workspace-emoji-upload"
+                  onClick={() => void handleUpload()}
+                  disabled={isUploading || setWorkspaceEmoji.isPending}
+                  variant="outline"
+                >
+                  {isUploading
+                    ? "Uploading…"
+                    : pendingUpload
+                      ? "Choose different image"
+                      : "Upload image"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
+            <div className="min-w-0 flex-[1_1_22rem]">
+              <h4 className="text-sm font-medium">Shortcode</h4>
+              <p className="text-sm font-normal text-muted-foreground">
+                What members type to insert this emoji.
+              </p>
+            </div>
+            <div className="w-full min-w-0 max-w-sm flex-[1_1_20rem] space-y-2">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  :
+                </span>
+                <Input
+                  id="workspace-emoji-name"
+                  data-testid="workspace-emoji-name-input"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  className="px-6"
+                  placeholder="workspace-emoji"
+                  spellCheck={false}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  :
+                </span>
+              </div>
+              {nameInvalid ? (
+                <p className="text-sm text-destructive">
+                  Use only letters, numbers, hyphen, or underscore.
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={
+                setWorkspaceEmoji.isPending ||
+                (name.length === 0 && !pendingUpload)
+              }
+            >
+              Clear
+            </Button>
+            <Button
+              type="submit"
+              data-testid="workspace-emoji-add"
+              disabled={!canSubmit}
+            >
+              {setWorkspaceEmoji.isPending ? "Saving…" : "Save emoji"}
+            </Button>
+          </div>
+        </SettingsOptionGroup>
+      </form>
+
+      {/* Existing workspace emoji */}
+      <div className="space-y-3" data-testid="workspace-emoji-list">
+        <h3 className="text-sm font-medium">
+          Current workspace emoji
+          {workspaceEmoji.length > 0 ? ` (${workspaceEmoji.length})` : ""}
+        </h3>
+        {isLoading ? (
+          <SettingsOptionGroup>
+            <div className="px-4 py-3 text-sm font-normal text-muted-foreground">
+              Loading…
+            </div>
+          </SettingsOptionGroup>
+        ) : workspaceEmoji.length === 0 ? (
+          <SettingsOptionGroup>
+            <div className="px-4 py-3 text-sm font-normal text-muted-foreground">
+              No workspace emoji yet. Add one above.
+            </div>
+          </SettingsOptionGroup>
+        ) : (
+          <SettingsOptionGroup>
+            {workspaceEmoji.map((e) => (
+              <div
+                key={e.shortcode}
+                className="flex items-center gap-3 px-4 py-3"
+              >
+                <img
+                  alt={`:${e.shortcode}:`}
+                  src={rewriteRelayUrl(e.url)}
+                  className="h-6 w-6 shrink-0 object-contain"
+                  draggable={false}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  :{e.shortcode}:
+                </span>
+                <Button
+                  aria-label={`Remove workspace emoji :${e.shortcode}:`}
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => void handleRemove(e.shortcode)}
+                  disabled={removeWorkspaceEmoji.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </SettingsOptionGroup>
+        )}
+      </div>
+    </div>
   );
 }

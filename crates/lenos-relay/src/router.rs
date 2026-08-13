@@ -132,6 +132,17 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/moderation/restricted",
             get(api::bridge::moderation_restricted),
         )
+        // Outgoing webhook management (NIP-98 auth, admin only)
+        .route(
+            "/api/webhooks",
+            get(api::webhooks::list_webhooks).post(api::webhooks::create_webhook),
+        )
+        .route(
+            "/api/webhooks/{id}",
+            axum::routing::delete(api::webhooks::delete_webhook),
+        )
+        // Data export / GDPR (NIP-98 auth, admin or self)
+        .route("/api/export", get(api::export::export_user_data))
         // Webhook trigger (secret-authenticated, no NIP-98)
         .route("/hooks/{id}", post(api::bridge::workflow_webhook))
         // Mesh demo echo probe — testbed-only; 404 unless LENOS_MESH=on and

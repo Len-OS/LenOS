@@ -132,6 +132,17 @@ export function useAppNavigation() {
     [commitNavigation],
   );
 
+  const goScheduled = React.useCallback(
+    (behavior?: NavigationBehavior) =>
+      commitNavigation(
+        {
+          to: "/scheduled",
+        },
+        behavior,
+      ),
+    [commitNavigation],
+  );
+
   const goWorkflows = React.useCallback(
     (behavior?: NavigationBehavior) =>
       commitNavigation(
@@ -316,6 +327,7 @@ export function useAppNavigation() {
     goProjects,
     goPulse,
     goProfile,
+    goScheduled,
     goSettings,
     goWorkflow,
     goWorkflows,

@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Smile } from "lucide-react";
+import { Clock, Send, Smile } from "lucide-react";
 import {
   signNostrEvent,
   Nip07UnavailableError,
 } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
-import { KIND_STREAM_MESSAGE } from "@/shared/constants/kinds";
+import {
+  KIND_SCHEDULED_MESSAGE,
+  KIND_STREAM_MESSAGE,
+} from "@/shared/constants/kinds";
 import { RichComposer } from "@/features/messages/ui/RichComposer";
 import { EmojiPicker } from "@/features/emoji/ui/EmojiPicker";
 import { useEmojiAutocomplete } from "@/features/emoji/useEmojiAutocomplete";
@@ -61,6 +64,10 @@ export function MessageComposer({
   const [error, setError] = useState<string | null>(null);
   const [clearCount, setClearCount] = useState(0);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const scheduleRef = useRef<HTMLDivElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
   const insertRef = useRef<((text: string) => void) | null>(null);
   const pendingTextRef = useRef(pendingText);
@@ -96,6 +103,67 @@ export function MessageComposer({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [emojiOpen]);
+
+  useEffect(() => {
+    if (!scheduleOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        scheduleRef.current &&
+        !scheduleRef.current.contains(e.target as Node)
+      ) {
+        setScheduleOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [scheduleOpen]);
+
+  const handleSchedule = async () => {
+    const trimmed = pendingTextRef.current.trim();
+    if (!trimmed) {
+      setError("Cannot schedule an empty message.");
+      return;
+    }
+    if (!scheduledAt) {
+      setError("Please pick a date and time.");
+      return;
+    }
+    const dt = new Date(scheduledAt);
+    if (dt.getTime() <= Date.now()) {
+      setError("Scheduled time must be in the future.");
+      return;
+    }
+    setScheduling(true);
+    setError(null);
+    try {
+      const notBefore = Math.floor(dt.getTime() / 1000);
+      const dTag = `scheduled-${crypto.randomUUID()}`;
+      const signed = await signNostrEvent(
+        {
+          kind: KIND_SCHEDULED_MESSAGE,
+          content: trimmed,
+          tags: [
+            ["d", dTag],
+            ["h", channelId],
+            ["not_before", String(notBefore)],
+          ],
+        },
+        { requireNip07: false },
+      );
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
+      setClearCount((c) => c + 1);
+      setPendingText("");
+      setScheduleOpen(false);
+      setScheduledAt("");
+    } catch (err) {
+      setError("Failed to schedule message. Try again.");
+      console.error("[MessageComposer] schedule failed:", err);
+    } finally {
+      setScheduling(false);
+    }
+  };
 
   function handleTextChange(text: string) {
     setPendingText(text);
@@ -276,6 +344,40 @@ export function MessageComposer({
                 customEmoji={customEmoji}
                 onSelect={handleEmojiSelect}
               />
+            </div>
+          )}
+        </div>
+        <div className="relative shrink-0" ref={scheduleRef}>
+          <button
+            type="button"
+            onClick={() => {
+              setScheduleOpen((v) => !v);
+              setEmojiOpen(false);
+            }}
+            className="rounded-md p-1.5 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
+            aria-label="Schedule message"
+          >
+            <Clock className="h-4 w-4" />
+          </button>
+          {scheduleOpen && (
+            <div className="absolute bottom-10 right-0 z-50 w-72 rounded-lg border border-black/10 bg-white p-3 shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
+              <p className="mb-2 text-xs font-medium text-black/70 dark:text-white/70">
+                Schedule message
+              </p>
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="mb-2 w-full rounded border border-black/10 bg-transparent px-2 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
+              />
+              <button
+                type="button"
+                onClick={() => void handleSchedule()}
+                disabled={scheduling || !scheduledAt}
+                className="w-full rounded bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-black/80 disabled:opacity-40 dark:bg-white dark:text-black dark:hover:bg-white/80"
+              >
+                {scheduling ? "Scheduling…" : "Schedule"}
+              </button>
             </div>
           )}
         </div>

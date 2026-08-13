@@ -1,7 +1,12 @@
 const SAMPLE_RATE = 48000;
 const CHANNELS = 1;
 const FRAME_SIZE = 960;
-const BITRATE = 32000;
+
+export const AUDIO_QUALITY_BITRATE = {
+  low: 32000,
+  medium: 64000,
+  high: 128000,
+} as const;
 
 export interface HuddleEncoder {
   encode(pcm: Float32Array, timestamp: number): Promise<Uint8Array>;
@@ -23,7 +28,7 @@ class WebCodecsEncoder implements HuddleEncoder {
   private encoder: AudioEncoder;
   private pending = new Map<number, (data: Uint8Array) => void>();
 
-  constructor() {
+  constructor(bitrate = 32000) {
     this.encoder = new AudioEncoder({
       output: (chunk) => {
         const buf = new Uint8Array(chunk.byteLength);
@@ -37,7 +42,7 @@ class WebCodecsEncoder implements HuddleEncoder {
       codec: "opus",
       sampleRate: SAMPLE_RATE,
       numberOfChannels: CHANNELS,
-      bitrate: BITRATE,
+      bitrate,
     });
   }
 
@@ -136,14 +141,14 @@ function int16ToFloat32(int16: Int16Array): Float32Array {
   return out;
 }
 
-async function createWasmEncoder(): Promise<HuddleEncoder> {
+async function createWasmEncoder(bitrate = 32000): Promise<HuddleEncoder> {
   const OpusScript = await loadOpusScript();
   const enc = new OpusScript(
     SAMPLE_RATE,
     CHANNELS,
     OpusScript.Application.VOIP,
   );
-  enc.encoder_ctl(4002 /* OPUS_SET_BITRATE_REQUEST */, BITRATE);
+  enc.encoder_ctl(4002 /* OPUS_SET_BITRATE_REQUEST */, bitrate);
   return {
     encode: async (pcm) => enc.encode(float32ToInt16(pcm), FRAME_SIZE),
     close: () => enc.delete(),
@@ -163,8 +168,12 @@ async function createWasmDecoder(): Promise<HuddleDecoder> {
   };
 }
 
-export async function createHuddleEncoder(): Promise<HuddleEncoder> {
-  return webCodecsSupported() ? new WebCodecsEncoder() : createWasmEncoder();
+export async function createHuddleEncoder(
+  bitrate = 32000,
+): Promise<HuddleEncoder> {
+  return webCodecsSupported()
+    ? new WebCodecsEncoder(bitrate)
+    : createWasmEncoder(bitrate);
 }
 
 export async function createHuddleDecoder(): Promise<HuddleDecoder> {

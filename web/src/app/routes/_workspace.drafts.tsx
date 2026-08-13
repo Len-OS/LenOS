@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { DraftsPanel } from "@/features/messages/ui/DraftsPanel";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_workspace/drafts")({
-  component: DraftsPanel,
+  component: DraftsLayout,
 });
+
+function DraftsLayout() {
+  return <Outlet />;
+}

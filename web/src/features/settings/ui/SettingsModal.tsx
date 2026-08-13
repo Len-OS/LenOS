@@ -66,6 +66,16 @@ const ModerationPanel = lazy(() =>
     default: m.ModerationQueuePanel,
   })),
 );
+const CustomEmojiPanel = lazy(() =>
+  import("@/features/settings/ui/CustomEmojiSection").then((m) => ({
+    default: m.CustomEmojiSection,
+  })),
+);
+const PrivacyPanel = lazy(() =>
+  import("@/features/settings/ui/PrivacySettingsPanel").then((m) => ({
+    default: m.PrivacySettingsPanel,
+  })),
+);
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
@@ -81,6 +91,8 @@ const SECTIONS = [
   { id: "harness", label: "Harness" },
   { id: "mobile", label: "Mobile" },
   { id: "moderation", label: "Moderation" },
+  { id: "custom-emoji", label: "Custom Emoji" },
+  { id: "privacy", label: "Privacy & Data" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -182,6 +194,8 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                 {active === "harness" && <HarnessPanel />}
                 {active === "mobile" && <MobilePairingPanel />}
                 {active === "moderation" && <ModerationPanel />}
+                {active === "custom-emoji" && <CustomEmojiPanel />}
+                {active === "privacy" && <PrivacyPanel />}
               </Suspense>
             </div>
           </main>

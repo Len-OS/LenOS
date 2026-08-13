@@ -4,12 +4,14 @@ pub mod admin;
 pub mod bridge;
 pub mod documents;
 pub mod events;
+pub mod export;
 pub mod git;
 pub mod invites;
 pub mod media;
 pub mod mesh_demo;
 pub mod nip05;
 pub mod operator;
+pub mod webhooks;
 
 // Re-export imeta helpers used by ingest pipeline.
 pub use crate::handlers::imeta::{validate_imeta_tags, verify_imeta_blobs};

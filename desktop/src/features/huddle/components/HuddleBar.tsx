@@ -33,6 +33,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useHuddle } from "../HuddleContext";
 import { AddAgentDialog, type AgentAddResult } from "./AddAgentDialog";
 import { HuddleNotesPanel } from "./HuddleNotesPanel";
+import { HuddleQualityPopover } from "./HuddleQualityPopover";
 import { HuddleVideoGrid } from "./HuddleVideoGrid";
 import { MicControls, SpeakerControls } from "./MicControls";
 import { HuddleParticipantsControl } from "./ParticipantList";
@@ -184,6 +185,7 @@ export function HuddleBar({
     startCameraShare,
     stopCameraShare,
     isPoppedOut,
+    reinitAudio,
   } = useHuddle();
   const customEmoji = useCustomEmoji();
   const identityQuery = useIdentityQuery();
@@ -883,6 +885,8 @@ export function HuddleBar({
               Huddle notes
             </TooltipContent>
           </Tooltip>
+
+          <HuddleQualityPopover onSettingsChange={(s) => void reinitAudio(s)} />
         </div>
 
         <Tooltip>

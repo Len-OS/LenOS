@@ -18,6 +18,7 @@ import { HuddleParticipants } from "./HuddleParticipants";
 import { HuddleNotesPanel } from "./HuddleNotesPanel";
 import { HuddleVideoGrid } from "./HuddleVideoGrid";
 import { AddAgentDialog } from "./AddAgentDialog";
+import { HuddleQualityPopover } from "./HuddleQualityPopover";
 
 const EMOJI_CHARS = ["👍", "❤️", "😂", "🎉", "🔥", "👏", "💡", "🚀"];
 
@@ -53,6 +54,7 @@ export function HuddleBar() {
     ttsEnabled,
     ttsLoading,
     setTtsEnabled,
+    reinitAudio,
   } = useHuddle();
   const [showP, setShowP] = useState(false);
   const [showR, setShowR] = useState(false);
@@ -141,6 +143,9 @@ export function HuddleBar() {
 
         <div className="flex items-center gap-2">
           <MicControls />
+
+          {/* Audio quality settings */}
+          <HuddleQualityPopover onSettingsChange={(s) => void reinitAudio(s)} />
 
           {/* PTT toggle */}
           <button

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Clock } from "lucide-react";
 
 import { EditorContent } from "@tiptap/react";
 import { useChannelLinks } from "@/features/messages/lib/useChannelLinks";
@@ -55,6 +56,11 @@ import { useMentionSendFlow } from "./useMentionSendFlow";
 import { usePersistentAgentMentionHydration } from "./usePersistentAgentMentionHydration";
 import { useComposerContentState } from "./useComposerContentState";
 import { useDraftPersistLifecycle } from "./useDraftPersistSnapshot";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { Button } from "@/shared/ui/button";
+import { signRelayEvent } from "@/shared/api/tauri";
+import { relayClient } from "@/shared/api/relayClient";
+import { KIND_SCHEDULED_MESSAGE } from "@/shared/constants/kinds";
 
 import type { MessageComposerProps } from "./MessageComposer.types";
 
@@ -98,6 +104,10 @@ function MessageComposerImpl({
   } = useComposerContentState();
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = React.useState(false);
   const [isFormattingOpen, setIsFormattingOpen] = React.useState(false);
+  const [isScheduleOpen, setIsScheduleOpen] = React.useState(false);
+  const [scheduledAt, setScheduledAt] = React.useState("");
+  const [scheduling, setScheduling] = React.useState(false);
+  const [scheduleError, setScheduleError] = React.useState<string | null>(null);
   const [spoileredAttachmentUrls, setSpoileredAttachmentUrls] = React.useState<
     Set<string>
   >(() => new Set());
@@ -108,6 +118,58 @@ function MessageComposerImpl({
     if (pressed) setIsEmojiPickerOpen(false);
     setIsFormattingOpen(pressed);
   }, []);
+
+  // Ref to the editor-clear action — assigned after richText is initialized below.
+  const scheduleResetEditorRef = React.useRef<() => void>(() => {});
+
+  const handleSchedule = React.useCallback(async () => {
+    const text = contentRef.current.trim();
+    if (!text) {
+      setScheduleError("Cannot schedule an empty message.");
+      return;
+    }
+    if (!scheduledAt) {
+      setScheduleError("Please pick a date and time.");
+      return;
+    }
+    const dt = new Date(scheduledAt);
+    if (dt.getTime() <= Date.now()) {
+      setScheduleError("Scheduled time must be in the future.");
+      return;
+    }
+    if (!channelId) {
+      setScheduleError("No channel selected.");
+      return;
+    }
+    setScheduling(true);
+    setScheduleError(null);
+    try {
+      const notBefore = Math.floor(dt.getTime() / 1000);
+      const dTag = `scheduled-${crypto.randomUUID()}`;
+      const event = await signRelayEvent({
+        kind: KIND_SCHEDULED_MESSAGE,
+        content: text,
+        tags: [
+          ["d", dTag],
+          ["h", channelId],
+          ["not_before", String(notBefore)],
+        ],
+      });
+      await relayClient.publishEvent(
+        event,
+        "Timed out scheduling message.",
+        "Failed to schedule message.",
+      );
+      setScheduledAt("");
+      setIsScheduleOpen(false);
+      scheduleResetEditorRef.current();
+    } catch (err) {
+      setScheduleError("Failed to schedule. Try again.");
+      console.error("[MessageComposer] schedule failed:", err);
+    } finally {
+      setScheduling(false);
+    }
+  }, [channelId, scheduledAt]);
 
   const drafts = useDrafts();
   const identityQuery = useIdentityQuery();
@@ -273,6 +335,11 @@ function MessageComposerImpl({
     const markdown = richText.getMarkdown();
     contentRef.current = markdown;
     return markdown;
+  };
+  // Assign after richText is initialized so handleSchedule can clear the editor.
+  scheduleResetEditorRef.current = () => {
+    setComposerContent("");
+    richText.clearContent();
   };
   onEditLinkRef.current = linkEditor.openFromClick;
   onLinkSelectionChangeRef.current = linkEditor.showFromCursor;
@@ -988,7 +1055,52 @@ function MessageComposerImpl({
               layoutMode={layoutMode}
               composerDisabled={disabled}
               editor={richText.editor}
-              extraActions={toolbarExtraActions}
+              extraActions={
+                <>
+                  <Popover
+                    open={isScheduleOpen}
+                    onOpenChange={setIsScheduleOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        aria-label="Schedule message"
+                        disabled={disabled}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Clock />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-3" side="top" align="end">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                        Schedule message
+                      </p>
+                      {scheduleError && (
+                        <p className="mb-2 text-xs text-destructive">
+                          {scheduleError}
+                        </p>
+                      )}
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={(e) => setScheduledAt(e.target.value)}
+                        className="mb-2 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      />
+                      <Button
+                        className="w-full"
+                        disabled={scheduling || !scheduledAt}
+                        onClick={() => void handleSchedule()}
+                        size="sm"
+                        type="button"
+                      >
+                        {scheduling ? "Scheduling…" : "Schedule"}
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+                  {toolbarExtraActions}
+                </>
+              }
               formattingDisabled={disabled}
               isEmojiPickerOpen={isEmojiPickerOpen}
               isFormattingOpen={isFormattingOpen}

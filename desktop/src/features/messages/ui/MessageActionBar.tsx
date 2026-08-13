@@ -1,6 +1,8 @@
 import {
   BellOff,
   BellRing,
+  Bookmark,
+  BookmarkCheck,
   Clock,
   Copy,
   CornerUpLeft,
@@ -61,6 +63,8 @@ function MoreActionsMenu({
   onMarkRead,
   onOpenChange,
   onRemindLater,
+  onSave,
+  onBookmark,
   onUnfollowThread,
   open,
   isFollowingThread,
@@ -77,6 +81,8 @@ function MoreActionsMenu({
   onMarkRead?: (message: TimelineMessage) => void;
   onOpenChange: (open: boolean) => void;
   onRemindLater?: (message: TimelineMessage) => void;
+  onSave?: (message: TimelineMessage) => void;
+  onBookmark?: (message: TimelineMessage) => void;
   onUnfollowThread?: (message: TimelineMessage) => void;
   open: boolean;
   isFollowingThread?: boolean;
@@ -231,6 +237,19 @@ function MoreActionsMenu({
             </DropdownMenuItem>
           ) : null}
 
+          {onSave ? (
+            <DropdownMenuItem onClick={() => onSave(message)}>
+              <Bookmark className="h-4 w-4" />
+              Save message
+            </DropdownMenuItem>
+          ) : null}
+          {onBookmark ? (
+            <DropdownMenuItem onClick={() => onBookmark(message)}>
+              <BookmarkCheck className="h-4 w-4" />
+              Bookmark in channel
+            </DropdownMenuItem>
+          ) : null}
+
           {canReport || onDelete ? <DropdownMenuSeparator /> : null}
 
           {canReport ? (
@@ -343,6 +362,8 @@ export const MessageActionBar = React.memo(function MessageActionBar({
   onReactionBadgeBurstRequest,
   onReactionSelect,
   onRemindLater,
+  onSave,
+  onBookmark,
   onReply,
   onUnfollowThread,
   reactionErrorMessage = null,
@@ -362,6 +383,8 @@ export const MessageActionBar = React.memo(function MessageActionBar({
   onReactionBadgeBurstRequest?: (emoji: string) => void;
   onReactionSelect?: (emoji: string) => Promise<void>;
   onRemindLater?: (message: TimelineMessage) => void;
+  onSave?: (message: TimelineMessage) => void;
+  onBookmark?: (message: TimelineMessage) => void;
   onReply?: (message: TimelineMessage) => void;
   onUnfollowThread?: (message: TimelineMessage) => void;
   reactionErrorMessage?: string | null;
@@ -398,6 +421,8 @@ export const MessageActionBar = React.memo(function MessageActionBar({
     Boolean(onFollowThread) ||
     Boolean(onUnfollowThread) ||
     Boolean(onRemindLater) ||
+    Boolean(onSave) ||
+    Boolean(onBookmark) ||
     !message.pending;
 
   const wouldAddReaction = React.useCallback(
@@ -545,6 +570,8 @@ export const MessageActionBar = React.memo(function MessageActionBar({
               onMarkRead={onMarkRead}
               onOpenChange={setIsDropdownOpen}
               onRemindLater={onRemindLater}
+              onSave={onSave}
+              onBookmark={onBookmark}
               onUnfollowThread={onUnfollowThread}
               open={isDropdownOpen}
               isFollowingThread={isFollowingThread}

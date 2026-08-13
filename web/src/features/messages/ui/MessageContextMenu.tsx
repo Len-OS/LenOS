@@ -10,6 +10,8 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onReply?: () => void;
+  onSave?: () => void;
+  onBookmark?: () => void;
 }
 
 export function MessageContextMenu({
@@ -19,6 +21,8 @@ export function MessageContextMenu({
   onEdit,
   onDelete,
   onReply,
+  onSave,
+  onBookmark,
 }: Props) {
   const isOwn = currentPubkey !== null && msg.pubkey === currentPubkey;
   const [reportOpen, setReportOpen] = useState(false);
@@ -65,6 +69,24 @@ export function MessageContextMenu({
         >
           Remind
         </button>
+        {onSave && (
+          <button
+            type="button"
+            onClick={onSave}
+            className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            Save
+          </button>
+        )}
+        {onBookmark && (
+          <button
+            type="button"
+            onClick={onBookmark}
+            className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            Bookmark
+          </button>
+        )}
         {isOwn && (
           <button
             type="button"

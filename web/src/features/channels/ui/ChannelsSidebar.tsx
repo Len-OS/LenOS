@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import {
   Activity,
   Bell,
+  Bookmark,
   Bot,
   ChevronDown,
   ChevronRight,
+  Clock,
   FileSearch,
   FileText,
   Hash,
   Inbox,
   Plus,
+  Users,
   Zap,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -275,6 +278,39 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
           >
             <FileText className="h-3.5 w-3.5 shrink-0 opacity-50" />
             Drafts
+          </Link>
+          <Link
+            to="/drafts/scheduled"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
+          >
+            <Clock className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            Scheduled
+          </Link>
+          <Link
+            to="/saved"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
+          >
+            <Bookmark className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            Saved
+          </Link>
+          <Link
+            to="/people"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/5"
+            activeProps={{
+              className:
+                "bg-black/10 font-medium text-black dark:bg-white/15 dark:text-white",
+            }}
+          >
+            <Users className="h-3.5 w-3.5 shrink-0 opacity-50" />
+            People
           </Link>
         </div>
       </nav>

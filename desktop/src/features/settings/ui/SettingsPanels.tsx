@@ -9,11 +9,13 @@ import {
   Cpu,
   Download,
   FlaskConical,
+  Globe,
   Keyboard,
   LayoutTemplate,
   MessagesSquare,
   MonitorCog,
   Moon,
+  ShieldCheck,
   ShieldAlert,
   Smartphone,
   Smile,
@@ -87,6 +89,10 @@ import { UpdateChecker } from "../UpdateChecker";
 import { SettingsSectionHeader } from "./SettingsSectionHeader";
 import { LenGrowthSettingsPanel } from "./LenGrowthSettingsPanel";
 import { VoiceSettingsCard } from "./VoiceSettingsCard";
+import { DndSettingsCard } from "./DndSettingsCard";
+import { KeywordRulesCard } from "./KeywordRulesCard";
+import { WebhooksSettingsCard } from "./WebhooksSettingsCard";
+import { PrivacyDataSettingsCard } from "./PrivacyDataSettingsCard";
 
 export type SettingsSection =
   | "profile"
@@ -105,7 +111,9 @@ export type SettingsSection =
   | "local-archive"
   | "mobile"
   | "updates"
-  | "lengrowth";
+  | "lengrowth"
+  | "webhooks"
+  | "privacy-data";
 
 export const DEFAULT_SETTINGS_SECTION: SettingsSection = "profile";
 
@@ -127,6 +135,8 @@ const SETTINGS_SECTION_VALUES: readonly SettingsSection[] = [
   "mobile",
   "updates",
   "lengrowth",
+  "webhooks",
+  "privacy-data",
 ];
 
 export function isSettingsSection(value: unknown): value is SettingsSection {
@@ -247,6 +257,16 @@ export const settingsSections: SettingsSectionDescriptor[] = [
     value: "lengrowth",
     label: "LenGrowth",
     icon: Sprout,
+  },
+  {
+    value: "webhooks",
+    label: "Webhooks",
+    icon: Globe,
+  },
+  {
+    value: "privacy-data",
+    label: "Privacy & Data",
+    icon: ShieldCheck,
   },
 ];
 
@@ -810,20 +830,26 @@ export function renderSettingsSection(
       );
     case "notifications":
       return (
-        <NotificationSettingsCard
-          isUpdatingDesktopNotifications={props.isUpdatingDesktopNotifications}
-          notificationErrorMessage={props.notificationErrorMessage}
-          notificationPermission={props.notificationPermission}
-          notificationSettings={props.notificationSettings}
-          onSetDesktopNotificationsEnabled={
-            props.onSetDesktopNotificationsEnabled
-          }
-          onSetHomeBadgeEnabled={props.onSetHomeBadgeEnabled}
-          onSetSlotAlertsEnabled={props.onSetSlotAlertsEnabled}
-          onSetNotifyWhileViewing={props.onSetNotifyWhileViewing}
-          onSetAllSlotAlertsEnabled={props.onSetAllSlotAlertsEnabled}
-          onSetSoundForSlot={props.onSetSoundForSlot}
-        />
+        <div className="space-y-12">
+          <NotificationSettingsCard
+            isUpdatingDesktopNotifications={
+              props.isUpdatingDesktopNotifications
+            }
+            notificationErrorMessage={props.notificationErrorMessage}
+            notificationPermission={props.notificationPermission}
+            notificationSettings={props.notificationSettings}
+            onSetDesktopNotificationsEnabled={
+              props.onSetDesktopNotificationsEnabled
+            }
+            onSetHomeBadgeEnabled={props.onSetHomeBadgeEnabled}
+            onSetSlotAlertsEnabled={props.onSetSlotAlertsEnabled}
+            onSetNotifyWhileViewing={props.onSetNotifyWhileViewing}
+            onSetAllSlotAlertsEnabled={props.onSetAllSlotAlertsEnabled}
+            onSetSoundForSlot={props.onSetSoundForSlot}
+          />
+          <DndSettingsCard currentPubkey={props.currentPubkey} />
+          <KeywordRulesCard currentPubkey={props.currentPubkey} />
+        </div>
       );
     case "voice":
       return <VoiceSettingsCard />;
@@ -863,6 +889,10 @@ export function renderSettingsSection(
       return <UpdateChecker />;
     case "lengrowth":
       return <LenGrowthSettingsPanel {...props} />;
+    case "webhooks":
+      return <WebhooksSettingsCard />;
+    case "privacy-data":
+      return <PrivacyDataSettingsCard />;
     default: {
       const exhaustiveCheck: never = section;
       return exhaustiveCheck;

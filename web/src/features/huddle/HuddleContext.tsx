@@ -19,7 +19,11 @@ import { addAgentToHuddle, type AgentAddResult } from "./lib/huddleAgents";
 import { HuddleStt } from "./lib/huddleStt";
 import { HuddleTts } from "./lib/huddleTts";
 import { HuddleAudioWs, type PeerInfo } from "./lib/huddleAudioWs";
-import { createHuddleEncoder, type HuddleEncoder } from "./lib/huddleCodec";
+import {
+  createHuddleEncoder,
+  AUDIO_QUALITY_BITRATE,
+  type HuddleEncoder,
+} from "./lib/huddleCodec";
 import { HuddlePlayback } from "./lib/huddlePlayback";
 import { pcmToDbov } from "./lib/huddleVad";
 import {
@@ -33,6 +37,12 @@ const WORKLET_URL = new URL(
   "./worklets/huddle-capture-processor.js",
   import.meta.url,
 ).href;
+
+export type HuddleAudioQuality = "low" | "medium" | "high";
+export type HuddleAudioSettings = {
+  noiseSuppression: boolean;
+  quality: HuddleAudioQuality;
+};
 
 export type HuddlePhase = "idle" | "connecting" | "active" | "leaving";
 export type HuddleInputMode = "voice_activity" | "push_to_talk";
@@ -90,6 +100,7 @@ interface HuddleActions {
   addAgent(pubkey: string): Promise<AgentAddResult>;
   setSttEnabled(v: boolean): void;
   setTtsEnabled(v: boolean): void;
+  reinitAudio(settings: HuddleAudioSettings): Promise<void>;
   isFloating: boolean;
 }
 
@@ -181,11 +192,19 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
 
   const startPipeline = useCallback(
     async (_parentChanId: string, ephChanId: string, deviceId?: string) => {
+      const noiseSuppression =
+        localStorage.getItem("huddle_noise_suppression") !== "false";
+      const quality =
+        (localStorage.getItem("huddle_audio_quality") as HuddleAudioQuality) ??
+        "high";
+      const bitrate =
+        AUDIO_QUALITY_BITRATE[quality] ?? AUDIO_QUALITY_BITRATE.high;
+
       const audioConstraints: MediaTrackConstraints = {
         sampleRate: 48000,
         channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
+        echoCancellation: noiseSuppression,
+        noiseSuppression: noiseSuppression,
         autoGainControl: true,
       };
       if (deviceId) audioConstraints.deviceId = { exact: deviceId };
@@ -211,7 +230,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
       workletRef.current = worklet;
       source.connect(worklet);
 
-      encoderRef.current = await createHuddleEncoder();
+      encoderRef.current = await createHuddleEncoder(bitrate);
 
       const playback = new HuddlePlayback((idxs) =>
         setState((s) => ({ ...s, activeSpeakerIndexes: idxs })),
@@ -581,6 +600,66 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     [state],
   );
 
+  const reinitAudio = useCallback(
+    async (settings: HuddleAudioSettings) => {
+      localStorage.setItem(
+        "huddle_noise_suppression",
+        String(settings.noiseSuppression),
+      );
+      localStorage.setItem("huddle_audio_quality", settings.quality);
+
+      // Only restart media if currently in an active huddle
+      if (
+        state.phase !== "active" ||
+        !streamRef.current ||
+        !ctxRef.current ||
+        !workletRef.current
+      )
+        return;
+
+      // Stop existing stream tracks
+      streamRef.current.getTracks().forEach((t) => {
+        t.stop();
+      });
+
+      // Close existing encoder and recreate with new bitrate
+      encoderRef.current?.close();
+      encoderRef.current = null;
+
+      const bitrate =
+        AUDIO_QUALITY_BITRATE[settings.quality] ?? AUDIO_QUALITY_BITRATE.high;
+      const deviceId = state.selectedDeviceId;
+      const constraints: MediaTrackConstraints = {
+        sampleRate: 48000,
+        channelCount: 1,
+        echoCancellation: settings.noiseSuppression,
+        noiseSuppression: settings.noiseSuppression,
+        autoGainControl: true,
+      };
+      if (deviceId) constraints.deviceId = { exact: deviceId };
+
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          audio: constraints,
+          video: false,
+        });
+        streamRef.current = newStream;
+        const newSource = ctxRef.current.createMediaStreamSource(newStream);
+        workletRef.current.disconnect();
+        newSource.connect(workletRef.current);
+        encoderRef.current = await createHuddleEncoder(bitrate);
+      } catch (e) {
+        console.error("[HuddleContext] reinitAudio failed:", e);
+        setState((s) => ({
+          ...s,
+          error:
+            e instanceof Error ? e.message : "Failed to apply audio settings",
+        }));
+      }
+    },
+    [state],
+  );
+
   const startScreenShare = useCallback(async () => {
     if (typeof VideoEncoder === "undefined") {
       throw new Error("Screen share requires Chrome 94+ or Safari 17.4+");
@@ -804,6 +883,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     addAgent,
     setSttEnabled,
     setTtsEnabled,
+    reinitAudio,
     isFloating,
   };
   return (

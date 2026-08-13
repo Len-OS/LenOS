@@ -10,6 +10,10 @@ import {
   truncateNotificationBody,
   formatNotificationTitle,
 } from "@/features/notifications/lib/notificationFormat";
+import {
+  useKeywordRules,
+  type KeywordRule,
+} from "@/features/notifications/lib/useKeywordRules";
 
 interface Props {
   channels: Channel[];
@@ -23,6 +27,22 @@ export function useFeedBrowserNotifications({
   communityId,
 }: Props) {
   const startedAt = useRef(Math.floor(Date.now() / 1000));
+
+  const { keywords: keywordRules, mutedKeywords } =
+    useKeywordRules(currentPubkey);
+
+  // Use refs so the subscription closure always sees the latest values
+  // without needing to recreate the subscription on every rule change.
+  const keywordRulesRef = useRef<KeywordRule[]>(keywordRules);
+  const mutedKeywordsRef = useRef<string[]>(mutedKeywords);
+
+  useEffect(() => {
+    keywordRulesRef.current = keywordRules;
+  });
+
+  useEffect(() => {
+    mutedKeywordsRef.current = mutedKeywords;
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: channels identity changes on every relay event; channels.length+communityId+currentPubkey drive resubscription
   useEffect(() => {
@@ -54,6 +74,7 @@ export function useFeedBrowserNotifications({
         const tags = (raw.tags as string[][]) ?? [];
         const channelId = tags.find((t) => t[0] === "h")?.[1] ?? null;
         const content = (raw.content as string) ?? "";
+        const lower = content.toLowerCase();
 
         const isMention =
           tags.some(
@@ -63,16 +84,36 @@ export function useFeedBrowserNotifications({
           ) ||
           (npub !== null && content.includes(npub));
 
-        if (!isMention) return;
+        const mutedMatch = mutedKeywordsRef.current.some((mk) =>
+          lower.includes(mk.toLowerCase()),
+        );
+        if (mutedMatch) return;
+
+        const matchKeyword = (rule: KeywordRule): boolean => {
+          if (rule.channelId && rule.channelId !== channelId) return false;
+          const pat = rule.keyword;
+          if (pat.startsWith("/") && pat.endsWith("/") && pat.length > 2) {
+            try {
+              return new RegExp(pat.slice(1, -1), "i").test(lower);
+            } catch {
+              return false;
+            }
+          }
+          return lower.includes(pat.toLowerCase());
+        };
+
+        const keywordMatch =
+          keywordRulesRef.current.length > 0 &&
+          keywordRulesRef.current.some(matchKeyword);
+
+        if (!isMention && !keywordMatch) return;
 
         const channelLabel = resolveNotificationChannelLabel(
           channelId,
           channels,
         );
-        const title = formatNotificationTitle({
-          prefix: "New mention",
-          channelLabel,
-        });
+        const prefix = isMention ? "New mention" : "Keyword match";
+        const title = formatNotificationTitle({ prefix, channelLabel });
         const body = truncateNotificationBody(content, "New message");
         showNotification(title, body);
       },

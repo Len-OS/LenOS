@@ -1,9 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { DndSection } from "./DndSection";
+import { KeywordRulesSection } from "./KeywordRulesSection";
 
 export function NotificationsSettingsPanel() {
   const [permission, setPermission] = useState<NotificationPermission>(() =>
     typeof Notification !== "undefined" ? Notification.permission : "denied",
   );
+  const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentPubkey()
+      .then(setCurrentPubkey)
+      .catch(() => {});
+  }, []);
 
   const request = async () => {
     if (typeof Notification === "undefined") return;
@@ -55,6 +65,8 @@ export function NotificationsSettingsPanel() {
           page.
         </p>
       )}
+      <DndSection currentPubkey={currentPubkey} />
+      <KeywordRulesSection currentPubkey={currentPubkey} />
     </div>
   );
 }

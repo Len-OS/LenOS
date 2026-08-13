@@ -4,6 +4,12 @@ import { useRouterState } from "@tanstack/react-router";
 import * as React from "react";
 
 import { setupAudioWorklet, type AudioWorkletHandle } from "./lib/audioWorklet";
+
+export type HuddleAudioQuality = "low" | "medium" | "high";
+export type HuddleAudioSettings = {
+  noiseSuppression: boolean;
+  quality: HuddleAudioQuality;
+};
 import { useAudioDevices } from "./lib/useAudioDevices";
 import { formatHuddleActionError } from "./lib/huddleError";
 import { useTtsSubscription } from "./lib/useTtsSubscription";
@@ -119,6 +125,8 @@ interface HuddleContextValue {
   leaveHuddle: () => Promise<boolean>;
   /** Whether the huddle is currently popped out into a PiP window */
   isPoppedOut: boolean;
+  /** Re-initialize audio with new quality settings — only acts when mic is connected */
+  reinitAudio: (settings: HuddleAudioSettings) => Promise<void>;
 }
 
 const HuddleContext = React.createContext<HuddleContextValue | null>(null);
@@ -414,6 +422,68 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
     setLocalVideoStream(null);
   }, []);
 
+  const reinitAudio = React.useCallback(
+    async (settings: HuddleAudioSettings) => {
+      localStorage.setItem(
+        "huddle_noise_suppression",
+        String(settings.noiseSuppression),
+      );
+      localStorage.setItem("huddle_audio_quality", settings.quality);
+
+      // Only restart media if mic is currently connected
+      const track = audioTrackRef.current;
+      const worklet = workletRef.current;
+      if (!track || !worklet) return;
+
+      // Stop existing worklet and track
+      try {
+        worklet.stop();
+      } catch {
+        /* best-effort */
+      }
+      workletRef.current = null;
+      track.stop();
+      setLocalAudioTrack(null);
+      setMicConnected(false);
+
+      const sampleRateMap: Record<HuddleAudioQuality, number> = {
+        low: 16000,
+        medium: 24000,
+        high: 48000,
+      };
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: settings.noiseSuppression,
+        noiseSuppression: settings.noiseSuppression,
+        sampleRate: sampleRateMap[settings.quality],
+      };
+      if (selectedDeviceId) {
+        audioConstraints.deviceId = { exact: selectedDeviceId };
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraints,
+        });
+        const newTrack = stream.getAudioTracks()[0];
+        setLocalAudioTrack(newTrack);
+        setMicConnected(true);
+
+        const initialTransmitting =
+          voiceInputModeRef.current !== "push_to_talk";
+        const newWorklet = await setupAudioWorklet(
+          newTrack,
+          initialTransmitting,
+        );
+        newWorklet.setGain(micGainRef.current);
+        workletRef.current = newWorklet;
+      } catch (e) {
+        console.error("[HuddleContext] reinitAudio failed:", e);
+        // Mic stays disconnected — user can rejoin to recover
+      }
+    },
+    [selectedDeviceId],
+  );
+
   // Ref-track the current audio track so disconnectMedia is stable (no
   // dependency on localAudioTrack state). This prevents the unmount-cleanup
   // effect from re-firing mid-startup when setLocalAudioTrack triggers a
@@ -536,11 +606,21 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
       if (tokenRef.current !== myToken) throw new Error("superseded");
 
       // Get mic — Rust backend owns the audio WS connection.
-      // Request 48 kHz to match the Opus encoder and worklet buffer size (960 samples = 20ms).
+      // Request sample rate based on quality setting; default 48 kHz for high quality.
+      const noiseSuppression =
+        localStorage.getItem("huddle_noise_suppression") !== "false";
+      const quality =
+        (localStorage.getItem("huddle_audio_quality") as HuddleAudioQuality) ??
+        "high";
+      const sampleRateMap: Record<HuddleAudioQuality, number> = {
+        low: 16000,
+        medium: 24000,
+        high: 48000,
+      };
       const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 48000,
+        echoCancellation: noiseSuppression,
+        noiseSuppression: noiseSuppression,
+        sampleRate: sampleRateMap[quality],
       };
       if (selectedDeviceId) {
         audioConstraints.deviceId = { exact: selectedDeviceId };
@@ -878,6 +958,7 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
         startCameraShare,
         stopCameraShare,
         isPoppedOut,
+        reinitAudio,
       }}
     >
       {children}

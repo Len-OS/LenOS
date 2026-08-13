@@ -17,6 +17,8 @@ import { SearchModal } from "@/features/search/ui/SearchModal";
 import { OnboardingGate } from "@/features/onboarding/ui/OnboardingGate";
 import { KeyringLockedScreen } from "@/features/onboarding/ui/KeyringLockedScreen";
 import { useFeedBrowserNotifications } from "@/features/notifications/useFeedBrowserNotifications";
+import { useDnd } from "@/features/notifications/lib/useDnd";
+import { useScheduledDelivery } from "@/features/messages/lib/useScheduledDelivery";
 import {
   WorkspaceNotFound,
   WorkspaceLoadError,
@@ -71,6 +73,8 @@ function WorkspaceLayout() {
   }, []);
 
   useFeedBrowserNotifications({ channels, currentPubkey, communityId });
+  useDnd(currentPubkey ?? null);
+  useScheduledDelivery();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

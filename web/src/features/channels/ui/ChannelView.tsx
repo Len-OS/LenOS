@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "@tanstack/react-router";
-import { Settings, Users } from "lucide-react";
+import { Bookmark, Settings, Users } from "lucide-react";
 import { ForumView } from "@/features/forum/ui/ForumView";
 import { useMessages } from "@/features/messages/use-messages";
 import { useChannels } from "@/features/channels/use-channels";
@@ -22,6 +22,9 @@ import { AgentTranscriptViewer } from "@/features/agents/ui/AgentTranscriptViewe
 import { HuddleIndicator } from "@/features/huddle/ui/HuddleIndicator";
 import { useProfile } from "@/features/profiles/use-profile";
 import { truncatePubkey } from "@/shared/lib/pubkey";
+import { useBookmarks } from "@/features/bookmarks/lib/useBookmarks";
+import { useChannelBookmarks } from "@/features/bookmarks/lib/useChannelBookmarks";
+import { ChannelBookmarksSection } from "@/features/channels/ui/ChannelBookmarksSection";
 
 export function ChannelView() {
   const params = useParams({ strict: false }) as { channelId?: string };
@@ -38,7 +41,13 @@ export function ChannelView() {
   const [findQuery, setFindQuery] = useState("");
   const [findOpen, setFindOpen] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
+  const { save: saveMessage } = useBookmarks(currentPubkey);
+  const { bookmark: bookmarkInChannel } = useChannelBookmarks(
+    currentPubkey,
+    channelId,
+  );
   const [selectedAgentPubkey, setSelectedAgentPubkey] = useState<string | null>(
     null,
   );
@@ -126,6 +135,14 @@ export function ChannelView() {
             </button>
             <button
               type="button"
+              onClick={() => setShowBookmarks((v) => !v)}
+              aria-label="Toggle bookmarks panel"
+              className={`rounded p-1.5 ${showBookmarks ? "text-black dark:text-white" : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"} hover:bg-black/5 dark:hover:bg-white/5`}
+            >
+              <Bookmark className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => setShowMembers((v) => !v)}
               aria-label="Toggle members panel"
               className={`rounded p-1.5 ${showMembers ? "text-black dark:text-white" : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"} hover:bg-black/5 dark:hover:bg-white/5`}
@@ -161,6 +178,18 @@ export function ChannelView() {
               currentPubkey={currentPubkey}
               onOpenThread={setThreadRootId}
               customEmoji={customEmoji}
+              onSave={(msgId) => {
+                const msg = visibleMessages.find((m) => m.id === msgId);
+                if (msg)
+                  void saveMessage(msgId, {
+                    pubkey: msg.pubkey,
+                    content: msg.content,
+                    createdAt: msg.createdAt,
+                  });
+              }}
+              onBookmark={(msgId) => {
+                void bookmarkInChannel(msgId);
+              }}
             />
             <TypingIndicator pubkeys={[...typingPubkeys]} />
             <MessageComposer
@@ -180,6 +209,21 @@ export function ChannelView() {
           channelId={channelId}
           onClose={() => setThreadRootId(null)}
         />
+      )}
+
+      {/* Bookmarks panel */}
+      {showBookmarks && (
+        <div className="w-64 shrink-0 overflow-y-auto border-l border-black/10 dark:border-white/10">
+          <ChannelBookmarksSection
+            channelId={channelId}
+            currentPubkey={currentPubkey}
+            onJumpToMessage={(msgId) => {
+              document
+                .getElementById(msgId)
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+          />
+        </div>
       )}
 
       {/* Members panel */}

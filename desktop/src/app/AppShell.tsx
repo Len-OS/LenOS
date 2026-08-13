@@ -68,6 +68,7 @@ import { AppHuddleBar } from "@/app/AppHuddleBar";
 import { useDueReminderBadgeCount } from "@/features/reminders/hooks";
 import { RemindMeLaterProvider } from "@/features/reminders/ui/RemindMeLaterProvider";
 import { useReminderNotifications } from "@/features/reminders/useReminderNotifications";
+import { useScheduledDelivery } from "@/features/messages/lib/useScheduledDelivery";
 import { AppSidebar } from "@/features/sidebar/ui/AppSidebar";
 import { requestFocusedThreadClose } from "@/features/channels/focusedThreadCloseRequest";
 import { CommunityRail } from "@/features/sidebar/ui/CommunityRail";
@@ -131,6 +132,7 @@ export function AppShell() {
     goNewMessage,
     goProjects,
     goPulse,
+    goScheduled,
     goSettings,
     goWorkflows,
     closeSettings,
@@ -217,6 +219,7 @@ export function AppShell() {
     notificationSettings.settings,
     channels,
   );
+  useScheduledDelivery();
   const refetchHomeFeedFromLiveSignal = React.useEffectEvent(() => {
     void homeFeedQuery.refetch();
   });
@@ -884,6 +887,7 @@ export function AppShell() {
                             onSelectHome={() => void goHome()}
                             onSelectProjects={() => void goProjects()}
                             onSelectPulse={() => void goPulse()}
+                            onSelectScheduled={() => void goScheduled()}
                             onSelectSettings={handleOpenSettings}
                             onSelectWorkflows={() => void goWorkflows()}
                             onSetPresenceStatus={(status) =>

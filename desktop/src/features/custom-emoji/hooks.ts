@@ -10,6 +10,7 @@ import {
   setCustomEmoji,
 } from "@/shared/api/customEmoji";
 import { relayClient } from "@/shared/api/relayClient";
+import { signRelayEvent } from "@/shared/api/tauri";
 import type { CustomEmoji } from "@/shared/lib/remarkCustomEmoji";
 
 /**
@@ -26,6 +27,126 @@ export const customEmojiQueryKey = ["custom-emoji"] as const;
 
 /** Query key for the caller's OWN editable 30030 set (distinct from the union). */
 export const ownCustomEmojiQueryKey = ["custom-emoji-own"] as const;
+
+// ---------------------------------------------------------------------------
+// Workspace emoji (kind:30078, d:"custom-emoji")
+// ---------------------------------------------------------------------------
+
+/** NIP-78 kind used for workspace-level admin-managed emoji. */
+const KIND_WORKSPACE_EMOJI = 30078;
+/** d-tag that identifies the workspace emoji set. */
+const WORKSPACE_EMOJI_D_TAG = "custom-emoji";
+
+/** Stable query key for the workspace (admin-managed) emoji list. */
+export const workspaceCustomEmojiQueryKey = ["workspace-custom-emoji"] as const;
+
+export interface WorkspaceEmojiPayload {
+  emojis: Array<{ shortcode: string; url: string }>;
+}
+
+const SHORTCODE_RE = /^[a-z0-9_-]+$/;
+
+function parseWorkspaceContent(content: string): CustomEmoji[] {
+  try {
+    const parsed = JSON.parse(content) as WorkspaceEmojiPayload;
+    if (!Array.isArray(parsed.emojis)) return [];
+    return parsed.emojis.filter(
+      (e) =>
+        typeof e.shortcode === "string" &&
+        typeof e.url === "string" &&
+        SHORTCODE_RE.test(e.shortcode),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch the current workspace emoji set (kind:30078 d:"custom-emoji"). */
+async function fetchWorkspaceEmoji(): Promise<CustomEmoji[]> {
+  const events = await relayClient.fetchEvents({
+    kinds: [KIND_WORKSPACE_EMOJI],
+    "#d": [WORKSPACE_EMOJI_D_TAG],
+    limit: 10,
+  });
+  // If multiple authors published, take the most recently created one.
+  if (events.length === 0) return [];
+  const latest = events.reduce((best, ev) =>
+    ev.created_at > best.created_at ? ev : best,
+  );
+  return parseWorkspaceContent(latest.content);
+}
+
+/** Query hook: read the workspace emoji list. */
+export function useWorkspaceCustomEmojiQuery() {
+  return useQuery<CustomEmoji[]>({
+    queryKey: workspaceCustomEmojiQueryKey,
+    queryFn: fetchWorkspaceEmoji,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+}
+
+/** Publish (replace) the full workspace emoji list as kind:30078. Admin only. */
+async function publishWorkspaceEmoji(emojis: CustomEmoji[]): Promise<void> {
+  const content = JSON.stringify({ emojis });
+  const event = await signRelayEvent({
+    kind: KIND_WORKSPACE_EMOJI,
+    content,
+    tags: [["d", WORKSPACE_EMOJI_D_TAG]],
+  });
+  await relayClient.publishEvent(
+    event,
+    "Timed out while saving workspace emoji.",
+    "Failed to save workspace emoji.",
+  );
+}
+
+/** Mutation: add or update a workspace emoji entry. Admin only. */
+export function useSetWorkspaceEmojiMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      shortcode,
+      url,
+    }: {
+      shortcode: string;
+      url: string;
+    }): Promise<string> => {
+      const current = await fetchWorkspaceEmoji();
+      const filtered = current.filter((e) => e.shortcode !== shortcode);
+      filtered.push({ shortcode, url });
+      await publishWorkspaceEmoji(filtered);
+      return shortcode;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspaceCustomEmojiQueryKey,
+      });
+    },
+  });
+}
+
+/** Mutation: remove a workspace emoji entry by shortcode. Admin only. */
+export function useRemoveWorkspaceEmojiMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (shortcode: string): Promise<void> => {
+      const current = await fetchWorkspaceEmoji();
+      const filtered = current.filter((e) => e.shortcode !== shortcode);
+      if (filtered.length === current.length) return; // nothing to remove
+      await publishWorkspaceEmoji(filtered);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspaceCustomEmojiQueryKey,
+      });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Community palette (kind:30030) hooks — unchanged from original
+// ---------------------------------------------------------------------------
 
 export function useCustomEmojiQuery() {
   return useQuery<CustomEmoji[]>({
@@ -99,11 +220,27 @@ export function useCommunityEmojiLiveUpdates(): void {
 }
 
 /**
- * Convenience accessor returning the emoji list (empty array while loading).
- * Most consumers (renderer, picker, send path) just want the array.
+ * Merged emoji palette: workspace emoji (kind:30078) union per-user emoji
+ * (kind:30030). Personal emoji take precedence on shortcode collision so
+ * individual members can override workspace defaults.
+ *
+ * Consumers (renderer, picker, send path) just want the flat list.
  */
 export function useCustomEmoji(): CustomEmoji[] {
-  return useCustomEmojiQuery().data ?? [];
+  const personal = useCustomEmojiQuery().data ?? [];
+  const workspace = useWorkspaceCustomEmojiQuery().data ?? [];
+
+  return React.useMemo(() => {
+    // Start with workspace emoji, then override with personal emoji.
+    const merged = new Map<string, string>();
+    for (const e of workspace) {
+      merged.set(e.shortcode, e.url);
+    }
+    for (const e of personal) {
+      merged.set(e.shortcode, e.url);
+    }
+    return [...merged].map(([shortcode, url]) => ({ shortcode, url }));
+  }, [personal, workspace]);
 }
 
 export function useSetCustomEmojiMutation() {

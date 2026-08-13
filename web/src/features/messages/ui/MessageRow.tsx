@@ -44,6 +44,8 @@ interface Props {
   currentPubkey: string | null;
   customEmoji?: Map<string, string>;
   onOpenThread?: (messageId: string) => void;
+  onSave?: () => void;
+  onBookmark?: () => void;
 }
 
 export function MessageRow({
@@ -54,6 +56,8 @@ export function MessageRow({
   currentPubkey,
   customEmoji = new Map(),
   onOpenThread,
+  onSave,
+  onBookmark,
 }: Props) {
   const profile = useProfile(msg.pubkey);
   const displayName = profile?.name || truncatePubkey(msg.pubkey);
@@ -86,6 +90,7 @@ export function MessageRow({
 
   return (
     <div
+      id={msg.id}
       className={[
         "group relative",
         isGrouped ? "pl-[44px]" : "mt-4 flex items-start gap-2.5",
@@ -139,6 +144,8 @@ export function MessageRow({
           }}
           onDelete={handleDelete}
           onReply={onOpenThread ? () => onOpenThread(msg.id) : undefined}
+          onSave={onSave}
+          onBookmark={onBookmark}
         />
       )}
     </div>

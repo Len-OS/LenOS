@@ -18,6 +18,8 @@ interface Props {
   currentPubkey: string | null;
   onOpenThread: (messageId: string) => void;
   customEmoji?: Map<string, string>;
+  onSave?: (msgId: string) => void;
+  onBookmark?: (msgId: string) => void;
 }
 
 const GROUP_GAP_SECONDS = 300;
@@ -31,6 +33,8 @@ export function MessageTimeline({
   currentPubkey,
   onOpenThread,
   customEmoji,
+  onSave,
+  onBookmark,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +118,8 @@ export function MessageTimeline({
               currentPubkey={currentPubkey}
               customEmoji={customEmoji}
               onOpenThread={onOpenThread}
+              onSave={onSave ? () => onSave(msg.id) : undefined}
+              onBookmark={onBookmark ? () => onBookmark(msg.id) : undefined}
             />
             {!isGrouped && (
               <MessageThreadSummaryRow
