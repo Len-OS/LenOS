@@ -396,12 +396,12 @@ impl ActionSink for RelayActionSink {
                 })?;
             let tenant = lenos_core::tenant::TenantContext::resolved(community_id, host);
 
-            let sender_pk = nostr::PublicKey::from_hex(&sender_hex)
-                .map_err(|e| ActionSinkError::InvalidInput(format!("invalid sender pubkey: {e}")))?;
-            let recipient_pk = nostr::PublicKey::from_hex(&recipient_hex)
-                .map_err(|e| {
-                    ActionSinkError::InvalidInput(format!("invalid recipient pubkey: {e}"))
-                })?;
+            let sender_pk = nostr::PublicKey::from_hex(&sender_hex).map_err(|e| {
+                ActionSinkError::InvalidInput(format!("invalid sender pubkey: {e}"))
+            })?;
+            let recipient_pk = nostr::PublicKey::from_hex(&recipient_hex).map_err(|e| {
+                ActionSinkError::InvalidInput(format!("invalid recipient pubkey: {e}"))
+            })?;
             let sender_bytes = sender_pk.to_bytes().to_vec();
             let recipient_bytes = recipient_pk.to_bytes().to_vec();
 
