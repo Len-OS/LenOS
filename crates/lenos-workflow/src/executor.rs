@@ -460,6 +460,8 @@ pub enum StepResult {
     Suspended {
         /// Token used to resume or reject this approval gate.
         approval_token: String,
+        /// Context needed by `finalize_run` to persist the approval record.
+        approval_context: ApprovalContext,
     },
     /// Step was skipped due to `if:` condition being false.
     Skipped,
@@ -736,12 +738,17 @@ pub async fn dispatch_action(
             );
 
             let token = generate_approval_token(run_id, step_id);
-
-            // TODO (WF-08): create approval record in DB, emit kind:46010.
-            // For now, return Suspended with the token so the caller can persist state.
+            let timeout_secs = parse_duration_secs(timeout_str).unwrap_or(86_400);
+            let expires_at = chrono::Utc::now()
+                + chrono::Duration::seconds(timeout_secs as i64);
 
             Ok(StepResult::Suspended {
                 approval_token: token,
+                approval_context: ApprovalContext {
+                    step_id: step_id.to_owned(),
+                    approver_spec: from.clone(),
+                    expires_at,
+                },
             })
         }
 
@@ -1274,16 +1281,17 @@ async fn execute_steps(
                 }));
                 step_outputs.insert(step.id.clone(), output);
             }
-            StepResult::Suspended { approval_token } => {
+            StepResult::Suspended {
+                approval_token,
+                approval_context,
+            } => {
                 info!(
                     run_id = %run_id, step = %step.id,
                     "Step suspended — awaiting approval (token: <redacted>)"
                 );
-                // Return the token and current state so the caller can persist the
-                // approval record and update the run's execution trace.
                 return Ok(ExecutionResult {
                     approval_token: Some(approval_token),
-                    approval_context: None,
+                    approval_context: Some(approval_context),
                     step_index: i,
                     step_outputs,
                     trace,
