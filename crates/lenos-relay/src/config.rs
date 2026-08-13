@@ -523,7 +523,7 @@ impl Config {
 
         let require_auth_token = std::env::var("LENOS_REQUIRE_AUTH_TOKEN")
             .map(|v| v == "true" || v == "1")
-            .unwrap_or(false);
+            .unwrap_or(true);
 
         let pubkey_allowlist_enabled = std::env::var("LENOS_PUBKEY_ALLOWLIST")
             .map(|v| v == "true" || v == "1")
