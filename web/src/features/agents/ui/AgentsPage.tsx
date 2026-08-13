@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Bot } from "lucide-react";
+import { Bot, Plus } from "lucide-react";
 import { useCommunityId } from "@/shared/lib/workspace-context";
 import { useAgents, type Agent } from "../useAgents";
 import { AgentCard } from "./AgentCard";
 import { AgentTranscriptViewer } from "./AgentTranscriptViewer";
 import { AgentConfigDialog } from "./AgentConfigDialog";
+import { CreateAgentDialog } from "./CreateAgentDialog";
 
 export function AgentsPage() {
   const communityId = useCommunityId();
   const agents = useAgents(communityId);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -25,6 +27,16 @@ export function AgentsPage() {
               {agents.length}
             </span>
           )}
+          <div className="ml-auto">
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/5 hover:text-black dark:text-white/60 dark:hover:bg-white/5 dark:hover:text-white"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
@@ -37,7 +49,7 @@ export function AgentsPage() {
                 </p>
                 <p className="mt-1 text-xs text-black/30 dark:text-white/30">
                   Your LenGrowth team will appear here as soon as your workspace
-                  is ready.
+                  is ready, or create one above.
                 </p>
               </div>
             </div>
@@ -75,6 +87,12 @@ export function AgentsPage() {
           onClose={() => setConfigAgent(null)}
         />
       )}
+
+      <CreateAgentDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => setCreateOpen(false)}
+      />
     </div>
   );
 }
