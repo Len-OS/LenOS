@@ -362,6 +362,167 @@ impl ActionSink for RelayActionSink {
             Ok(event_id_hex)
         })
     }
+
+    fn send_dm(
+        &self,
+        community_id: CommunityId,
+        sender_pubkey_hex: &str,
+        recipient_pubkey_hex: &str,
+        text: &str,
+    ) -> Pin<Box<dyn Future<Output = Result<String, ActionSinkError>> + Send + '_>> {
+        let sender_hex = sender_pubkey_hex.to_owned();
+        let recipient_hex = recipient_pubkey_hex.to_owned();
+        let text = text.to_owned();
+
+        Box::pin(async move {
+            let state = self
+                .state
+                .upgrade()
+                .ok_or_else(|| ActionSinkError::Database("relay is shutting down".into()))?;
+
+            if text.trim().is_empty() {
+                return Err(ActionSinkError::EmptyContent);
+            }
+
+            let host = state
+                .db
+                .lookup_community_host(community_id)
+                .await
+                .map_err(|e| ActionSinkError::Database(e.to_string()))?
+                .ok_or_else(|| {
+                    ActionSinkError::Database(format!(
+                        "community {community_id} not mapped to a host"
+                    ))
+                })?;
+            let tenant = lenos_core::tenant::TenantContext::resolved(community_id, host);
+
+            let sender_pk = nostr::PublicKey::from_hex(&sender_hex)
+                .map_err(|e| ActionSinkError::InvalidInput(format!("invalid sender pubkey: {e}")))?;
+            let recipient_pk = nostr::PublicKey::from_hex(&recipient_hex)
+                .map_err(|e| {
+                    ActionSinkError::InvalidInput(format!("invalid recipient pubkey: {e}"))
+                })?;
+            let sender_bytes = sender_pk.to_bytes().to_vec();
+            let recipient_bytes = recipient_pk.to_bytes().to_vec();
+
+            let dm_channel = state
+                .db
+                .create_dm(
+                    community_id,
+                    &[sender_bytes.as_slice(), recipient_bytes.as_slice()],
+                    sender_bytes.as_slice(),
+                )
+                .await
+                .map_err(|e| ActionSinkError::Database(e.to_string()))?;
+
+            let channel_uuid = dm_channel.id;
+            let channel_id_str = channel_uuid.to_string();
+            let sender_pubkey_hex = sender_pk.to_hex();
+            let recipient_pubkey_hex = recipient_pk.to_hex();
+
+            let mut tags = vec![
+                Tag::parse(["p", &sender_pubkey_hex])
+                    .map_err(|e| ActionSinkError::EventBuild(format!("p tag: {e}")))?,
+                Tag::parse(["h", &channel_id_str])
+                    .map_err(|e| ActionSinkError::EventBuild(format!("h tag: {e}")))?,
+                Tag::parse(["lenos:workflow", "true"])
+                    .map_err(|e| ActionSinkError::EventBuild(format!("workflow tag: {e}")))?,
+            ];
+            tags.push(
+                Tag::parse(["p", &recipient_pubkey_hex])
+                    .map_err(|e| ActionSinkError::EventBuild(format!("recipient p tag: {e}")))?,
+            );
+
+            let kind = Kind::from(KIND_STREAM_MESSAGE as u16);
+            let event = EventBuilder::new(kind, &text)
+                .tags(tags)
+                .sign_with_keys(&state.relay_keypair)
+                .map_err(|e| ActionSinkError::EventBuild(format!("signing: {e}")))?;
+
+            let event_id_hex = event.id.to_hex();
+            let event_id_bytes = event.id.as_bytes().to_vec();
+            let event_created_at = {
+                let ts = event.created_at.as_secs() as i64;
+                chrono::DateTime::from_timestamp(ts, 0).unwrap_or_else(Utc::now)
+            };
+
+            let thread_meta = Some(lenos_db::event::ThreadMetadataParams {
+                event_id: &event_id_bytes,
+                event_created_at,
+                channel_id: channel_uuid,
+                parent_event_id: None,
+                parent_event_created_at: None,
+                root_event_id: None,
+                root_event_created_at: None,
+                depth: 0,
+                broadcast: false,
+            });
+
+            let (stored_event, was_inserted) = state
+                .db
+                .insert_event_with_thread_metadata(
+                    tenant.community(),
+                    &event,
+                    Some(channel_uuid),
+                    thread_meta,
+                )
+                .await
+                .map_err(|e| ActionSinkError::Database(e.to_string()))?;
+
+            if was_inserted {
+                let _ = dispatch_persistent_event(
+                    &tenant,
+                    &state,
+                    &stored_event,
+                    KIND_STREAM_MESSAGE,
+                    &sender_pubkey_hex,
+                    None,
+                )
+                .await;
+            }
+
+            Ok(event_id_hex)
+        })
+    }
+
+    fn set_channel_topic(
+        &self,
+        community_id: CommunityId,
+        channel_id: &str,
+        topic: &str,
+        set_by_pubkey_hex: &str,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ActionSinkError>> + Send + '_>> {
+        let channel_id = channel_id.to_owned();
+        let topic = topic.to_owned();
+        let set_by_hex = set_by_pubkey_hex.to_owned();
+
+        Box::pin(async move {
+            let state = self
+                .state
+                .upgrade()
+                .ok_or_else(|| ActionSinkError::Database("relay is shutting down".into()))?;
+
+            let channel_uuid = Uuid::parse_str(&channel_id)
+                .map_err(|e| ActionSinkError::InvalidInput(format!("invalid channel UUID: {e}")))?;
+
+            let set_by_pk = nostr::PublicKey::from_hex(&set_by_hex)
+                .map_err(|e| ActionSinkError::InvalidInput(format!("invalid pubkey: {e}")))?;
+            let set_by_bytes = set_by_pk.to_bytes().to_vec();
+
+            state
+                .db
+                .set_topic(community_id, channel_uuid, &topic, &set_by_bytes)
+                .await
+                .map_err(|e| match e {
+                    lenos_db::DbError::ChannelNotFound(_) => {
+                        ActionSinkError::ChannelNotFound(channel_id.clone())
+                    }
+                    _ => ActionSinkError::Database(e.to_string()),
+                })?;
+
+            Ok(())
+        })
+    }
 }
 
 #[cfg(test)]
