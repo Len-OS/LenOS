@@ -764,6 +764,10 @@ pub struct Config {
     /// Nostr secret key (hex or bech32) for NIP-98 auth on relay document search.
     /// Set via `LENOS_AGENT_NOSTR_SECRET_KEY`. When absent the tool is not injected.
     pub relay_nostr_secret_key: Option<String>,
+    /// HTTP MCP servers injected into every session from config.
+    /// Set via `LENOS_AGENT_MCP_HTTP_SERVERS` (JSON array) or synthesized from
+    /// `LENGROWTH_MCP_URL` + `LENGROWTH_MCP_AUTH_TOKEN`.
+    pub mcp_http_servers: Vec<crate::types::McpHttpServerConfig>,
 }
 
 impl Config {
@@ -875,6 +879,23 @@ impl Config {
             relay_http_url: env("LENOS_RELAY_BASE_URL")
                 .map(|u| u.trim_end_matches('/').to_owned()),
             relay_nostr_secret_key: env("LENOS_AGENT_NOSTR_SECRET_KEY"),
+            mcp_http_servers: {
+                let mut servers: Vec<crate::types::McpHttpServerConfig> =
+                    env("LENOS_AGENT_MCP_HTTP_SERVERS")
+                        .and_then(|s| serde_json::from_str(&s).ok())
+                        .unwrap_or_default();
+                if let Some(url) = env("LENGROWTH_MCP_URL") {
+                    let url = url.trim_end_matches('/').to_owned();
+                    if !servers.iter().any(|s| s.name == "lengrowth") {
+                        servers.push(crate::types::McpHttpServerConfig {
+                            name: "lengrowth".into(),
+                            url,
+                            auth_token: env("LENGROWTH_MCP_AUTH_TOKEN"),
+                        });
+                    }
+                }
+                servers
+            },
         };
         cfg.validate()?;
         Ok(cfg)
@@ -920,6 +941,7 @@ impl Config {
             prompt_caching: false,
             relay_http_url: None,
             relay_nostr_secret_key: None,
+            mcp_http_servers: Vec::new(),
         }
     }
 

@@ -5,7 +5,8 @@ use std::time::{Duration, Instant};
 use arc_swap::ArcSwap;
 use rmcp::model::CallToolRequestParams;
 use rmcp::service::{RoleClient, RunningService};
-use rmcp::transport::TokioChildProcess;
+use rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig;
+use rmcp::transport::{StreamableHttpClientTransport, TokioChildProcess};
 use rmcp::ServiceError;
 use rmcp::ServiceExt;
 use serde_json::{Map, Value};
@@ -14,7 +15,7 @@ use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
 
 use crate::config::{Config, HookServers};
-use crate::types::{clamp, AgentError, McpServerStdio, ToolDef, ToolResult, ToolResultContent};
+use crate::types::{clamp, AgentError, McpHttpServerConfig, McpServerStdio, ToolDef, ToolResult, ToolResultContent};
 
 const SEP: &str = "__";
 const MAX_NAME_LEN: usize = 128;
@@ -121,6 +122,18 @@ struct ServerSpec {
     cwd: String,
 }
 
+#[derive(Clone)]
+struct HttpServerSpec {
+    name: String,
+    url: String,
+    auth_token: Option<String>,
+}
+
+enum ServerKind {
+    Stdio(ServerSpec),
+    Http(HttpServerSpec),
+}
+
 enum ClientState {
     Healthy {
         client: Arc<Client>,
@@ -138,7 +151,7 @@ enum ClientState {
 
 struct Server {
     name: String,
-    spec: ServerSpec,
+    kind: ServerKind,
     client: ArcSwap<ClientState>,
     restart_lock: AsyncMutex<()>,
 }
@@ -202,12 +215,13 @@ impl McpRegistry {
     pub async fn spawn_all(
         cfg: &Config,
         servers: &[McpServerStdio],
+        http_servers: &[McpHttpServerConfig],
         cwd: &str,
     ) -> Result<Self, AgentError> {
-        if servers.len() > MAX_MCP_SERVERS {
+        if servers.len() + http_servers.len() > MAX_MCP_SERVERS {
             return Err(AgentError::Mcp(format!(
                 "too many MCP servers: {} > {MAX_MCP_SERVERS}",
-                servers.len()
+                servers.len() + http_servers.len()
             )));
         }
         let mut reg = Self {
@@ -223,6 +237,7 @@ impl McpRegistry {
         };
 
         let mut seen_names = HashSet::new();
+
         for s in servers {
             if !valid_name(&s.name) || s.name.contains("__") {
                 return Err(AgentError::Mcp(format!("invalid server name: {}", s.name)));
@@ -245,10 +260,9 @@ impl McpRegistry {
                 cwd: cwd.to_owned(),
             };
             let (client, pgid, tool_names, raw_tools) = spawn_one(&spec, reg.init_timeout).await?;
-            let server_idx = reg.servers.len();
             let server = Arc::new(Server {
                 name: spec.name.clone(),
-                spec,
+                kind: ServerKind::Stdio(spec),
                 client: ArcSwap::from_pointee(ClientState::Healthy {
                     client: Arc::new(client),
                     pgid,
@@ -257,40 +271,81 @@ impl McpRegistry {
                 restart_lock: AsyncMutex::new(()),
             });
             reg.servers.push(server);
-
-            for t in raw_tools {
-                if reg.defs.len() >= MAX_TOOLS_PER_SESSION {
-                    return Err(AgentError::Mcp(format!(
-                        "too many tools (>{MAX_TOOLS_PER_SESSION})"
-                    )));
-                }
-                let bare = t.name.to_string();
-                if !valid_name(&bare) || bare.contains("__") {
-                    return Err(AgentError::Mcp(format!("invalid tool name: {bare}")));
-                }
-                let qname = format!("{}{SEP}{}", s.name, bare);
-                if qname.len() > MAX_QNAME_LEN {
-                    return Err(AgentError::Mcp(format!(
-                        "qualified tool name too long: {} ({} > {MAX_QNAME_LEN})",
-                        qname,
-                        qname.len()
-                    )));
-                }
-                if reg.by_qname.contains_key(&qname) {
-                    return Err(AgentError::Mcp(format!("duplicate tool: {qname}")));
-                }
-                reg.defs.push(ToolDef {
-                    name: qname.clone(),
-                    description: clamp(
-                        t.description.as_deref().unwrap_or("").to_owned(),
-                        MAX_DESCRIPTION_BYTES,
-                    ),
-                    input_schema: cap_schema(&qname, Value::Object((*t.input_schema).clone())),
-                });
-                reg.by_qname.insert(qname, Entry { server_idx, bare });
-            }
+            reg.register_tools(s.name.clone(), raw_tools)?;
         }
+
+        for s in http_servers {
+            if !valid_name(&s.name) || s.name.contains("__") {
+                return Err(AgentError::Mcp(format!("invalid server name: {}", s.name)));
+            }
+            if !seen_names.insert(s.name.clone()) {
+                return Err(AgentError::Mcp(format!(
+                    "duplicate server name: {}",
+                    s.name
+                )));
+            }
+            let http_spec = HttpServerSpec {
+                name: s.name.clone(),
+                url: s.url.clone(),
+                auth_token: s.auth_token.clone(),
+            };
+            let (client, tool_names, raw_tools) =
+                connect_http(&http_spec, reg.init_timeout).await?;
+            let server = Arc::new(Server {
+                name: http_spec.name.clone(),
+                kind: ServerKind::Http(http_spec),
+                client: ArcSwap::from_pointee(ClientState::Healthy {
+                    client: Arc::new(client),
+                    pgid: None,
+                    tools: Arc::new(tool_names),
+                }),
+                restart_lock: AsyncMutex::new(()),
+            });
+            reg.servers.push(server);
+            reg.register_tools(s.name.clone(), raw_tools)?;
+        }
+
         Ok(reg)
+    }
+
+    fn register_tools(
+        &mut self,
+        server_name: String,
+        raw_tools: Vec<rmcp::model::Tool>,
+    ) -> Result<(), AgentError> {
+        let server_idx = self.servers.len() - 1;
+        for t in raw_tools {
+            if self.defs.len() >= MAX_TOOLS_PER_SESSION {
+                return Err(AgentError::Mcp(format!(
+                    "too many tools (>{MAX_TOOLS_PER_SESSION})"
+                )));
+            }
+            let bare = t.name.to_string();
+            if !valid_name(&bare) || bare.contains("__") {
+                return Err(AgentError::Mcp(format!("invalid tool name: {bare}")));
+            }
+            let qname = format!("{}{SEP}{}", server_name, bare);
+            if qname.len() > MAX_QNAME_LEN {
+                return Err(AgentError::Mcp(format!(
+                    "qualified tool name too long: {} ({} > {MAX_QNAME_LEN})",
+                    qname,
+                    qname.len()
+                )));
+            }
+            if self.by_qname.contains_key(&qname) {
+                return Err(AgentError::Mcp(format!("duplicate tool: {qname}")));
+            }
+            self.defs.push(ToolDef {
+                name: qname.clone(),
+                description: clamp(
+                    t.description.as_deref().unwrap_or("").to_owned(),
+                    MAX_DESCRIPTION_BYTES,
+                ),
+                input_schema: cap_schema(&qname, Value::Object((*t.input_schema).clone())),
+            });
+            self.by_qname.insert(qname, Entry { server_idx, bare });
+        }
+        Ok(())
     }
 
     pub fn server_of(&self, qname: &str) -> Option<&str> {
@@ -695,10 +750,27 @@ impl McpRegistry {
             server.name,
             self.max_attempts
         );
-        match spawn_one(&server.spec, self.init_timeout).await {
-            Ok((client, pgid, tool_names, _raw_tools)) => {
+
+        let restart_result: Result<(Arc<Client>, Option<u32>, Vec<String>), AgentError> =
+            match &server.kind {
+                ServerKind::Stdio(spec) => {
+                    spawn_one(spec, self.init_timeout).await.map(
+                        |(client, pgid, tool_names, _raw_tools)| {
+                            (Arc::new(client), pgid, tool_names)
+                        },
+                    )
+                }
+                ServerKind::Http(spec) => {
+                    connect_http(spec, self.init_timeout).await.map(
+                        |(client, tool_names, _raw_tools)| (Arc::new(client), None, tool_names),
+                    )
+                }
+            };
+
+        match restart_result {
+            Ok((client, pgid, tool_names)) => {
                 server.client.store(Arc::new(ClientState::Healthy {
-                    client: Arc::new(client),
+                    client,
                     pgid,
                     tools: Arc::new(tool_names),
                 }));
@@ -733,6 +805,44 @@ impl McpRegistry {
             }
         }
     }
+}
+
+async fn connect_http(
+    spec: &HttpServerSpec,
+    timeout: Duration,
+) -> Result<(Client, Vec<String>, Vec<rmcp::model::Tool>), AgentError> {
+    let mut cfg_builder = StreamableHttpClientTransportConfig::with_uri(&*spec.url);
+    if let Some(token) = &spec.auth_token {
+        cfg_builder = cfg_builder.auth_header(token.clone());
+    }
+    let transport = StreamableHttpClientTransport::from_config(cfg_builder);
+    let client: Client = match tokio::time::timeout(timeout, ().serve(transport)).await {
+        Ok(Ok(c)) => c,
+        Ok(Err(e)) => {
+            return Err(AgentError::Mcp(format!("http init {}: {e}", spec.name)));
+        }
+        Err(_) => {
+            return Err(AgentError::Mcp(timeout_msg("http init", &spec.name, timeout)));
+        }
+    };
+    let tools = match tokio::time::timeout(timeout, client.peer().list_all_tools()).await {
+        Ok(Ok(t)) => t,
+        Ok(Err(e)) => {
+            return Err(AgentError::Mcp(format!(
+                "http list_tools {}: {e}",
+                spec.name
+            )));
+        }
+        Err(_) => {
+            return Err(AgentError::Mcp(timeout_msg(
+                "http list_tools",
+                &spec.name,
+                timeout,
+            )));
+        }
+    };
+    let names: Vec<String> = tools.iter().map(|t| t.name.to_string()).collect();
+    Ok((client, names, tools))
 }
 
 async fn spawn_one(

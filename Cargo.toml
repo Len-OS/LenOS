@@ -128,7 +128,7 @@ url = "2"
 proptest = "1"
 
 # MCP SDK (used by lenos-dev-mcp and lenos-agent)
-rmcp = { version = "1.1.0", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "1.1.0", features = ["server", "transport-io", "macros", "client", "transport-streamable-http-client", "transport-streamable-http-client-reqwest"] }
 schemars = { version = "1", default-features = false }
 
 # Internal crates

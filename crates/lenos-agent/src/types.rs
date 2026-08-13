@@ -346,6 +346,16 @@ pub struct EnvVar {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct McpServerHttp {
+    pub name: String,
+    pub url: String,
+    #[serde(default)]
+    pub auth_token: Option<String>,
+}
+
+pub type McpHttpServerConfig = McpServerHttp;
+
+#[derive(Debug, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
     Text {

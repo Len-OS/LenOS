@@ -400,7 +400,7 @@ async fn session_new(app: &Arc<App>, id: Value, params: Value, wire_tx: &WireSen
         }
         Arc::from(prompt)
     };
-    let mcp = match McpRegistry::spawn_all(&app.cfg, &p.mcp_servers, &p.cwd).await {
+    let mcp = match McpRegistry::spawn_all(&app.cfg, &p.mcp_servers, &app.cfg.mcp_http_servers, &p.cwd).await {
         Ok(m) => Arc::new(m),
         Err(e) => return reject(wire_tx, id, e.json_rpc_code(), &e.to_string()).await,
     };
