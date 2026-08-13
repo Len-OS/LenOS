@@ -5,3 +5,7 @@ variable "lengrowth_adapter_pubkey" { default = "" }
 variable "postgres_password" { sensitive = true }
 variable "domain_name" { description = "e.g. relay.yourapp.com" }
 variable "certificate_arn" { description = "ACM cert ARN for domain" }
+variable "alarm_sns_topic_arn" {
+  description = "Optional SNS topic ARN for CloudWatch alarm notifications. Leave empty to disable notifications."
+  default     = ""
+}

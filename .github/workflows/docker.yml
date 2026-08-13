@@ -342,6 +342,26 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  smoke-test:
+    name: Smoke-test production relay + agent
+    # Only run after the multi-arch manifest is merged, and only on main-branch
+    # pushes so we don't spam production on every PR build.
+    needs: merge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Run relay + agent smoke test
+        run: bash scripts/smoke-agent.sh
+        env:
+          # Set RELAY_URL in repository secrets: wss://relay.lengrowth.com
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+          TIMEOUT: "30"
+
   push-gateway-build:
     name: Build public push gateway (${{ matrix.platform }})
     if: false # disabled until mobile push notifications are ready

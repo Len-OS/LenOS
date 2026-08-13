@@ -226,7 +226,7 @@ resource "aws_ecs_task_definition" "relay" {
       }
     }
     healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      command     = ["CMD-SHELL", "curl -f http://localhost:3000/_readiness || exit 1"]
       interval    = 30
       timeout     = 5
       retries     = 3
@@ -273,7 +273,7 @@ resource "aws_lb_target_group" "relay" {
   target_type = "ip"
 
   health_check {
-    path                = "/health"
+    path                = "/_readiness"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     interval            = 30
@@ -313,3 +313,24 @@ resource "aws_lb_listener" "http_redirect" {
 
 # DNS is managed in Cloudflare — add CNAME manually after deploy:
 # relay.<yourdomain.com> CNAME <alb_dns_name output>  (proxy: DNS-only / orange cloud OFF)
+
+resource "aws_cloudwatch_metric_alarm" "relay_unhealthy_hosts" {
+  alarm_name          = "${var.app_name}-relay-unhealthy-hosts"
+  alarm_description   = "Fires when the relay ALB target group has ≥1 unhealthy host."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "UnHealthyHostCount"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = aws_lb.lenos.arn_suffix
+    TargetGroup  = aws_lb_target_group.relay.arn_suffix
+  }
+
+  alarm_actions = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
+  ok_actions    = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
+}
