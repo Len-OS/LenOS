@@ -758,6 +758,12 @@ pub struct Config {
     /// Databricks gateway does not auto-cache, so without this the surfaced
     /// `cache_read_input_tokens` is structurally always 0.
     pub prompt_caching: bool,
+    /// HTTP base URL of the LenOS relay, used by the `search_documents` built-in tool.
+    /// Set via `LENOS_RELAY_BASE_URL`. When absent the tool is not injected.
+    pub relay_http_url: Option<String>,
+    /// Nostr secret key (hex or bech32) for NIP-98 auth on relay document search.
+    /// Set via `LENOS_AGENT_NOSTR_SECRET_KEY`. When absent the tool is not injected.
+    pub relay_nostr_secret_key: Option<String>,
 }
 
 impl Config {
@@ -866,6 +872,9 @@ impl Config {
             hints_enabled: parse_env("LENOS_AGENT_NO_HINTS", 0u8)? == 0,
             thinking_effort: parse_thinking_effort(env("LENOS_AGENT_THINKING_EFFORT").as_deref())?,
             prompt_caching: parse_env("LENOS_AGENT_PROMPT_CACHING", 1u8)? != 0,
+            relay_http_url: env("LENOS_RELAY_BASE_URL")
+                .map(|u| u.trim_end_matches('/').to_owned()),
+            relay_nostr_secret_key: env("LENOS_AGENT_NOSTR_SECRET_KEY"),
         };
         cfg.validate()?;
         Ok(cfg)
@@ -909,6 +918,8 @@ impl Config {
             hints_enabled: false,
             thinking_effort: None,
             prompt_caching: false,
+            relay_http_url: None,
+            relay_nostr_secret_key: None,
         }
     }
 

@@ -46,6 +46,17 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .layer(RequestBodyLimitLayer::new(media_body_limit))
         .with_state(state.clone());
 
+    let document_upload_router = Router::new()
+        .route("/api/documents", post(api::documents::upload_document))
+        .layer(RequestBodyLimitLayer::new(52_428_800)) // 50 MB for document uploads
+        .with_state(state.clone());
+
+    let document_router = Router::new()
+        .route("/api/documents", get(api::documents::list_documents))
+        .route("/api/documents/search", get(api::documents::search_documents))
+        .route("/api/documents/{id}", axum::routing::delete(api::documents::delete_document))
+        .with_state(state.clone());
+
     let git_router = api::git::git_router(state.clone());
 
     let git_policy_router = api::git::git_policy_router(state.clone());
@@ -143,6 +154,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     // Metrics → Trace → CORS applied once over the combined router.
     let mut merged = api_router
         .merge(media_router)
+        .merge(document_upload_router)
+        .merge(document_router)
         .merge(git_router)
         .merge(git_policy_router);
     if let Some(admin_router) = admin_router {

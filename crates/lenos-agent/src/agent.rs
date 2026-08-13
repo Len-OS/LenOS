@@ -217,6 +217,10 @@ impl RunCtx<'_> {
             if !self.skills.is_empty() {
                 tools.push(builtin::load_skill_def());
             }
+            // Inject search_documents when the relay URL and nostr key are both configured.
+            if self.cfg.relay_http_url.is_some() && self.cfg.relay_nostr_secret_key.is_some() {
+                tools.push(builtin::search_documents_def());
+            }
             round = round.saturating_add(1);
             let response = tokio::select! {
                 biased;
@@ -461,6 +465,29 @@ impl RunCtx<'_> {
             if call.name == builtin::LOAD_SKILL_TOOL {
                 emit_in_progress(self.wire, self.session_id, call).await;
                 let mut result = builtin::call_load_skill(&call.arguments, self.skills).await;
+                result.provider_id = call.provider_id.clone();
+                emit_completed(self.wire, self.session_id, call, &result).await;
+                results[idx] = Some(result);
+                continue;
+            }
+
+            // Built-in search_documents: NIP-98-authenticated relay document search.
+            if call.name == builtin::SEARCH_DOCUMENTS_TOOL {
+                emit_in_progress(self.wire, self.session_id, call).await;
+                let mut result = match (
+                    self.cfg.relay_http_url.as_deref(),
+                    self.cfg.relay_nostr_secret_key.as_deref(),
+                ) {
+                    (Some(url), Some(sk_hex)) => match nostr::Keys::parse(sk_hex) {
+                        Ok(keypair) => {
+                            builtin::call_search_documents(&call.arguments, url, &keypair).await
+                        }
+                        Err(e) => builtin::error_result(&format!(
+                            "search_documents: invalid LENOS_AGENT_NOSTR_SECRET_KEY: {e}"
+                        )),
+                    },
+                    _ => builtin::error_result("search_documents: relay not configured"),
+                };
                 result.provider_id = call.provider_id.clone();
                 emit_completed(self.wire, self.session_id, call, &result).await;
                 results[idx] = Some(result);

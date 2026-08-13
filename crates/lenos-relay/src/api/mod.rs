@@ -2,6 +2,7 @@
 
 pub mod admin;
 pub mod bridge;
+pub mod documents;
 pub mod events;
 pub mod git;
 pub mod invites;

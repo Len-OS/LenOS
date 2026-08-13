@@ -1,9 +1,12 @@
 //! Built-in tools that run in-process, bypassing MCP.
 //!
-//! Currently: `load_skill` — reads a skill's full SKILL.md body from disk
-//! and returns it so the agent can load skill content on demand rather than
-//! having every skill inlined into the system prompt at session start.
+//! Currently:
+//!   `load_skill`        — reads a skill's full SKILL.md body from disk.
+//!   `search_documents`  — NIP-98-authenticated semantic search over relay docs.
 
+use base64::Engine as _;
+use nostr::nips::nip98::{HttpData, HttpMethod};
+use nostr::types::Url as NostrUrl;
 use serde_json::{json, Value};
 
 use crate::hints::{strip_frontmatter, SkillEntry, MAX_SKILL_BODY_BYTES};
@@ -229,11 +232,116 @@ async fn load_supporting_file(
     }
 }
 
-fn error_result(msg: &str) -> ToolResult {
+pub fn error_result(msg: &str) -> ToolResult {
     ToolResult {
         provider_id: String::new(),
         content: vec![ToolResultContent::Text(msg.to_owned())],
         is_error: true,
+    }
+}
+
+// ── search_documents ──────────────────────────────────────────────────────────
+
+pub const SEARCH_DOCUMENTS_TOOL: &str = "search_documents";
+
+/// Return the `ToolDef` for `search_documents` to include in the LLM tool list.
+pub fn search_documents_def() -> ToolDef {
+    ToolDef {
+        name: SEARCH_DOCUMENTS_TOOL.to_owned(),
+        description: "Search indexed documents in the relay using semantic similarity. \
+            Returns ranked text chunks from uploaded documents. \
+            Use this to find information from files or documents uploaded to the current channel."
+            .to_owned(),
+        input_schema: json!({
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string",
+                    "description": "Semantic search query."
+                },
+                "channel_id": {
+                    "type": "string",
+                    "description": "Optional channel UUID to scope the search."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Number of results to return (1–20, default 5).",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5
+                }
+            },
+            "required": ["q"]
+        }),
+    }
+}
+
+/// Execute a `search_documents` call with NIP-98 auth against the relay.
+pub async fn call_search_documents(
+    arguments: &Value,
+    relay_http_url: &str,
+    keypair: &nostr::Keys,
+) -> ToolResult {
+    let q = match arguments.get("q").and_then(Value::as_str) {
+        Some(q) if !q.is_empty() => q,
+        _ => return error_result("search_documents: missing required argument \"q\""),
+    };
+
+    let limit = arguments
+        .get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(5)
+        .clamp(1, 20);
+
+    let mut params = format!("q={}&limit={}", urlencoding::encode(q), limit);
+    if let Some(channel_id) = arguments.get("channel_id").and_then(Value::as_str) {
+        if !channel_id.is_empty() {
+            params.push_str(&format!("&channel_id={}", urlencoding::encode(channel_id)));
+        }
+    }
+
+    let url_str = format!("{relay_http_url}/api/documents/search?{params}");
+
+    // Build NIP-98 kind-27235 auth event.
+    let parsed_url = match NostrUrl::parse(&url_str) {
+        Ok(u) => u,
+        Err(e) => return error_result(&format!("search_documents: invalid URL: {e}")),
+    };
+    let http_data = HttpData::new(parsed_url, HttpMethod::GET);
+    let event = match nostr::EventBuilder::http_auth(http_data).sign_with_keys(keypair) {
+        Ok(e) => e,
+        Err(e) => return error_result(&format!("search_documents: NIP-98 sign: {e}")),
+    };
+    let event_json = match serde_json::to_string(&event) {
+        Ok(j) => j,
+        Err(e) => return error_result(&format!("search_documents: event serialize: {e}")),
+    };
+    let auth_header = format!(
+        "Nostr {}",
+        base64::engine::general_purpose::STANDARD.encode(event_json.as_bytes())
+    );
+
+    let resp = match reqwest::Client::new()
+        .get(&url_str)
+        .header("Authorization", auth_header)
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => return error_result(&format!("search_documents: HTTP: {e}")),
+    };
+
+    let status = resp.status();
+    let body = resp.text().await.unwrap_or_default();
+
+    if !status.is_success() {
+        return error_result(&format!("search_documents: HTTP {status}: {body}"));
+    }
+
+    ToolResult {
+        provider_id: String::new(),
+        content: vec![ToolResultContent::Text(body)],
+        is_error: false,
     }
 }
 

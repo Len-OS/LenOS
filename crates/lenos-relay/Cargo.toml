@@ -19,6 +19,7 @@ path = "src/main.rs"
 lenos-core = { workspace = true }
 lenos-conformance = { workspace = true }
 lenos-db = { workspace = true }
+lenos-rag = { workspace = true }
 lenos-auth = { workspace = true }
 lenos-pubsub = { workspace = true }
 lenos-audit = { workspace = true }

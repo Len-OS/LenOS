@@ -447,7 +447,7 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("failed to initialize media storage: {e}"))?;
     info!("Media storage connected");
 
-    let (app_state, audit_shutdown) = AppState::new(
+    let (mut app_state, audit_shutdown) = AppState::new(
         config.clone(),
         db,
         redis_health_pool,
@@ -459,6 +459,24 @@ async fn main() -> anyhow::Result<()> {
         relay_keypair,
         media_storage,
     );
+
+    // Initialize RAG engine if OPENAI_API_KEY is configured.
+    if let Ok(openai_api_key) = std::env::var("OPENAI_API_KEY") {
+        let storage = Arc::clone(&app_state.media_storage);
+        let s3_put = std::sync::Arc::new(move |key: String, bytes: Vec<u8>, content_type: String| {
+            let storage = Arc::clone(&storage);
+            Box::pin(async move {
+                storage.put(&key, &bytes, &content_type).await.map_err(|e| e.to_string())
+            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+        });
+        app_state.rag = Some(std::sync::Arc::new(lenos_rag::RagEngine {
+            db: app_state.db.clone(),
+            openai_api_key,
+            s3_put,
+        }));
+        info!("RAG engine initialized");
+    }
+
     let state = Arc::new(app_state);
 
     // Inter-relay mesh (LENOS_MESH seam). `boot_mesh` returns None when the

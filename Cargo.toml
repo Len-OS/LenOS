@@ -25,6 +25,7 @@ members = [
     "crates/git-sign-nostr",
     "crates/lenos-pair-relay",
     "crates/lenos-relay-mesh",
+    "crates/lenos-rag",
     "crates/lenos-dev-mcp",
     "crates/lenos-voice",
     "crates/lenos-backend-kubernetes",
@@ -46,7 +47,7 @@ tokio       = { version = "1", features = ["rt-multi-thread", "macros", "net", "
 tokio-util  = { version = "0.7", features = ["rt", "codec"] }
 
 # HTTP + WebSocket
-axum        = { version = "0.8", features = ["ws", "macros"] }
+axum        = { version = "0.8", features = ["ws", "macros", "multipart"] }
 tower       = { version = "0.5", features = ["timeout", "util", "limit"] }
 tower-http  = { version = "0.6", features = ["trace", "cors", "compression-gzip", "limit", "timeout", "fs"] }
 
@@ -143,6 +144,7 @@ lenos-media = { path = "crates/lenos-media" }
 lenos-sdk = { path = "crates/lenos-sdk" }
 lenos-ws-client = { path = "crates/lenos-ws-client" }
 lenos-relay-mesh = { path = "crates/lenos-relay-mesh" }
+lenos-rag = { path = "crates/lenos-rag" }
 
 # CI profile — builds the relay for desktop e2e. Dependencies keep full
 # release optimization (warm from main's cache; they carry the runtime hot

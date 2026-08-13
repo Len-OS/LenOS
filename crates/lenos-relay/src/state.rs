@@ -614,6 +614,10 @@ pub struct AppState {
     /// so a short TTL only bounds staleness for the rare backfill race.
     pub author_type_cache: Arc<moka::sync::Cache<(CommunityId, Vec<u8>), bool>>,
 
+    /// RAG engine for document ingestion and semantic search.
+    /// `None` when `OPENAI_API_KEY` is not configured.
+    pub rag: Option<Arc<lenos_rag::RagEngine>>,
+
     /// Runtime conformance tracer. Production binds [`crate::conformance::NoopTracer`]
     /// (zero cost). Conformance tests bind [`crate::conformance::JsonlTracer`] to
     /// record traces for replay against `docs/spec/MultiTenantRelay.tla`.
@@ -801,6 +805,7 @@ impl AppState {
             // `crates/lenos-test-client` once those land).
             tracer: Arc::new(crate::conformance::NoopTracer),
             mesh: Arc::new(std::sync::OnceLock::new()),
+            rag: None,
         };
         (
             state,

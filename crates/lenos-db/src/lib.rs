@@ -19,6 +19,8 @@ pub mod archived_identities;
 pub mod channel;
 /// Direct message channel persistence.
 pub mod dm;
+/// RAG document and chunk persistence.
+pub mod document;
 /// Database error types.
 pub mod error;
 /// Event storage and retrieval.
@@ -5041,6 +5043,63 @@ impl Db {
             StoredEvent::with_received_at(event.clone(), received_at, channel_id, true),
             true,
         ))
+    }
+
+    // ── RAG document methods ──────────────────────────────────────────────
+
+    /// Insert a new document record.
+    pub async fn create_document(
+        &self,
+        params: document::CreateDocumentParams,
+    ) -> Result<document::DocumentRecord> {
+        document::create_document(&self.pool, params).await
+    }
+
+    /// Update the status (and optional error) of a document.
+    pub async fn update_document_status(
+        &self,
+        community_id: CommunityId,
+        id: Uuid,
+        status: &str,
+        error: Option<&str>,
+    ) -> Result<()> {
+        document::update_document_status(&self.pool, community_id, id, status, error).await
+    }
+
+    /// Bulk-insert document chunks with embeddings.
+    pub async fn insert_chunks(&self, chunks: &[document::ChunkRecord]) -> Result<()> {
+        document::insert_chunks(&self.pool, chunks).await
+    }
+
+    /// Cosine similarity search over document chunks.
+    pub async fn search_chunks(
+        &self,
+        community_id: CommunityId,
+        embedding: &[f32],
+        limit: i64,
+        channel_id: Option<Uuid>,
+    ) -> Result<Vec<document::ChunkSearchResult>> {
+        document::search_chunks(&self.pool, community_id, embedding, limit, channel_id).await
+    }
+
+    /// List documents for a community, optionally filtered by channel.
+    pub async fn list_documents(
+        &self,
+        community_id: CommunityId,
+        channel_id: Option<Uuid>,
+        limit: i64,
+    ) -> Result<Vec<document::DocumentRecord>> {
+        document::list_documents(&self.pool, community_id, channel_id, limit).await
+    }
+
+    /// Soft-delete a document. Returns true if the row was updated.
+    pub async fn soft_delete_document(
+        &self,
+        community_id: CommunityId,
+        id: Uuid,
+        deleted_by: &[u8],
+    ) -> Result<bool> {
+        document::soft_delete_document(&self.pool, community_id, id, deleted_by).await
     }
 }
 
