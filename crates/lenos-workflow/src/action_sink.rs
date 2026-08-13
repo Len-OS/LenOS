@@ -66,4 +66,28 @@ pub trait ActionSink: Send + Sync {
         text: &str,
         author_pubkey: &str,
     ) -> Pin<Box<dyn Future<Output = Result<String, ActionSinkError>> + Send + '_>>;
+
+    /// Send a direct message on behalf of the workflow owner.
+    ///
+    /// Creates or reuses the DM channel for `(sender, recipient)`.
+    /// Returns the event ID hex string on success.
+    fn send_dm(
+        &self,
+        community_id: CommunityId,
+        sender_pubkey_hex: &str,
+        recipient_pubkey_hex: &str,
+        text: &str,
+    ) -> Pin<Box<dyn Future<Output = Result<String, ActionSinkError>> + Send + '_>>;
+
+    /// Update the topic of a channel.
+    ///
+    /// `channel_id` must be a UUID string. `set_by_pubkey_hex` is used to
+    /// record who made the change.
+    fn set_channel_topic(
+        &self,
+        community_id: CommunityId,
+        channel_id: &str,
+        topic: &str,
+        set_by_pubkey_hex: &str,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ActionSinkError>> + Send + '_>>;
 }
