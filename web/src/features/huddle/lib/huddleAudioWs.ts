@@ -35,7 +35,7 @@ export class HuddleAudioWs {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const base = this.opts.wsUrl.replace(/\/$/, "");
-      const url = base + "/huddle/" + this.opts.ephemeralChannelId + "/audio";
+      const url = `${base}/huddle/${this.opts.ephemeralChannelId}/audio`;
       const ws = new WebSocket(url);
       ws.binaryType = "arraybuffer";
       this.ws = ws;

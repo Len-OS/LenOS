@@ -46,14 +46,14 @@ export function HuddleAttachment({
   const count = lifecycle?.participants.size ?? 0;
   const stale = isHuddleStale(startedAt);
   const isIn = activeEph === ephId;
-  const canJoin = !ended && !stale && !isIn && phase === "idle";
+  const canJoin = !!ephId && !ended && !stale && !isIn && phase === "idle";
 
   useEffect(() => {
     if (!ephId) return;
     const store: LifecycleEvent[] = [...events];
     return subscribeHuddleLifecycle(channelId, store, setEvents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ephId, channelId]);
+  }, [ephId, channelId, events]);
 
   return (
     <div className="my-1 flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.03] px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
@@ -82,7 +82,9 @@ export function HuddleAttachment({
       {canJoin && (
         <button
           type="button"
-          onClick={() => void joinHuddle(channelId, ephId!)}
+          onClick={() => {
+            if (ephId) void joinHuddle(channelId, ephId);
+          }}
           className="shrink-0 rounded-lg bg-green-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-600"
         >
           Join

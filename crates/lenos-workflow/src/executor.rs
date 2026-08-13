@@ -460,6 +460,8 @@ pub enum StepResult {
     Suspended {
         /// Token used to resume or reject this approval gate.
         approval_token: String,
+        /// Context needed by `finalize_run` to persist the approval record.
+        approval_context: ApprovalContext,
     },
     /// Step was skipped due to `if:` condition being false.
     Skipped,
@@ -577,16 +579,93 @@ pub async fn dispatch_action(
             })))
         }
 
-        SendDm { to, text: _ } => {
-            warn!(run_id = %run_id, step = step_id, "SendDm not yet implemented (to={to})");
-            // TODO (WF-07): emit DM event.
-            Err(WorkflowError::NotImplemented("SendDm".into()))
+        SendDm { to, text } => {
+            let wf_run = engine
+                .db
+                .get_workflow_run(community_id, run_id)
+                .await
+                .map_err(|e| {
+                    WorkflowError::WebhookError(format!(
+                        "SendDm: failed to load workflow run {run_id}: {e}"
+                    ))
+                })?;
+            let workflow = engine
+                .db
+                .get_workflow(community_id, wf_run.workflow_id)
+                .await
+                .map_err(|e| {
+                    WorkflowError::WebhookError(format!(
+                        "SendDm: failed to load workflow {}: {e}",
+                        wf_run.workflow_id
+                    ))
+                })?;
+            let sender_pubkey_hex = hex::encode(&workflow.owner_pubkey);
+
+            info!(
+                run_id = %run_id,
+                step = step_id,
+                to = %to,
+                "SendDm → {to}"
+            );
+
+            let event_id = engine
+                .action_sink()?
+                .send_dm(community_id, &sender_pubkey_hex, to, text)
+                .await
+                .map_err(WorkflowError::from)?;
+
+            Ok(StepResult::Completed(serde_json::json!({
+                "sent": true,
+                "event_id": event_id,
+            })))
         }
 
-        SetChannelTopic { topic: _ } => {
-            warn!(run_id = %run_id, step = step_id, "SetChannelTopic not yet implemented");
-            // TODO (WF-07): update channel topic via DB.
-            Err(WorkflowError::NotImplemented("SetChannelTopic".into()))
+        SetChannelTopic { topic } => {
+            let channel_id = trigger_ctx.channel_id.as_str();
+            if channel_id.is_empty() {
+                return Err(WorkflowError::InvalidDefinition(
+                    "SetChannelTopic: no trigger.channel_id available".into(),
+                ));
+            }
+
+            let wf_run = engine
+                .db
+                .get_workflow_run(community_id, run_id)
+                .await
+                .map_err(|e| {
+                    WorkflowError::WebhookError(format!(
+                        "SetChannelTopic: failed to load workflow run {run_id}: {e}"
+                    ))
+                })?;
+            let workflow = engine
+                .db
+                .get_workflow(community_id, wf_run.workflow_id)
+                .await
+                .map_err(|e| {
+                    WorkflowError::WebhookError(format!(
+                        "SetChannelTopic: failed to load workflow {}: {e}",
+                        wf_run.workflow_id
+                    ))
+                })?;
+            let set_by_hex = hex::encode(&workflow.owner_pubkey);
+
+            info!(
+                run_id = %run_id,
+                step = step_id,
+                channel_id = %channel_id,
+                "SetChannelTopic → {channel_id}: {topic}"
+            );
+
+            engine
+                .action_sink()?
+                .set_channel_topic(community_id, channel_id, topic, &set_by_hex)
+                .await
+                .map_err(WorkflowError::from)?;
+
+            Ok(StepResult::Completed(serde_json::json!({
+                "updated": true,
+                "channel_id": channel_id,
+            })))
         }
 
         AddReaction { emoji } => {
@@ -659,12 +738,17 @@ pub async fn dispatch_action(
             );
 
             let token = generate_approval_token(run_id, step_id);
-
-            // TODO (WF-08): create approval record in DB, emit kind:46010.
-            // For now, return Suspended with the token so the caller can persist state.
+            let timeout_secs = parse_duration_secs(timeout_str).unwrap_or(86_400);
+            let expires_at = chrono::Utc::now()
+                + chrono::Duration::seconds(timeout_secs as i64);
 
             Ok(StepResult::Suspended {
                 approval_token: token,
+                approval_context: ApprovalContext {
+                    step_id: step_id.to_owned(),
+                    approver_spec: from.clone(),
+                    expires_at,
+                },
             })
         }
 
@@ -932,6 +1016,17 @@ async fn add_reaction_impl(message_id: &str, emoji: &str) -> Result<JsonValue, W
     }))
 }
 
+/// Context carried from a suspended `RequestApproval` step to `finalize_run`.
+#[derive(Debug)]
+pub struct ApprovalContext {
+    /// ID of the step that requested approval.
+    pub step_id: String,
+    /// Who may approve — passed through to `create_approval`.
+    pub approver_spec: String,
+    /// When this approval expires.
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
 /// Rich return type from `execute_run` / `execute_from_step`.
 ///
 /// Carries enough information for the caller to:
@@ -943,6 +1038,9 @@ pub struct ExecutionResult {
     /// Set when execution suspended at a `RequestApproval` step.
     /// `None` means the run completed normally.
     pub approval_token: Option<String>,
+    /// Populated alongside `approval_token` — carries step_id, approver_spec,
+    /// and expires_at needed by `finalize_run` to call `create_approval`.
+    pub approval_context: Option<ApprovalContext>,
     /// Index of the step that suspended (or the total step count on completion).
     pub step_index: usize,
     /// Accumulated step outputs at the point of suspension or completion.
@@ -1183,15 +1281,17 @@ async fn execute_steps(
                 }));
                 step_outputs.insert(step.id.clone(), output);
             }
-            StepResult::Suspended { approval_token } => {
+            StepResult::Suspended {
+                approval_token,
+                approval_context,
+            } => {
                 info!(
                     run_id = %run_id, step = %step.id,
                     "Step suspended — awaiting approval (token: <redacted>)"
                 );
-                // Return the token and current state so the caller can persist the
-                // approval record and update the run's execution trace.
                 return Ok(ExecutionResult {
                     approval_token: Some(approval_token),
+                    approval_context: Some(approval_context),
                     step_index: i,
                     step_outputs,
                     trace,
@@ -1210,6 +1310,7 @@ async fn execute_steps(
     info!(run_id = %run_id, "Workflow run completed");
     Ok(ExecutionResult {
         approval_token: None,
+        approval_context: None,
         step_index: def.steps.len(),
         step_outputs,
         trace,

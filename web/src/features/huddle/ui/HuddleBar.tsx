@@ -11,12 +11,12 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useHuddle } from "../HuddleContext";
 import { MicControls } from "./MicControls";
 import { HuddleParticipants } from "./HuddleParticipants";
 import { HuddleNotesPanel } from "./HuddleNotesPanel";
-import { HuddleVideo } from "./HuddleVideo";
+import { HuddleVideoGrid } from "./HuddleVideoGrid";
 import { AddAgentDialog } from "./AddAgentDialog";
 
 const EMOJI_CHARS = ["👍", "❤️", "😂", "🎉", "🔥", "👏", "💡", "🚀"];
@@ -34,8 +34,8 @@ export function HuddleBar() {
     setNotesOpen,
     screenShareActive,
     cameraShareActive,
-    remotePresenterPubkey,
-    setRemotePresenterPubkey,
+    remoteVideoPublishers,
+    localVideoStream,
     startScreenShare,
     stopScreenShare,
     startCameraShare,
@@ -57,17 +57,15 @@ export function HuddleBar() {
   const [showP, setShowP] = useState(false);
   const [showR, setShowR] = useState(false);
 
-  // Stable presenter-change callback so HuddleVideo's useEffect doesn't thrash
-  const handlePresenterChange = useCallback(
-    (pk: string | null) => setRemotePresenterPubkey(pk),
-    [setRemotePresenterPubkey],
-  );
-
   if (phase === "idle") return null;
 
   const isPtt = inputMode === "push_to_talk";
   const isPttActive = isPtt && !muted;
-  const hasVideo = screenShareActive || remotePresenterPubkey !== null;
+  const hasVideo =
+    screenShareActive ||
+    cameraShareActive ||
+    remoteVideoPublishers.size > 0 ||
+    localVideoStream !== null;
 
   const handleScreenShare = () => {
     if (screenShareActive) {
@@ -106,31 +104,20 @@ export function HuddleBar() {
         />
       )}
 
-      {/* HuddleVideo is always mounted when active so it can receive
-          presenter_joined notifications; the panel is only visible when
-          there is actually a presenter or local screen share is active. */}
-      {phase === "active" && ephemeralChannelId && (
-        <div
-          className={
-            "fixed bottom-14 left-0 right-0 z-40 border-t border-black/10 bg-white dark:border-white/10 dark:bg-[#111] " +
-            (hasVideo ? "" : "hidden")
-          }
-        >
-          <HuddleVideo
-            ephemeralChannelId={ephemeralChannelId}
-            screenShareActive={screenShareActive}
-            remotePresenterPubkey={remotePresenterPubkey}
-            onPresenterChange={handlePresenterChange}
+      {phase === "active" && hasVideo && (
+        <div className="fixed bottom-14 left-0 right-0 z-40 border-t border-black/10 bg-white dark:border-white/10 dark:bg-[#111]">
+          <HuddleVideoGrid
+            publishers={remoteVideoPublishers}
+            localStream={localVideoStream}
           />
         </div>
       )}
 
       {phase === "active" && captions.length > 0 && (
         <div className="fixed bottom-14 left-1/2 z-39 max-w-xl -translate-x-1/2 space-y-0.5 pb-1">
-          {captions.map((c, i) => (
-            // eslint-disable-next-line react/no-array-index-key
+          {captions.map((c) => (
             <p
-              key={i}
+              key={c}
               className="rounded bg-black/70 px-2 py-0.5 text-center text-xs text-white"
             >
               {c}
@@ -262,7 +249,9 @@ export function HuddleBar() {
           <button
             type="button"
             onClick={() => setTtsEnabled(!ttsEnabled)}
-            aria-label={ttsEnabled ? "Disable agent voice" : "Enable agent voice"}
+            aria-label={
+              ttsEnabled ? "Disable agent voice" : "Enable agent voice"
+            }
             className={
               "rounded-full p-2 transition-colors " +
               (ttsEnabled
@@ -293,16 +282,9 @@ export function HuddleBar() {
           <button
             type="button"
             onClick={handleScreenShare}
-            disabled={
-              !screenShareActive &&
-              (cameraShareActive || remotePresenterPubkey !== null)
-            }
+            disabled={!screenShareActive && cameraShareActive}
             aria-label={
-              screenShareActive
-                ? "Stop screen share"
-                : remotePresenterPubkey !== null
-                  ? "Someone else is sharing"
-                  : "Share screen"
+              screenShareActive ? "Stop screen share" : "Share screen"
             }
             className={
               "rounded-full p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
@@ -318,17 +300,8 @@ export function HuddleBar() {
           <button
             type="button"
             onClick={handleCameraShare}
-            disabled={
-              !cameraShareActive &&
-              (screenShareActive || remotePresenterPubkey !== null)
-            }
-            aria-label={
-              cameraShareActive
-                ? "Stop camera"
-                : screenShareActive || remotePresenterPubkey !== null
-                  ? "Presenter slot occupied"
-                  : "Share camera"
-            }
+            disabled={!cameraShareActive && screenShareActive}
+            aria-label={cameraShareActive ? "Stop camera" : "Share camera"}
             className={
               "rounded-full p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
               (cameraShareActive
@@ -352,9 +325,8 @@ export function HuddleBar() {
         </div>
 
         <div className="flex w-48 justify-end gap-1 overflow-hidden">
-          {reactions.slice(-5).map((r, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <span key={i} className="animate-bounce text-xl">
+          {reactions.slice(-5).map((r) => (
+            <span key={r.emoji} className="animate-bounce text-xl">
               {r.emoji}
             </span>
           ))}

@@ -19,10 +19,14 @@ export function AgentDefaultsSettingsPanel() {
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+          <label
+            htmlFor="agent-model"
+            className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+          >
             Default Model
           </label>
           <select
+            id="agent-model"
             value={model}
             onChange={(e) => setModel(e.target.value)}
             className="w-full rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
@@ -34,10 +38,14 @@ export function AgentDefaultsSettingsPanel() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+          <label
+            htmlFor="agent-max-tokens"
+            className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+          >
             Max Output Tokens
           </label>
           <input
+            id="agent-max-tokens"
             type="number"
             value={maxTokens}
             onChange={(e) => setMaxTokens(e.target.value)}

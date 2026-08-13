@@ -89,19 +89,34 @@ Every audio frame is a binary WebSocket message structured as:
 
 `level_dbov` is authored by the sender. The relay clamps it to `[-127, 0]` and forwards it unchanged. Clients MUST NOT use it for trust decisions (admission, moderation). It is used only for active-speaker detection UI.
 
-### Binary frame layout — video
+### Binary frame layout — video (v2, current)
 
 ```
  Offset  Size   Field         Type      Notes
  ──────  ────   ────────────  ────────  ──────────────────────────────────────
-  0      2      seq           u16 BE    Wraps at 65 535
-  2      8      pts_90k       u64 BE    90 kHz presentation timestamp
- 10      1      flags         u8        0x01=keyframe, 0x02=last_fragment, 0x04=screen_share
- 11      3      reserved      bytes     Future use; zero
- 14      N      vp8_payload   bytes     VP8 encoded video; may be fragmented (max 60 KB/fragment)
+  0      1      version       u8        0x02 (v2 marker)
+  1      2      seq           u16 BE    Per-sender; wraps at 65 535
+  3      8      pts_us        u64 BE    Microsecond presentation timestamp
+ 11      1      flags         u8        0x01=keyframe, 0x02=last_fragment, 0x04=screen_share
+ 12      1      reserved      u8        Zero
+ 13     32      sender_pk     [u8;32]   Raw Nostr pubkey of sender
+ 45      1      reserved      u8        Zero
+ 46      N      vp8_payload   bytes     VP8 encoded video; fragmented at 60 KB max
 ```
 
-`flags=0x00` = camera frame. `flags=0x04` = screen share frame. The relay enforces one presenter per room; a second presenter is rejected until the first disconnects.
+`flags=0x00` = camera frame. `flags=0x04` = screen share frame.
+
+v1 compatibility: if the first byte is not `0x02`, clients fall back to the 14-byte v1 header (no `sender_pk`). Clients MUST NOT hardcode resolution — encoder dimensions come from `track.getSettings()`.
+
+The relay multiplexes all authenticated senders and broadcasts each frame (with sender_pk set) to every other peer. Per-sender fragment reassembly buffers are maintained client-side, keyed by `sender_pk`.
+
+Control messages from relay on the video WS:
+```json
+{"type":"video_started","pubkey":"<hex>","mode":"camera|screen"}
+{"type":"video_stopped","pubkey":"<hex>"}
+{"type":"video_publishers","publishers":[{"pubkey":"<hex>","mode":"camera|screen"},…]}
+```
+`video_publishers` is sent in the `joined` message so late-joiners see current publishers.
 
 ### Active-speaker detection (client-side rule)
 
@@ -161,9 +176,12 @@ A huddle is considered **stale** (join button hidden) if `created_at` on KIND_HU
 | Model download UI | ✅ | Progress tracking for Parakeet + Pocket model files |
 | Persistent timeline card | ✅ | `HuddleAttachment` in `MessageTimeline`; shows live/ended state + join button |
 | HuddleIndicator in channel header | ✅ | Headphone icon; green when active; participant count badge |
-| Screen share | 🔲 | Not implemented — see Roadmap |
-| Video (camera) | 🔲 | Not implemented — see Roadmap |
-| Huddle notes | 🔲 | Not implemented — see Roadmap |
+| Screen share | ✅ | `getDisplayMedia` + WebCodecs VP8 + `/video` WS (NIP-42 auth); Monitor button in HuddleBar |
+| Video (camera) | ✅ | `getUserMedia` + WebCodecs VP8 + same `/video` WS; Video button; mutual exclusion with screen share |
+| Multi-stream video | ✅ | v2 wire header with `sender_pk`; per-sender `VideoDecoder` + canvas tiles; `HuddleVideoGrid` component |
+| DM huddles | ✅ | Synthetic parent ID `pkA:pkB`; `dm_pubkeys` Tauri param; `build_huddle_started_for_dm`; `#p` tag on STARTED event |
+| Floating PiP window | ✅ | `pop_out_huddle`/`pop_in_huddle` Tauri commands; `HuddleBarPip` on `/huddle-pip` route; auto pop-out on navigation |
+| Huddle notes | ✅ | `HuddleNotesPanel`; kind:30810 Nostr event; auto-save on debounce; relay subscription |
 
 ### State machine
 
@@ -202,18 +220,23 @@ desktop/src-tauri/src/huddle/
 
 ```
 desktop/src/features/huddle/
-├── HuddleContext.tsx         State provider; bridges Tauri events ↔ React
+├── HuddleContext.tsx         State provider; bridges Tauri events ↔ React; isPoppedOut, auto pop-out
 ├── components/
 │   ├── HuddleBar.tsx         Main controls: mute, TTS, captions, reactions, agents, leave
+│   ├── HuddleVideoGrid.tsx   Per-sender VP8 decoder + canvas tile grid
+│   ├── HuddleBarPip.tsx      Compact PiP controls: mute, expand, leave
 │   ├── MicControls.tsx       Input device picker + level meter + gain slider
 │   ├── SpeakerControls.tsx   Output device picker
 │   ├── ParticipantList.tsx   Roster (agents + humans); remove button for agents
 │   ├── AddAgentDialog.tsx    Agent selector; adds to huddle dynamically
-│   └── HuddleAttachment.tsx  Timeline card (in-progress / ended + join button)
-└── lib/
-    ├── audioWorklet.ts       Mic capture + PCM IPC to Rust
-    ├── useAudioDevices.ts    Device enumeration hook
-    └── huddleCardState.ts    Stale-check logic
+│   └── HuddleAttachment.tsx  Timeline card; DM-aware via #h tag extraction
+├── lib/
+│   ├── audioWorklet.ts       Mic capture + PCM IPC to Rust
+│   ├── huddleVideoWs.ts      Video WS v2: per-sender buffers, VideoPublisherInfo map
+│   ├── useAudioDevices.ts    Device enumeration hook
+│   └── huddleCardState.ts    Stale-check logic
+└── routes/
+    └── huddle-pip.tsx        /huddle-pip route → HuddleBarPip
 ```
 
 ---
@@ -248,6 +271,9 @@ desktop/src/features/huddle/
 | Huddle notes | ✅ | Side panel; kind:30810 Nostr-based; persists after huddle ends |
 | Screen share | ✅ | WebCodecs VP8; `/video` WS endpoint; `flags=0x04`; relay presenter slot |
 | Camera video | ✅ | WebCodecs VP8; same `/video` endpoint; `flags=0x00`; mutual exclusion with screen share |
+| Multi-stream video | ✅ | v2 wire header + `sender_pk`; per-sender fragment buffers; `HuddleVideoGrid` tile grid |
+| DM huddles | ✅ | Synthetic parent ID `pkA:pkB`; `dmPubkeys` param; `#p` tag on STARTED event; `subscribeDmHuddleLifecycle` |
+| Floating bar | ✅ | `HuddleFloatingBar` CSS-fixed draggable; auto-shown via `isFloating` when navigated away from huddle channel |
 | STT (live transcription) | ✅ | Whisper small INT8 WASM (`@huggingface/transformers`); Web Worker; VAD-gated; kind:9 publish |
 | TTS for agents | ✅ | Kokoro-82M-v1.0 q8 WASM (`kokoro-js`); Web Worker; per-agent FIFO; barge-in on speech |
 | Add agent dynamically | ✅ | NIP-29 kind:9000; `AddAgentDialog` filtered to online agents not in current huddle |
@@ -293,6 +319,8 @@ web/src/features/huddle/
     │                               reactions, notes, add-agent, participants, leave
     ├── MicControls.tsx             8-bar level meter + mute button
     ├── HuddleParticipants.tsx      Popover participant list with speaking ring
+    ├── HuddleVideoGrid.tsx         Per-sender VP8 decoder + canvas tile grid
+    ├── HuddleFloatingBar.tsx       Draggable fixed-position overlay; shown when isFloating
     ├── HuddleAttachment.tsx        Timeline card for KIND_HUDDLE_STARTED events
     ├── HuddleIndicator.tsx         Channel header icon with participant count badge
     └── AddAgentDialog.tsx          Agent selector (online, not in current huddle)
@@ -367,32 +395,102 @@ Phase 2 (STT via on-device model, TTS): 2–3 additional weeks.
 | STT (live transcription) | ✅ Parakeet | ✅ Whisper WASM | 🔲 |
 | TTS (agent voice) | ✅ Pocket | ✅ Kokoro WASM | 🔲 |
 | Add agent dynamically | ✅ | ✅ | 🔲 |
-| Huddle notes | 🔲 | ✅ | 🔲 |
-| Screen share | 🔲 | ✅ | 🔲 |
-| Camera video | 🔲 | ✅ | 🔲 |
+| Huddle notes | ✅ | ✅ | 🔲 |
+| Screen share | ✅ | ✅ | 🔲 |
+| Camera video | ✅ | ✅ | 🔲 |
+| Multi-stream video (all cameras) | ✅ | ✅ | 🔲 |
+| DM huddles | ✅ | ✅ | 🔲 |
+| Floating / pop-out window | ✅ PiP | ✅ floating bar | 🔲 |
+| Raise hand | 🔲 | 🔲 | 🔲 |
+| Noise cancellation | 🔲 | 🔲 | 🔲 |
+| Virtual background / blur | 🔲 | 🔲 | 🔲 |
+| Output device picker UI | ✅ | 🔲 | 🔲 |
 
 ---
 
 ## Roadmap
 
-### Desktop — Screen share, Camera video, Huddle notes
+### ~~Desktop — Screen share, Camera video, Huddle notes~~ ✅ Shipped
 
-**Status:** Not implemented. Web shipped all three; desktop is next.
+**Status:** Implemented 2026-08-12.
 
-**Screen share / Camera video — Desktop**
+- Screen share: `getDisplayMedia` + WebCodecs `VideoEncoder` (VP8) + `/video` WS (NIP-42 auth in TypeScript via `signRelayEvent` Tauri invoke). Monitor button in HuddleBar.
+- Camera video: `getUserMedia` + same VP8 pipeline. Video button; mutual exclusion with screen share enforced in TypeScript `HuddleVideoWs` class.
+- Huddle notes: `HuddleNotesPanel` ported from web; kind:30810 replaceable event; `#e`/`#h`/`#d` tags; 500 ms debounce auto-save; relay subscription on open.
+- Remote video received via `HuddleVideoWs.handleRemoteFrame` → `onVideoFrame` bus → `VideoDecoder` → `<canvas>` overlay above HuddleBar.
 
-- Capture: Tauri screen-capture API (screen share) / `getUserMedia` via webview (camera)
-- Encode: Rust `vpx` crate (VP8); same wire protocol as web (`/video` endpoint, same flags byte)
-- Relay: endpoint already live (`/huddle/{eph_id}/video`); desktop just needs the client
-- Receive + render: VP8 decode → `<canvas>` or `ImageBitmap` overlay in the Tauri window
+### ~~Multi-stream video (all cameras simultaneously)~~ ✅ Shipped
 
-**Huddle notes — Desktop**
+**Status:** Implemented 2026-08-12 (Huddle P1).
 
-Port the web implementation: kind:30810 replaceable event, `#e [started_event_id]` + `#h [channel_id]` tags, textarea side panel. Desktop signs via existing Tauri Nostr signer.
+- Relay: `DashMap<[u8;32], SenderState>` replaces single-presenter mutex; all senders broadcast concurrently.
+- Wire: v2 header (46 bytes) — version byte `0x02` + `sender_pk` at bytes 13–44. v1 backward-compat: if first byte ≠ `0x02`, fall back to 14-byte v1 layout.
+- Relay control messages: `video_started`/`video_stopped`/`video_publishers` (included in `joined`).
+- Client (web + desktop): `HuddleVideoWs` rewritten with per-sender fragment reassembly; `HuddleVideoGrid` component renders one decoder+canvas tile per remote sender plus local preview.
+- Encoder dimensions always from `track.getSettings()` — never hardcoded.
 
-### Desktop — Output device picker (web)
+---
 
-Web `AudioContext.setSinkId` (Chrome 110+) sets the output device without re-creating the context. A `<select>` in `MicControls` or a dedicated `SpeakerControls` component would complete parity. No relay changes needed.
+### ~~DM huddles~~ ✅ Shipped
+
+**Status:** Implemented 2026-08-12 (Huddle P1).
+
+- Synthetic parent ID: `[pkA, pkB].sort().join(":")` — no UUID, no relay channel required.
+- `start_huddle` Tauri command accepts `dm_pubkeys?: string[]`; computes synthetic ID; calls `build_huddle_started_for_dm` which skips UUID validation and adds `#p [otherPubkey]` tag.
+- Web `startHuddle` accepts `dmPubkeys?: string[]`; same synthetic ID logic; signs KIND_HUDDLE_STARTED with `#h [syntheticId]` + `#p [otherPubkey]`.
+- `subscribeDmHuddleLifecycle` filters by `#p [selfPubkey]` so DM recipients see incoming huddle invites.
+- `HuddleAttachment` (desktop) extracts effective parent from `#h` tag — works for both UUID and synthetic IDs.
+- `relay_api.rs`: synthetic IDs (contain `:`) sent as `null` for `parent_channel_id` to relay so no ephemeral-channel membership side-effect.
+
+---
+
+### ~~Floating pop-out window (desktop) / Floating bar (web)~~ ✅ Shipped
+
+**Status:** Implemented 2026-08-12 (Huddle P1).
+
+- Desktop: `pop_out_huddle` Tauri command opens `WebviewWindowBuilder` with `always_on_top(true)`, `decorations(false)`, `transparent(true)`, 280×80 px, pointing at `/huddle-pip` route → `HuddleBarPip` component (drag via `startDragging()`, mute, expand, leave). `pop_in_huddle` closes the PiP window. `HuddleContext` tracks `isPoppedOut` via `huddle-pip-opened`/`huddle-pip-closed` Tauri events; auto pop-out fires when pathname no longer includes `parentChannelId`. `HuddleBar` returns null when `isPoppedOut`.
+- Web: `HuddleFloatingBar` — CSS `position: fixed` draggable overlay; shown when `isFloating` (`!!ephemeralChannelId && !pathname.includes(parentChannelId)`). Pointer-capture drag. Navigate-to-channel expand button. Self-contained — renders null when not floating.
+
+---
+
+### Raise hand
+
+**Priority: Medium**
+
+- New ephemeral Nostr event `KIND_HUDDLE_RAISE_HAND = 24811` (short TTL, `#h [eph_ch_id]`).
+- HuddleBar: hand icon button → publishes raise-hand event → shows raised-hand indicator on participant tile.
+- Auto-lowers after 60 s or when user unmutes (configurable).
+- Relay subscription: same `subscribeLive` filter on kind:24811 in the ephemeral channel.
+
+---
+
+### Noise cancellation
+
+**Priority: Medium**
+
+- Web: integrate [RNNoise](https://github.com/xiph/rnnoise) WASM in the `huddleCapture.worklet.ts` AudioWorklet. Runs in the worklet thread; 10 ms chunks; near-zero latency.
+- Desktop: Rust `rnnoise` crate (wraps C library); process PCM in `stt.rs` before Opus encode. Same 10 ms chunk interface.
+- Toggle: new button in `MicControls` — "Noise suppression" checkbox; persists to localStorage / Rust config.
+
+---
+
+### Virtual background / camera blur (web + desktop)
+
+**Priority: Low**
+
+- Web: `MediaStreamTrack` + `VideoFrame` → BodyPix or MediaPipe Selfie Segmentation WASM → background replacement → `VideoEncoder`.
+- Desktop: same pipeline in TypeScript since video capture is already browser-side (`HuddleVideoWs`).
+- Background images stored in user preferences; blur is a CSS-filter fallback for low-end devices.
+
+---
+
+### Web — Output device picker UI
+
+**Priority: Low**
+
+`AudioContext.setSinkId(deviceId)` (Chrome 110+, Edge 110+) switches playback device without re-creating the context. Add a `<select>` dropdown to `MicControls.tsx` (web), populated by `enumerateDevices()` filtering `audiooutput`. No relay or worklet changes needed.
+
+---
 
 ### Mobile huddle (Phase 1)
 

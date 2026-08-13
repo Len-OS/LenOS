@@ -24,6 +24,9 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onOpenChange(false);
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onOpenChange(false);
+      }}
       className="fixed inset-0 z-50 m-0 h-screen w-screen max-h-screen max-w-full bg-transparent p-0 backdrop:bg-black/50"
     >
       <div className="flex h-full w-full items-center justify-center p-4">

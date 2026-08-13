@@ -124,6 +124,15 @@ export function HuddleAttachment({
     () => parseEphemeralChannelId(message.body),
     [message.body],
   );
+  // For DM huddles the #h tag holds the synthetic "pkA:pkB" id, not the outer
+  // channel UUID. Prefer the tag value so subscriptions and join use the right id.
+  const effectiveChannelId = React.useMemo(
+    () =>
+      (message.tags as string[][] | undefined)?.find(
+        (t) => t[0] === "h" && typeof t[1] === "string",
+      )?.[1] ?? channelId,
+    [channelId, message.tags],
+  );
   const { activeEphemeralChannelId, isStarting, joinHuddle } = useHuddle();
   const queryClient = useQueryClient();
   const [isJoining, setIsJoining] = React.useState(false);
@@ -134,7 +143,7 @@ export function HuddleAttachment({
     }));
 
   React.useEffect(() => {
-    if (!channelId || !ephemeralChannelId) return;
+    if (!effectiveChannelId || !ephemeralChannelId) return;
 
     const huddleChannelId = ephemeralChannelId;
     let disposed = false;
@@ -167,7 +176,7 @@ export function HuddleAttachment({
 
     updateState();
     relayClient
-      .subscribeToHuddleEvents(channelId, (event) => {
+      .subscribeToHuddleEvents(effectiveChannelId, (event) => {
         if (disposed || seenEvents.has(event.id)) return;
         if (lifecycleEventChannelId(event) !== huddleChannelId) return;
         seenEvents.set(event.id, event);
@@ -189,7 +198,7 @@ export function HuddleAttachment({
       cleanup?.();
     };
   }, [
-    channelId,
+    effectiveChannelId,
     ephemeralChannelId,
     message.body,
     message.createdAt,
@@ -207,7 +216,7 @@ export function HuddleAttachment({
   const isStaleUnconfirmedHuddle =
     !isCurrentHuddle && isHuddleStartStale(message.createdAt);
   const canJoin = Boolean(
-    channelId &&
+    effectiveChannelId &&
       ephemeralChannelId &&
       !isEnded &&
       !isCurrentHuddle &&
@@ -216,10 +225,11 @@ export function HuddleAttachment({
   const displayEnded = isEnded || isStaleUnconfirmedHuddle;
 
   async function handleJoin() {
-    if (!channelId || !ephemeralChannelId || isJoining || isStarting) return;
+    if (!effectiveChannelId || !ephemeralChannelId || isJoining || isStarting)
+      return;
     setIsJoining(true);
     try {
-      await joinHuddle(channelId, ephemeralChannelId);
+      await joinHuddle(effectiveChannelId, ephemeralChannelId);
       void queryClient.invalidateQueries({ queryKey: ["channels"] });
     } catch (error) {
       toast.error(formatHuddleActionError(error, "join"));

@@ -12,12 +12,12 @@ function SlugPill({ slug }: { slug: string }) {
 
 function renderBodyWithLinks(body: string) {
   const parts = body.split(/(\[\[[^\]]+\]\])/g);
-  return parts.map((part, i) => {
+  return parts.map((part) => {
     const match = part.match(/^\[\[([^\]]+)\]\]$/);
     if (match) {
-      return <SlugPill key={i} slug={match[1]} />;
+      return <SlugPill key={`slug:${match[1]}`} slug={match[1]} />;
     }
-    return <span key={i}>{part}</span>;
+    return <span key={`text:${part}`}>{part}</span>;
   });
 }
 

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 
 const LENGROWTH_API = "https://growth-api.lenquant.com";
+const getToken = () => localStorage.getItem("lenos_managed_signer_token");
 
 interface Cron {
   cron_id: string;
@@ -19,26 +20,24 @@ export function AutomationsSettingsPanel() {
   const [loading, setLoading] = useState(false);
   const [companyId, setCompanyId] = useState("");
 
-  const token = () => localStorage.getItem("lenos_managed_signer_token");
-
-  const fetchCrons = async (cid: string) => {
+  const fetchCrons = useCallback(async (cid: string) => {
     setLoading(true);
     try {
       const res = await fetch(
         `${LENGROWTH_API}/api/agent/crons?company_id=${cid}`,
-        { headers: { Authorization: `Bearer ${token()}` } },
+        { headers: { Authorization: `Bearer ${getToken()}` } },
       );
       if (res.ok) setCrons(await res.json());
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const cid = localStorage.getItem("lengrowth-company-id") ?? "";
     setCompanyId(cid);
     if (cid) fetchCrons(cid);
-  }, []);
+  }, [fetchCrons]);
 
   const handleDelete = async (cronId: string) => {
     await fetch(

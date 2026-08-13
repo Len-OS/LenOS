@@ -28,6 +28,7 @@ import {
 } from "@/features/profiles/profile-panel-context";
 import { HuddleProvider } from "@/features/huddle/HuddleContext";
 import { HuddleBar } from "@/features/huddle/ui/HuddleBar";
+import { HuddleFloatingBar } from "@/features/huddle/ui/HuddleFloatingBar";
 import { UserProfilePanel } from "@/features/profiles/ui/UserProfilePanel";
 import { usePresenceHeartbeat } from "@/features/presence/usePresenceHeartbeat";
 import {
@@ -107,6 +108,7 @@ function WorkspaceLayout() {
           />
         </ProfilePanelProvider>
         <HuddleBar />
+        <HuddleFloatingBar />
       </HuddleProvider>
     </OnboardingGate>
   );

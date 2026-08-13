@@ -1,6 +1,8 @@
 import { Mic, MicOff } from "lucide-react";
 import { useHuddle } from "../HuddleContext";
 
+const BAR_KEYS = ["b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"] as const;
+
 const canSetSinkId =
   typeof AudioContext !== "undefined" && "setSinkId" in AudioContext.prototype;
 
@@ -21,9 +23,9 @@ export function MicControls() {
   return (
     <div className="flex items-center gap-1">
       <div className="flex h-5 w-10 items-end gap-px overflow-hidden rounded">
-        {Array.from({ length: 8 }, (_, i) => (
+        {BAR_KEYS.map((barKey, i) => (
           <div
-            key={i}
+            key={barKey}
             className="flex-1 rounded-sm transition-all duration-75"
             style={{
               backgroundColor:
@@ -35,7 +37,7 @@ export function MicControls() {
                       : "#22c55e"
                   : "currentColor",
               opacity: micLevel > i / 8 ? 1 : 0.15,
-              height: (i + 1) * 12.5 + "%",
+              height: `${(i + 1) * 12.5}%`,
             }}
           />
         ))}

@@ -69,8 +69,7 @@ export function applyDeepLinkAction(
       });
       break;
     case "navigate":
-      // action.to is one of the known route paths validated by parseLenOSPath
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // biome-ignore lint/suspicious/noExplicitAny: known route path validated by parseLenOSPath
       void navigate({ to: action.to as any });
       break;
   }

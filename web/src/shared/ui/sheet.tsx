@@ -28,7 +28,9 @@ export function Sheet({
 
   return (
     <div className="fixed inset-0 z-50">
-      <div
+      <button
+        type="button"
+        aria-label="Close"
         className="absolute inset-0 bg-black/50"
         onClick={() => onOpenChange(false)}
       />

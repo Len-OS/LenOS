@@ -52,7 +52,8 @@ use huddle::{
     add_agent_to_huddle, check_pipeline_hotstart, confirm_huddle_active, download_voice_models,
     end_huddle, get_huddle_agent_pubkeys, get_huddle_state, get_model_status, get_voice_input_mode,
     join_huddle, leave_huddle, push_audio_pcm, set_huddle_transcription_enabled, set_tts_enabled,
-    set_voice_input_mode, speak_agent_message, start_huddle, start_stt_pipeline,
+    set_voice_input_mode, speak_agent_message, start_camera_share, start_huddle,
+    start_screen_share, start_stt_pipeline, stop_video_share,
 };
 use managed_agents::{
     backfill_persona_snapshots, ensure_nest, list_managed_agent_runtimes,
@@ -138,6 +139,31 @@ async fn wait_for_stable_initial_window_geometry<R: tauri::Runtime>(window: &tau
     }
 
     eprintln!("lenos-desktop: initial window geometry did not settle before reveal timeout");
+}
+
+#[tauri::command]
+async fn pop_out_huddle(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::WebviewUrl;
+    tauri::WebviewWindowBuilder::new(&app, "huddle-pip", WebviewUrl::App("/huddle-pip".into()))
+        .title("Huddle")
+        .decorations(false)
+        .always_on_top(true)
+        .transparent(true)
+        .resizable(false)
+        .inner_size(280.0, 80.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    app.emit("huddle-pip-opened", ()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn pop_in_huddle(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("huddle-pip") {
+        win.close().map_err(|e| e.to_string())?;
+    }
+    app.emit("huddle-pip-closed", ()).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -911,6 +937,11 @@ pub fn run() {
             list_audio_output_devices,
             set_audio_output_device,
             get_audio_output_device,
+            start_screen_share,
+            start_camera_share,
+            stop_video_share,
+            pop_out_huddle,
+            pop_in_huddle,
             start_pairing,
             confirm_pairing_sas,
             cancel_pairing,

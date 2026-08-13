@@ -540,6 +540,33 @@ pub fn build_huddle_started(
     build_huddle_event(48100, parent_channel_id, ephemeral_channel_id, &[], None)
 }
 
+/// Kind 48100 for a DM huddle.
+///
+/// `parent_channel_id` is a synthetic `"pkA:pkB"` string — not a UUID — so
+/// UUID validation is intentionally skipped. `other_pubkey` is the other
+/// participant's hex pubkey, added as a `#p` tag so they can filter for it.
+pub fn build_huddle_started_for_dm(
+    parent_channel_id: &str,
+    ephemeral_channel_id: &str,
+    other_pubkey: &str,
+) -> Result<EventBuilder, String> {
+    validate_channel_id(ephemeral_channel_id)?;
+    check_content(parent_channel_id)?;
+
+    let content = serde_json::json!({
+        "ephemeral_channel_id": ephemeral_channel_id,
+        "parent_channel_id": parent_channel_id,
+    })
+    .to_string();
+
+    let tags = vec![
+        tag(vec!["h", parent_channel_id])?,
+        tag(vec!["p", other_pubkey])?,
+    ];
+
+    Ok(EventBuilder::new(Kind::Custom(48100), content).tags(tags))
+}
+
 /// Kind 48103 — huddle ended, posted to the parent channel.
 pub fn build_huddle_ended(
     parent_channel_id: &str,

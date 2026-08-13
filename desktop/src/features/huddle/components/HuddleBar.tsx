@@ -4,8 +4,11 @@ import {
   Bot,
   Captions,
   MessageSquareText,
+  Monitor,
+  NotebookPen,
   PhoneOff,
   SmilePlus,
+  Video,
 } from "lucide-react";
 import * as React from "react";
 
@@ -29,6 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useHuddle } from "../HuddleContext";
 import { AddAgentDialog, type AgentAddResult } from "./AddAgentDialog";
+import { HuddleNotesPanel } from "./HuddleNotesPanel";
+import { HuddleVideoGrid } from "./HuddleVideoGrid";
 import { MicControls, SpeakerControls } from "./MicControls";
 import { HuddleParticipantsControl } from "./ParticipantList";
 import { truncatePubkey } from "@/shared/lib/pubkey";
@@ -168,6 +173,17 @@ export function HuddleBar({
     outputDevices,
     selectedOutputDevice,
     setSelectedOutputDevice,
+    screenShareActive,
+    cameraShareActive,
+    notesOpen,
+    setNotesOpen,
+    remoteVideoPublishers,
+    localVideoStream,
+    startScreenShare,
+    stopScreenShare,
+    startCameraShare,
+    stopCameraShare,
+    isPoppedOut,
   } = useHuddle();
   const customEmoji = useCustomEmoji();
   const identityQuery = useIdentityQuery();
@@ -479,7 +495,7 @@ export function HuddleBar({
     [burstHuddleReaction, customEmoji, reactionChannelId, reactionSenderName],
   );
 
-  if (!barState) {
+  if (!barState || isPoppedOut) {
     return null;
   }
 
@@ -777,6 +793,60 @@ export function HuddleBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label={
+                  screenShareActive ? "Stop screen share" : "Share screen"
+                }
+                aria-pressed={screenShareActive}
+                className={cn(
+                  "lenos-huddle-control-button h-12 w-12 shrink-0 rounded-md",
+                  screenShareActive && "bg-blue-500/20 text-blue-500",
+                )}
+                onClick={() =>
+                  void (screenShareActive
+                    ? stopScreenShare()
+                    : startScreenShare())
+                }
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <Monitor className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="lenos-huddle-tooltip" side="top">
+              {screenShareActive ? "Stop screen share" : "Share screen"}
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                aria-label={cameraShareActive ? "Stop camera" : "Share camera"}
+                aria-pressed={cameraShareActive}
+                className={cn(
+                  "lenos-huddle-control-button h-12 w-12 shrink-0 rounded-md",
+                  cameraShareActive && "bg-purple-500/20 text-purple-500",
+                )}
+                onClick={() =>
+                  void (cameraShareActive
+                    ? stopCameraShare()
+                    : startCameraShare())
+                }
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <Video className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="lenos-huddle-tooltip" side="top">
+              {cameraShareActive ? "Stop camera" : "Share camera"}
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
                 aria-label="Add agent to huddle"
                 className="lenos-huddle-control-button h-12 w-12 shrink-0 rounded-md"
                 onClick={() => setShowAddAgent(true)}
@@ -789,6 +859,28 @@ export function HuddleBar({
             </TooltipTrigger>
             <TooltipContent className="lenos-huddle-tooltip" side="top">
               Add agent
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                aria-label="Huddle notes"
+                aria-pressed={notesOpen}
+                className={cn(
+                  "lenos-huddle-control-button h-12 w-12 shrink-0 rounded-md",
+                  notesOpen && "text-foreground",
+                )}
+                onClick={() => setNotesOpen(!notesOpen)}
+                size="icon"
+                type="button"
+                variant="secondary"
+              >
+                <NotebookPen className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="lenos-huddle-tooltip" side="top">
+              Huddle notes
             </TooltipContent>
           </Tooltip>
         </div>
@@ -830,6 +922,25 @@ export function HuddleBar({
           modelStatus.tts !== "ready" &&
           `, TTS model ${modelStatus.tts}`}
       </output>
+
+      {(remoteVideoPublishers.size > 0 || localVideoStream) && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-full mb-1 px-4">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-lg border border-black/10 bg-black shadow-lg dark:border-white/10">
+            <HuddleVideoGrid
+              publishers={remoteVideoPublishers}
+              localStream={localVideoStream}
+            />
+          </div>
+        </div>
+      )}
+
+      {notesOpen && huddleThreadEventId && parentChannelId && (
+        <HuddleNotesPanel
+          startedEventId={huddleThreadEventId}
+          parentChannelId={parentChannelId}
+          onClose={() => setNotesOpen(false)}
+        />
+      )}
     </div>
   );
 }

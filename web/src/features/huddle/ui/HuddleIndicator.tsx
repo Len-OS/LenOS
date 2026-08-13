@@ -48,7 +48,7 @@ export function HuddleIndicator({ channelId }: { channelId: string }) {
       disabled={phase !== "idle" && !isInThis}
       title={
         active
-          ? "Join huddle (" + active.participants.size + " in)"
+          ? `Join huddle (${active.participants.size} in)`
           : "Start a huddle"
       }
       className={

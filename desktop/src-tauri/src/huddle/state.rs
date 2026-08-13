@@ -127,6 +127,7 @@ pub struct HuddleState {
     /// Shared with the STT pipeline for mic gating.
     #[serde(skip)]
     pub ptt_active: Arc<AtomicBool>,
+
 }
 
 fn serialize_agent_pubkeys<S>(v: &Arc<Mutex<Vec<String>>>, s: S) -> Result<S::Ok, S::Error>
@@ -180,6 +181,7 @@ impl Clone for HuddleState {
             session_generation: Arc::clone(&self.session_generation),
             voice_input_mode: self.voice_input_mode.clone(),
             ptt_active: Arc::clone(&self.ptt_active),
+
         }
     }
 }
@@ -209,6 +211,7 @@ impl Default for HuddleState {
             session_generation: Arc::new(AtomicU64::new(0)),
             voice_input_mode: VoiceInputMode::default(),
             ptt_active: Arc::new(AtomicBool::new(false)),
+
         }
     }
 }

@@ -61,7 +61,7 @@ function useWorkflowRuns(workflowEventId: string): WorkflowRun[] {
           triggeredBy: raw.pubkey as string,
           createdAt: raw.created_at as number,
           completedAt: tags.find((t) => t[0] === "completed_at")
-            ? Number(tags.find((t) => t[0] === "completed_at")![1])
+            ? Number(tags.find((t) => t[0] === "completed_at")?.[1])
             : undefined,
           requiresApproval,
           approvalPrompt,

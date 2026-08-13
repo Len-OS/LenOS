@@ -32,6 +32,7 @@ export class HuddleTts {
       { type: "module" },
     );
 
+    const worker = this.worker;
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.worker?.terminate();
@@ -39,29 +40,31 @@ export class HuddleTts {
         reject(new Error("TTS model load timed out after 120s"));
       }, 120_000);
 
-      this.worker!.onmessage = (
-        evt: MessageEvent<{
-          type: string;
-          buffer?: ArrayBuffer;
-          sampleRate?: number;
-          message?: string;
-        }>,
-      ) => {
-        const { type } = evt.data;
-        if (type === "ready") {
-          clearTimeout(timeout);
-          this.onLoadingChange(false);
-          this.worker!.onmessage = this.handleWorkerMessage.bind(this);
-          resolve();
-        } else if (type === "error") {
-          clearTimeout(timeout);
-          this.worker?.terminate();
-          this.worker = null;
-          reject(new Error(evt.data.message ?? "TTS init failed"));
-        }
-      };
+      if (worker) {
+        worker.onmessage = (
+          evt: MessageEvent<{
+            type: string;
+            buffer?: ArrayBuffer;
+            sampleRate?: number;
+            message?: string;
+          }>,
+        ) => {
+          const { type } = evt.data;
+          if (type === "ready") {
+            clearTimeout(timeout);
+            this.onLoadingChange(false);
+            worker.onmessage = this.handleWorkerMessage.bind(this);
+            resolve();
+          } else if (type === "error") {
+            clearTimeout(timeout);
+            this.worker?.terminate();
+            this.worker = null;
+            reject(new Error(evt.data.message ?? "TTS init failed"));
+          }
+        };
+      }
 
-      this.worker!.postMessage({ type: "init" });
+      this.worker?.postMessage({ type: "init" });
     });
 
     // Subscribe to kind:9 messages from agents in this huddle
@@ -80,7 +83,7 @@ export class HuddleTts {
         if (!this.perAgentQueue.has(pubkey)) {
           this.perAgentQueue.set(pubkey, []);
         }
-        this.perAgentQueue.get(pubkey)!.push(text);
+        this.perAgentQueue.get(pubkey)?.push(text);
         this.dequeue();
       },
     });
@@ -103,8 +106,8 @@ export class HuddleTts {
         this.speaking = false;
         return;
       }
-      if (evt.data.type === "audio" && evt.data.buffer) {
-        void this.playAudio(evt.data.buffer, evt.data.sampleRate!);
+      if (evt.data.type === "audio" && evt.data.buffer && evt.data.sampleRate) {
+        void this.playAudio(evt.data.buffer, evt.data.sampleRate);
       } else {
         this.speaking = false;
         this.dequeue();

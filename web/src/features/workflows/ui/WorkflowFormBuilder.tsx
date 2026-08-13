@@ -76,17 +76,18 @@ export function WorkflowFormBuilder({ communityId, onClose }: Props) {
   const hint = TRIGGER_OPTIONS.find((o) => o.value === triggerType)?.hint ?? "";
 
   return (
-    <div
-      role="presentation"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-      onKeyDown={() => {}}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 bg-black/40 cursor-default"
+        onClick={onClose}
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Create workflow"
-        className="w-full max-w-md rounded-xl border border-black/10 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1e1e1e]"
+        className="relative z-10 w-full max-w-md rounded-xl border border-black/10 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1e1e1e]"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
@@ -109,10 +110,14 @@ export function WorkflowFormBuilder({ communityId, onClose }: Props) {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+            <label
+              htmlFor="wf-name"
+              className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+            >
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="wf-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Nightly digest"
@@ -124,10 +129,14 @@ export function WorkflowFormBuilder({ communityId, onClose }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+            <label
+              htmlFor="wf-description"
+              className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+            >
               Description
             </label>
             <Textarea
+              id="wf-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What does this workflow do?"
@@ -136,10 +145,14 @@ export function WorkflowFormBuilder({ communityId, onClose }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+            <label
+              htmlFor="wf-trigger"
+              className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+            >
               Trigger
             </label>
             <Select
+              id="wf-trigger"
               value={triggerType}
               onChange={(e) => {
                 setTriggerType(e.target.value as TriggerType);
@@ -159,12 +172,16 @@ export function WorkflowFormBuilder({ communityId, onClose }: Props) {
 
           {triggerType !== "manual" && (
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+              <label
+                htmlFor="wf-trigger-value"
+                className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+              >
                 {triggerType === "scheduled"
                   ? "Cron expression"
                   : "Webhook path"}
               </label>
               <Input
+                id="wf-trigger-value"
                 value={triggerValue}
                 onChange={(e) => setTriggerValue(e.target.value)}
                 placeholder={

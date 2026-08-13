@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useRouterState } from "@tanstack/react-router";
 import * as React from "react";
 
 import { setupAudioWorklet, type AudioWorkletHandle } from "./lib/audioWorklet";
 import { useAudioDevices } from "./lib/useAudioDevices";
 import { formatHuddleActionError } from "./lib/huddleError";
 import { useTtsSubscription } from "./lib/useTtsSubscription";
+import { HuddleVideoWs, type VideoPublisherInfo } from "./lib/huddleVideoWs";
 
 /**
  * Huddle lifecycle (React context):
@@ -80,11 +82,32 @@ interface HuddleContextValue {
   setSelectedOutputDevice: (name: string) => void;
   /** Active ephemeral huddle channel ID, if this client is connected to one. */
   activeEphemeralChannelId: string | null;
+  /** Whether screen share is currently active */
+  screenShareActive: boolean;
+  /** Whether camera share is currently active */
+  cameraShareActive: boolean;
+  /** Whether huddle notes panel is open */
+  notesOpen: boolean;
+  /** Toggle notes panel */
+  setNotesOpen: (v: boolean) => void;
+  /** Remote video publishers: pubkey → mode */
+  remoteVideoPublishers: Map<string, "camera" | "screen">;
+  /** Local video stream for preview (null when not sharing) */
+  localVideoStream: MediaStream | null;
+  /** Start screen share (stops camera if active) */
+  startScreenShare: () => Promise<void>;
+  /** Stop screen share */
+  stopScreenShare: () => Promise<void>;
+  /** Start camera share (stops screen share if active) */
+  startCameraShare: () => Promise<void>;
+  /** Stop camera share */
+  stopCameraShare: () => Promise<void>;
   /** Start a new huddle — calls Rust start_huddle, then connects mic + AudioWorklet */
   startHuddle: (
     parentChannelId: string,
     memberPubkeys: string[],
     channelName?: string,
+    dmPubkeys?: string[],
   ) => Promise<void>;
   /** Join an existing huddle — calls Rust join_huddle, then connects mic + AudioWorklet */
   joinHuddle: (
@@ -94,6 +117,8 @@ interface HuddleContextValue {
   /** Leave the current huddle — stops worklet, stops mic, calls Rust leave_huddle.
    *  Returns true if backend cleanup succeeded, false if it failed (caller may retry). */
   leaveHuddle: () => Promise<boolean>;
+  /** Whether the huddle is currently popped out into a PiP window */
+  isPoppedOut: boolean;
 }
 
 const HuddleContext = React.createContext<HuddleContextValue | null>(null);
@@ -124,10 +149,24 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
   const [ephemeralChannelId, setEphemeralChannelId] = React.useState<
     string | null
   >(null);
+  /** Parent channel ID — stored to detect navigation away for auto pop-out */
+  const [huddleParentChannelId, setHuddleParentChannelId] = React.useState<
+    string | null
+  >(null);
   /** Self pubkey — fetched once, used to filter out own messages from TTS */
   const selfPubkeyRef = React.useRef<string | null>(null);
   /** Pubkeys of participants currently speaking (from Rust backend via Tauri event) */
   const [activeSpeakers, setActiveSpeakers] = React.useState<string[]>([]);
+  const [screenShareActive, setScreenShareActive] = React.useState(false);
+  const [cameraShareActive, setCameraShareActive] = React.useState(false);
+  const [notesOpen, setNotesOpen] = React.useState(false);
+  const [remoteVideoPublishers, setRemoteVideoPublishers] = React.useState<
+    Map<string, "camera" | "screen">
+  >(new Map());
+  const [localVideoStream, setLocalVideoStream] =
+    React.useState<MediaStream | null>(null);
+  const [isPoppedOut, setIsPoppedOut] = React.useState(false);
+  const huddleVideoRef = React.useRef<HuddleVideoWs | null>(null);
   const {
     audioDevices,
     selectedDeviceId,
@@ -208,6 +247,46 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Track PiP window open/closed state via Tauri events emitted by pop_out_huddle / pop_in_huddle.
+  React.useEffect(() => {
+    let cancelled = false;
+    let unlistenOpen: (() => void) | null = null;
+    let unlistenClose: (() => void) | null = null;
+    listen("huddle-pip-opened", () => {
+      if (!cancelled) setIsPoppedOut(true);
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlistenOpen = fn;
+    });
+    listen("huddle-pip-closed", () => {
+      if (!cancelled) setIsPoppedOut(false);
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlistenClose = fn;
+    });
+    return () => {
+      cancelled = true;
+      unlistenOpen?.();
+      unlistenClose?.();
+    };
+  }, []);
+
+  // Auto pop-out when navigating away from the huddle channel, auto pop-in on return.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  React.useEffect(() => {
+    if (!ephemeralChannelId || !huddleParentChannelId) return;
+    const onHuddleChannel = pathname.includes(huddleParentChannelId);
+    if (!onHuddleChannel && !isPoppedOut) {
+      void invoke("pop_out_huddle").catch(() => {
+        /* best-effort */
+      });
+    } else if (onHuddleChannel && isPoppedOut) {
+      void invoke("pop_in_huddle").catch(() => {
+        /* best-effort */
+      });
+    }
+  }, [pathname, ephemeralChannelId, huddleParentChannelId, isPoppedOut]);
+
   // Persistent AudioContext for PTT audio cues — reused across all PTT presses
   // to avoid exhausting the browser's ~6 concurrent AudioContext limit.
   const pttAudioCtxRef = React.useRef<AudioContext | null>(null);
@@ -263,6 +342,78 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
     workletRef.current?.setMode(mode);
   }, []);
 
+  const startScreenShare = React.useCallback(async () => {
+    // Mutual exclusion: stop active camera share first
+    if (huddleVideoRef.current) {
+      huddleVideoRef.current.stop();
+      huddleVideoRef.current = null;
+    }
+    setCameraShareActive(false);
+    // Rust validates huddle is active
+    await invoke("start_screen_share");
+    const channelId = ephemeralChannelId;
+    if (!channelId) throw new Error("no ephemeral channel");
+    const ws = new HuddleVideoWs(
+      () => {
+        setScreenShareActive(false);
+        setLocalVideoStream(null);
+        huddleVideoRef.current = null;
+      },
+      (pubs: VideoPublisherInfo[]) => {
+        const map = new Map<string, "camera" | "screen">();
+        for (const p of pubs) map.set(p.pubkey, p.mode);
+        setRemoteVideoPublishers(map);
+      },
+    );
+    await ws.startScreenShare(channelId);
+    huddleVideoRef.current = ws;
+    setScreenShareActive(true);
+    setLocalVideoStream(ws.getLocalStream());
+  }, [ephemeralChannelId]);
+
+  const stopScreenShare = React.useCallback(async () => {
+    huddleVideoRef.current?.stop();
+    huddleVideoRef.current = null;
+    setScreenShareActive(false);
+    setLocalVideoStream(null);
+  }, []);
+
+  const startCameraShare = React.useCallback(async () => {
+    // Mutual exclusion: stop active screen share first
+    if (huddleVideoRef.current) {
+      huddleVideoRef.current.stop();
+      huddleVideoRef.current = null;
+    }
+    setScreenShareActive(false);
+    // Rust validates huddle is active
+    await invoke("start_camera_share");
+    const channelId = ephemeralChannelId;
+    if (!channelId) throw new Error("no ephemeral channel");
+    const ws = new HuddleVideoWs(
+      () => {
+        setCameraShareActive(false);
+        setLocalVideoStream(null);
+        huddleVideoRef.current = null;
+      },
+      (pubs: VideoPublisherInfo[]) => {
+        const map = new Map<string, "camera" | "screen">();
+        for (const p of pubs) map.set(p.pubkey, p.mode);
+        setRemoteVideoPublishers(map);
+      },
+    );
+    await ws.startCameraShare(channelId);
+    huddleVideoRef.current = ws;
+    setCameraShareActive(true);
+    setLocalVideoStream(ws.getLocalStream());
+  }, [ephemeralChannelId]);
+
+  const stopCameraShare = React.useCallback(async () => {
+    huddleVideoRef.current?.stop();
+    huddleVideoRef.current = null;
+    setCameraShareActive(false);
+    setLocalVideoStream(null);
+  }, []);
+
   // Ref-track the current audio track so disconnectMedia is stable (no
   // dependency on localAudioTrack state). This prevents the unmount-cleanup
   // effect from re-firing mid-startup when setLocalAudioTrack triggers a
@@ -284,6 +435,7 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
     setLocalAudioTrack(null);
     setMicConnected(false);
     setEphemeralChannelId(null);
+    setHuddleParentChannelId(null);
     setActiveSpeakers([]);
   }, []); // Stable — reads track from ref, not state.
 
@@ -445,6 +597,7 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
       parentChannelId: string,
       memberPubkeys: string[],
       channelName?: string,
+      dmPubkeys?: string[],
     ) => {
       if (busyRef.current) return;
       busyRef.current = true;
@@ -459,8 +612,10 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
           parentChannelId,
           memberPubkeys,
           channelName,
+          dmPubkeys: dmPubkeys ?? null,
         });
         rustActiveRef.current = true;
+        setHuddleParentChannelId(parentChannelId);
         try {
           await connectAndSetupMedia(joinInfo, myToken);
         } catch (e) {
@@ -506,6 +661,7 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
           ephemeralChannelId,
         });
         rustActiveRef.current = true;
+        setHuddleParentChannelId(parentChannelId);
 
         try {
           await connectAndSetupMedia(joinInfo, myToken);
@@ -711,6 +867,17 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
         startHuddle,
         joinHuddle,
         leaveHuddle,
+        screenShareActive,
+        cameraShareActive,
+        notesOpen,
+        setNotesOpen,
+        remoteVideoPublishers,
+        localVideoStream,
+        startScreenShare,
+        stopScreenShare,
+        startCameraShare,
+        stopCameraShare,
+        isPoppedOut,
       }}
     >
       {children}

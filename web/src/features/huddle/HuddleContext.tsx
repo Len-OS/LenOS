@@ -7,7 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { signNostrEvent } from "@/shared/lib/nostr-signer";
+import { useRouterState } from "@tanstack/react-router";
+import { signNostrEvent, getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 import {
@@ -26,7 +27,7 @@ import {
   publishHuddleReaction,
   type HuddleReaction,
 } from "./lib/huddleReactions";
-import { HuddleVideoWs } from "./lib/huddleVideoWs";
+import { HuddleVideoWs, type VideoPublisherInfo } from "./lib/huddleVideoWs";
 
 const WORKLET_URL = new URL(
   "./worklets/huddle-capture-processor.js",
@@ -52,7 +53,8 @@ interface HuddleState {
   notesOpen: boolean;
   screenShareActive: boolean;
   cameraShareActive: boolean;
-  remotePresenterPubkey: string | null;
+  remoteVideoPublishers: Map<string, "camera" | "screen">;
+  localVideoStream: MediaStream | null;
   agentPubkeys: string[];
   addAgentDialogOpen: boolean;
   sttEnabled: boolean;
@@ -63,7 +65,11 @@ interface HuddleState {
 }
 
 interface HuddleActions {
-  startHuddle(parentChannelId: string): Promise<void>;
+  startHuddle(
+    parentChannelId: string,
+    memberPubkeys?: string[],
+    dmPubkeys?: string[],
+  ): Promise<void>;
   joinHuddle(
     parentChannelId: string,
     ephemeralChannelId: string,
@@ -76,7 +82,6 @@ interface HuddleActions {
   setSelectedDeviceId(id: string): void;
   setNotesOpen(v: boolean): void;
   setOutputDeviceId(id: string): void;
-  setRemotePresenterPubkey(pubkey: string | null): void;
   startScreenShare(): Promise<void>;
   stopScreenShare(): void;
   startCameraShare(): Promise<void>;
@@ -85,6 +90,7 @@ interface HuddleActions {
   addAgent(pubkey: string): Promise<AgentAddResult>;
   setSttEnabled(v: boolean): void;
   setTtsEnabled(v: boolean): void;
+  isFloating: boolean;
 }
 
 export type HuddleCtx = HuddleState & HuddleActions;
@@ -110,7 +116,8 @@ function getInitialState(): HuddleState {
     notesOpen: false,
     screenShareActive: false,
     cameraShareActive: false,
-    remotePresenterPubkey: null,
+    remoteVideoPublishers: new Map(),
+    localVideoStream: null,
     agentPubkeys: [],
     addAgentDialogOpen: false,
     sttEnabled: localStorage.getItem("huddle_stt_enabled") === "true",
@@ -151,7 +158,9 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     agentUnsubRef.current = null;
     workletRef.current?.disconnect();
     workletRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => {
+      t.stop();
+    });
     streamRef.current = null;
     encoderRef.current?.close();
     encoderRef.current = null;
@@ -259,8 +268,8 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         const pcm = new Float32Array(evt.data.buffer);
         const dbov = pcmToDbov(pcm);
         const ts = tsRef.current;
-        void encoderRef
-          .current?.encode(pcm, ts)
+        void encoderRef.current
+          ?.encode(pcm, ts)
           ?.then((opus) => ws.sendFrame(opus, ts, dbov));
         setState((s) => ({
           ...s,
@@ -304,37 +313,64 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
         );
         huddleTtsRef.current = tts;
         // agentPubkeys will be synced via useEffect watching state.agentPubkeys
-        void tts.start(ephChanId, [], ctxRef.current!).catch((e: unknown) => {
-          setState((s) => ({
-            ...s,
-            ttsLoading: false,
-            error: e instanceof Error ? e.message : "TTS failed to start",
-          }));
-        });
+        if (ctxRef.current)
+          void tts.start(ephChanId, [], ctxRef.current).catch((e: unknown) => {
+            setState((s) => ({
+              ...s,
+              ttsLoading: false,
+              error: e instanceof Error ? e.message : "TTS failed to start",
+            }));
+          });
       }
     },
     [],
   );
 
   const startHuddle = useCallback(
-    async (parentChanId: string) => {
+    async (
+      parentChanId: string,
+      _memberPubkeys?: string[],
+      dmPubkeys?: string[],
+    ) => {
+      const isDm = !!dmPubkeys?.length;
+      const effectiveParentId = isDm
+        ? [...dmPubkeys].sort().join(":")
+        : parentChanId;
+
       const ephChanId = crypto.randomUUID();
       const deviceId = localStorage.getItem("huddle_device_id") ?? "";
       setState((s) => ({
         ...s,
         phase: "connecting",
         error: null,
-        parentChannelId: parentChanId,
+        parentChannelId: effectiveParentId,
         ephemeralChannelId: ephChanId,
       }));
       try {
+        const tags: string[][] = [["h", effectiveParentId]];
+        if (isDm) {
+          const selfPubkey = await getCurrentPubkey();
+          const otherPubkey =
+            dmPubkeys.find((pk) => pk !== selfPubkey) ?? dmPubkeys[0];
+          if (otherPubkey) tags.push(["p", otherPubkey]);
+        }
+        const content = isDm
+          ? JSON.stringify({
+              ephemeral_channel_id: ephChanId,
+              parent_channel_id: effectiveParentId,
+            })
+          : JSON.stringify({ ephemeral_channel_id: ephChanId });
         const signed = await signNostrEvent({
           kind: KIND_HUDDLE_STARTED,
-          content: JSON.stringify({ ephemeral_channel_id: ephChanId }),
-          tags: [["h", parentChanId]],
+          content,
+          tags,
         });
         getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
-        await startPipeline(parentChanId, ephChanId, deviceId || undefined);
+        await startPipeline(
+          effectiveParentId,
+          ephChanId,
+          deviceId || undefined,
+        );
         setState((s) => ({ ...s, phase: "active" }));
       } catch (e) {
         await cleanup();
@@ -467,12 +503,6 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setRemotePresenterPubkey = useCallback(
-    (pubkey: string | null) =>
-      setState((s) => ({ ...s, remotePresenterPubkey: pubkey })),
-    [],
-  );
-
   const setSttEnabled = useCallback(
     (v: boolean) => {
       localStorage.setItem("huddle_stt_enabled", String(v));
@@ -569,24 +599,40 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     const ws = new HuddleVideoWs({
       wsUrl: relayWsUrl(),
       ephemeralChannelId,
-      onPresenter: () => {},
-      onPresenterLeft: () => {},
+      onPublishersUpdate: (publishers: VideoPublisherInfo[]) => {
+        const map = new Map<string, "camera" | "screen">();
+        for (const p of publishers) map.set(p.pubkey, p.mode);
+        setState((s) => ({ ...s, remoteVideoPublishers: map }));
+      },
       onClose: () => {
         videoWsRef.current = null;
-        setState((s) => ({ ...s, screenShareActive: false, cameraShareActive: false }));
+        setState((s) => ({
+          ...s,
+          screenShareActive: false,
+          cameraShareActive: false,
+          localVideoStream: null,
+        }));
       },
     });
     videoWsRef.current = ws;
     await ws.connect();
     await ws.startScreenShare();
-    setState((s) => ({ ...s, screenShareActive: true }));
+    setState((s) => ({
+      ...s,
+      screenShareActive: true,
+      localVideoStream: ws.getLocalStream(),
+    }));
   }, [state]);
 
   const stopScreenShare = useCallback(() => {
     videoWsRef.current?.stopScreenShare();
     videoWsRef.current?.close();
     videoWsRef.current = null;
-    setState((s) => ({ ...s, screenShareActive: false }));
+    setState((s) => ({
+      ...s,
+      screenShareActive: false,
+      localVideoStream: null,
+    }));
   }, []);
 
   const startCameraShare = useCallback(async () => {
@@ -607,24 +653,40 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     const ws = new HuddleVideoWs({
       wsUrl: relayWsUrl(),
       ephemeralChannelId,
-      onPresenter: () => {},
-      onPresenterLeft: () => {},
+      onPublishersUpdate: (publishers: VideoPublisherInfo[]) => {
+        const map = new Map<string, "camera" | "screen">();
+        for (const p of publishers) map.set(p.pubkey, p.mode);
+        setState((s) => ({ ...s, remoteVideoPublishers: map }));
+      },
       onClose: () => {
         videoWsRef.current = null;
-        setState((s) => ({ ...s, screenShareActive: false, cameraShareActive: false }));
+        setState((s) => ({
+          ...s,
+          screenShareActive: false,
+          cameraShareActive: false,
+          localVideoStream: null,
+        }));
       },
     });
     videoWsRef.current = ws;
     await ws.connect();
     await ws.startCameraShare();
-    setState((s) => ({ ...s, cameraShareActive: true }));
+    setState((s) => ({
+      ...s,
+      cameraShareActive: true,
+      localVideoStream: ws.getLocalStream(),
+    }));
   }, [state]);
 
   const stopCameraShare = useCallback(() => {
     videoWsRef.current?.stopCameraShare();
     videoWsRef.current?.close();
     videoWsRef.current = null;
-    setState((s) => ({ ...s, cameraShareActive: false }));
+    setState((s) => ({
+      ...s,
+      cameraShareActive: false,
+      localVideoStream: null,
+    }));
   }, []);
 
   // PTT: Space key handler
@@ -675,7 +737,9 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
       return;
 
     const doSwap = async () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t) => {
+        t.stop();
+      });
       const constraints: MediaTrackConstraints = {
         sampleRate: 48000,
         channelCount: 1,
@@ -690,9 +754,10 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
           video: false,
         });
         streamRef.current = newStream;
-        const newSource = ctxRef.current!.createMediaStreamSource(newStream);
-        workletRef.current!.disconnect();
-        newSource.connect(workletRef.current!);
+        const newSource = ctxRef.current?.createMediaStreamSource(newStream);
+        workletRef.current?.disconnect();
+        if (newSource && workletRef.current)
+          newSource.connect(workletRef.current);
       } catch (e) {
         setState((s) => ({
           ...s,
@@ -714,6 +779,11 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     huddleTtsRef.current?.updateAgentPubkeys(state.agentPubkeys);
   }, [state.agentPubkeys]);
 
+  const routerPathname = useRouterState({ select: (s) => s.location.pathname });
+  const isFloating =
+    !!state.ephemeralChannelId &&
+    !routerPathname.includes(state.parentChannelId ?? "__none__");
+
   const value: HuddleCtx = {
     ...state,
     startHuddle,
@@ -726,7 +796,6 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     setSelectedDeviceId,
     setNotesOpen,
     setOutputDeviceId,
-    setRemotePresenterPubkey,
     startScreenShare,
     stopScreenShare,
     startCameraShare,
@@ -735,6 +804,7 @@ export function HuddleProvider({ children }: { children: ReactNode }) {
     addAgent,
     setSttEnabled,
     setTtsEnabled,
+    isFloating,
   };
   return (
     <HuddleContext.Provider value={value}>{children}</HuddleContext.Provider>

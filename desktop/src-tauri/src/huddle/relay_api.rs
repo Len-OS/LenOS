@@ -105,10 +105,13 @@ pub(crate) async fn connect_audio_relay(
 
     let event_json: serde_json::Value = serde_json::from_str(&event.as_json())
         .map_err(|e| format!("failed to serialize auth event: {e}"))?;
+    // DM synthetic IDs ("pkA:pkB") are not valid UUIDs — pass None so the relay
+    // skips its ephemeral-channel membership auto-add for this join.
+    let parent_channel_id_for_relay = parent_channel_id.filter(|id| !id.contains(':'));
     let auth_msg = serde_json::json!({
         "type": "auth",
         "event": event_json,
-        "parent_channel_id": parent_channel_id,
+        "parent_channel_id": parent_channel_id_for_relay,
         // Negotiate huddle audio protocol v2 (8-byte sender-authored header
         // per Opus frame: seq | ts_48k | level_dbov | flags). See
         // huddle::wire for the layout. The relay pins the first joiner's

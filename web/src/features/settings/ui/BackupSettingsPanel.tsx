@@ -286,11 +286,15 @@ export function BackupSettingsPanel() {
       </div>
 
       <div className="space-y-3">
-        <label className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60">
+        <label
+          htmlFor="backup-password"
+          className="mb-1.5 block text-xs font-medium text-black/60 dark:text-white/60"
+        >
           Backup Password
         </label>
         <div className="relative">
           <Input
+            id="backup-password"
             type={isRevealed ? "text" : "password"}
             value={password}
             onChange={(e) => {

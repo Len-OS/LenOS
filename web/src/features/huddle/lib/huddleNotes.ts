@@ -27,7 +27,7 @@ export function subscribeHuddleNotes(
 ): () => void {
   let latestAt = 0;
   return getRelayClient(relayWsUrl()).subscribe({
-    id: "huddle-notes-" + startedEventId,
+    id: `huddle-notes-${startedEventId}`,
     filter: {
       kinds: [KIND_HUDDLE_NOTES],
       "#e": [startedEventId],
