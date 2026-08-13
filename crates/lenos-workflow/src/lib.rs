@@ -226,29 +226,62 @@ impl WorkflowEngine {
                 let trace_json = serde_json::Value::Array(full_trace);
                 let step_count = result.step_index as i32;
 
-                if result.approval_token.is_some() {
-                    // Approval gates are not yet implemented (WF-08).
-                    // Fail explicitly rather than creating unreachable WaitingApproval rows.
-                    tracing::warn!(
+                if let (Some(token), Some(ctx)) =
+                    (result.approval_token, result.approval_context)
+                {
+                    tracing::info!(
                         run_id = %run_id,
                         step_index = result.step_index,
-                        "Workflow hit approval gate — not yet implemented, marking as failed"
+                        step_id = %ctx.step_id,
+                        "Workflow suspended at approval gate"
                     );
+
+                    let wf_run = match self.db.get_workflow_run(community_id, run_id).await {
+                        Ok(r) => r,
+                        Err(e) => {
+                            tracing::error!(
+                                run_id = %run_id,
+                                "finalize_run: get_workflow_run failed: {e}"
+                            );
+                            return;
+                        }
+                    };
+
+                    if let Err(e) = self
+                        .db
+                        .create_approval(lenos_db::workflow::CreateApprovalParams {
+                            community_id,
+                            token: &token,
+                            workflow_id: wf_run.workflow_id,
+                            run_id,
+                            step_id: &ctx.step_id,
+                            step_index: step_count,
+                            approver_spec: &ctx.approver_spec,
+                            expires_at: ctx.expires_at,
+                        })
+                        .await
+                    {
+                        tracing::error!(
+                            run_id = %run_id,
+                            "finalize_run: create_approval failed: {e}"
+                        );
+                    }
+
                     if let Err(e) = self
                         .db
                         .update_workflow_run(
                             community_id,
                             run_id,
-                            RunStatus::Failed,
+                            RunStatus::WaitingApproval,
                             step_count,
                             &trace_json,
-                            Some("approval gates not yet implemented — see WF-08"),
+                            None,
                         )
                         .await
                     {
                         tracing::error!(
                             run_id = %run_id,
-                            "Failed to update run to Failed (approval gate): {e}"
+                            "finalize_run: failed to set WaitingApproval: {e}"
                         );
                     }
                 } else {
