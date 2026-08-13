@@ -1009,6 +1009,17 @@ async fn add_reaction_impl(message_id: &str, emoji: &str) -> Result<JsonValue, W
     }))
 }
 
+/// Context carried from a suspended `RequestApproval` step to `finalize_run`.
+#[derive(Debug)]
+pub struct ApprovalContext {
+    /// ID of the step that requested approval.
+    pub step_id: String,
+    /// Who may approve — passed through to `create_approval`.
+    pub approver_spec: String,
+    /// When this approval expires.
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
 /// Rich return type from `execute_run` / `execute_from_step`.
 ///
 /// Carries enough information for the caller to:
@@ -1020,6 +1031,9 @@ pub struct ExecutionResult {
     /// Set when execution suspended at a `RequestApproval` step.
     /// `None` means the run completed normally.
     pub approval_token: Option<String>,
+    /// Populated alongside `approval_token` — carries step_id, approver_spec,
+    /// and expires_at needed by `finalize_run` to call `create_approval`.
+    pub approval_context: Option<ApprovalContext>,
     /// Index of the step that suspended (or the total step count on completion).
     pub step_index: usize,
     /// Accumulated step outputs at the point of suspension or completion.
@@ -1269,6 +1283,7 @@ async fn execute_steps(
                 // approval record and update the run's execution trace.
                 return Ok(ExecutionResult {
                     approval_token: Some(approval_token),
+                    approval_context: None,
                     step_index: i,
                     step_outputs,
                     trace,
@@ -1287,6 +1302,7 @@ async fn execute_steps(
     info!(run_id = %run_id, "Workflow run completed");
     Ok(ExecutionResult {
         approval_token: None,
+        approval_context: None,
         step_index: def.steps.len(),
         step_outputs,
         trace,
