@@ -3,14 +3,18 @@ import { Bot, Plus } from "lucide-react";
 import { useCommunityId } from "@/shared/lib/workspace-context";
 import { useAgents, type Agent } from "../useAgents";
 import { AgentCard } from "./AgentCard";
+import { AgentMemorySection } from "./AgentMemorySection";
 import { AgentTranscriptViewer } from "./AgentTranscriptViewer";
 import { AgentConfigDialog } from "./AgentConfigDialog";
 import { CreateAgentDialog } from "./CreateAgentDialog";
+
+type AgentPanelTab = "activity" | "memory";
 
 export function AgentsPage() {
   const communityId = useCommunityId();
   const agents = useAgents(communityId);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [panelTab, setPanelTab] = useState<AgentPanelTab>("activity");
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -72,12 +76,56 @@ export function AgentsPage() {
         </div>
       </div>
 
-      {selectedAgent && (
-        <AgentTranscriptViewer
-          agentPubkey={selectedAgent.pubkey}
-          agentName={selectedAgent.name}
-          onClose={() => setSelectedAgent(null)}
-        />
+      {selectedAgent && panelTab === "activity" && (
+        <div className="flex w-80 shrink-0 flex-col overflow-hidden border-l border-black/10 dark:border-white/10">
+          <div className="flex h-8 shrink-0 items-center border-b border-black/10 dark:border-white/10">
+            {(["activity", "memory"] as AgentPanelTab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setPanelTab(tab)}
+                className={`flex-1 py-1.5 text-xs font-medium capitalize transition-colors ${
+                  panelTab === tab
+                    ? "border-b-2 border-black text-black dark:border-white dark:text-white"
+                    : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <AgentTranscriptViewer
+            agentPubkey={selectedAgent.pubkey}
+            agentName={selectedAgent.name}
+            onClose={() => setSelectedAgent(null)}
+          />
+        </div>
+      )}
+      {selectedAgent && panelTab === "memory" && (
+        <div className="flex w-80 shrink-0 flex-col border-l border-black/10 dark:border-white/10">
+          <div className="flex h-8 shrink-0 items-center border-b border-black/10 dark:border-white/10">
+            {(["activity", "memory"] as AgentPanelTab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setPanelTab(tab)}
+                className={`flex-1 py-1.5 text-xs font-medium capitalize transition-colors ${
+                  panelTab === tab
+                    ? "border-b-2 border-black text-black dark:border-white dark:text-white"
+                    : "text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            <AgentMemorySection
+              agentPubkey={selectedAgent.pubkey}
+              viewerIsOwner
+            />
+          </div>
+        </div>
       )}
 
       {configAgent && (

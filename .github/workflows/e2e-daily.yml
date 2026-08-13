@@ -1,0 +1,78 @@
+name: E2E daily
+
+# Runs the full lenos-test-client e2e suite against the production relay once
+# a day using a stable, durable test identity stored in AWS Secrets Manager.
+#
+# One-time setup — run this once per environment to seed the secret:
+#
+#   aws secretsmanager create-secret \
+#     --name lenos/test-owner-privkey \
+#     --description "Hex-encoded secp256k1 private key for the durable E2E test owner identity" \
+#     --secret-string "$(openssl rand -hex 32)" \
+#     --region us-east-1
+#
+# The key never changes once created — all on-relay state written by the E2E
+# owner accumulates under the same pubkey, making assertion failures easier to
+# diagnose over time.
+#
+# Required GitHub secrets / variables:
+#   RELAY_URL           wss://relay.lengrowth.com  (or your domain)
+#   AWS_ROLE_ARN        IAM role with secretsmanager:GetSecretValue on
+#                       arn:aws:secretsmanager:*:*:secret:lenos/*
+
+on:
+  schedule:
+    - cron: "0 8 * * *"   # 08:00 UTC every day
+  workflow_dispatch:       # allow manual trigger for debugging
+
+concurrency:
+  group: e2e-daily
+  cancel-in-progress: false  # never cancel a running e2e run
+
+jobs:
+  e2e:
+    name: E2E — production relay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write   # required for OIDC → AWS role assumption
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      # Rust toolchain version comes from repo-root rust-toolchain.toml;
+      # rustup on ubuntu-24.04 picks it up automatically.
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          key: e2e-daily
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@50ac8dd1e1b10d09dac7b8727528b91bed831ac0 # v4.2.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Fetch durable test-owner private key
+        id: secret
+        run: |
+          privkey=$(aws secretsmanager get-secret-value \
+            --secret-id lenos/test-owner-privkey \
+            --query SecretString \
+            --output text)
+          # Mask the private key in all subsequent log lines.
+          echo "::add-mask::${privkey}"
+          echo "privkey=${privkey}" >> "$GITHUB_OUTPUT"
+
+      - name: Run E2E suite
+        run: |
+          cargo test -p lenos-test-client \
+            --tests \
+            -- e2e --nocapture --include-ignored
+        env:
+          RELAY_URL: ${{ vars.RELAY_URL || secrets.RELAY_URL }}
+          LENOS_TEST_OWNER_PRIVATE_KEY: ${{ steps.secret.outputs.privkey }}
+          RUST_LOG: "info"
