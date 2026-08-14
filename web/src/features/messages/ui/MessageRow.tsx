@@ -10,6 +10,7 @@ import { MessageContextMenu } from "@/features/messages/ui/MessageContextMenu";
 import { useMessageActions } from "@/features/messages/useMessageActions";
 import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 import { ReadAvatarStack } from "@/features/messages/read-receipts/ReadAvatarStack";
+import { PollMessage } from "@/features/messages/ui/PollMessage";
 
 function renderContent(
   content: string,
@@ -100,6 +101,24 @@ export function MessageRow({
     void deleteMessage(msg.id, channelId).catch(() => {});
   };
 
+  // Detect structured poll content — rendered as an interactive widget
+  const pollId = (() => {
+    try {
+      const p = JSON.parse(msg.content) as Record<string, unknown>;
+      if (
+        p !== null &&
+        typeof p === "object" &&
+        p.type === "poll" &&
+        typeof p.pollId === "string"
+      ) {
+        return p.pollId;
+      }
+    } catch {
+      // not JSON — regular text message
+    }
+    return null;
+  })();
+
   return (
     <div
       id={msg.id}
@@ -134,6 +153,8 @@ export function MessageRow({
             rows={Math.max(1, editText.split("\n").length)}
             className="w-full resize-none rounded border border-black/20 bg-white px-2 py-1 text-sm text-black outline-none dark:border-white/20 dark:bg-white/5 dark:text-white"
           />
+        ) : pollId ? (
+          <PollMessage pollId={pollId} channelMessageEventId={msg.id} />
         ) : (
           <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-black/90 dark:text-white/85">
             {renderContent(msg.content, customEmoji)}

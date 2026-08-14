@@ -10,19 +10,18 @@ import {
   KIND_SCHEDULED_MESSAGE,
   KIND_STREAM_MESSAGE,
 } from "@/shared/constants/kinds";
+import {
+  SLASH_COMMANDS,
+  type CommandContext,
+} from "@/shared/lib/slashCommandRegistry";
+import { useSlashCommands } from "@/features/messages/hooks/useSlashCommands";
+import { SlashCommandPalette } from "@/features/messages/ui/SlashCommandPalette";
 import { RichComposer } from "@/features/messages/ui/RichComposer";
 import { EmojiPicker } from "@/features/emoji/ui/EmojiPicker";
 import { useEmojiAutocomplete } from "@/features/emoji/useEmojiAutocomplete";
 import { useMembers } from "@/features/channels/useMembers";
 import { useProfile } from "@/features/profiles/use-profile";
 import { truncatePubkey } from "@/shared/lib/pubkey";
-
-const SLASH_COMMANDS = [
-  { name: "me", description: "Send an action message" },
-  { name: "shrug", description: "Append ¯\\_(ツ)_/¯" },
-  { name: "giphy", description: "Search for a GIF" },
-  { name: "remind", description: "Set a reminder for yourself" },
-];
 
 interface MentionItemProps {
   pubkey: string;
@@ -73,9 +72,13 @@ export function MessageComposer({
   const pendingTextRef = useRef(pendingText);
   pendingTextRef.current = pendingText;
 
-  const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
+
+  const slashHook = useSlashCommands(pendingText, 0);
+  // Keep a ref so stable keydown handler can always read the latest hook values
+  const slashHookRef = useRef(slashHook);
+  slashHookRef.current = slashHook;
 
   const members = useMembers(channelId);
   const emojiSuggestions = useEmojiAutocomplete(emojiQuery ?? "", customEmoji);
@@ -88,10 +91,29 @@ export function MessageComposer({
         })
       : [];
 
-  const filteredSlash =
-    slashQuery !== null
-      ? SLASH_COMMANDS.filter((c) => c.name.startsWith(slashQuery))
-      : [];
+  // Keyboard navigation for the slash command palette
+  useEffect(() => {
+    if (!slashHook.active || slashHook.filtered.length === 0) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!slashHookRef.current.active) return;
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        e.stopPropagation();
+        slashHookRef.current.moveUp();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        e.stopPropagation();
+        slashHookRef.current.moveDown();
+      } else if (e.key === "Escape") {
+        slashHookRef.current.dismiss();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      document.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [slashHook.active, slashHook.filtered.length]);
 
   useEffect(() => {
     if (!emojiOpen) return;
@@ -169,13 +191,9 @@ export function MessageComposer({
     setPendingText(text);
     if (text) onTyping?.();
     const lastWord = text.split(/\s/).pop() ?? "";
-    if (lastWord.startsWith("/") && text.trim() === lastWord) {
-      setSlashQuery(lastWord.slice(1));
-      setMentionQuery(null);
-      setEmojiQuery(null);
-    } else if (lastWord.startsWith("@")) {
+    // Slash detection is handled by useSlashCommands hook
+    if (lastWord.startsWith("@")) {
       setMentionQuery(lastWord.slice(1).toLowerCase());
-      setSlashQuery(null);
       setEmojiQuery(null);
     } else if (
       lastWord.startsWith(":") &&
@@ -183,10 +201,8 @@ export function MessageComposer({
       !lastWord.endsWith(":")
     ) {
       setEmojiQuery(lastWord.slice(1));
-      setSlashQuery(null);
       setMentionQuery(null);
     } else {
-      setSlashQuery(null);
       setMentionQuery(null);
       setEmojiQuery(null);
     }
@@ -197,18 +213,19 @@ export function MessageComposer({
       [...shortcode].length === 1 ||
       (shortcode.length <= 2 && shortcode.charCodeAt(0) > 127);
     const insert = isNative ? shortcode : `:${shortcode}: `;
-    if (emojiQuery !== null) {
-      insertRef.current?.(insert);
-    } else {
-      insertRef.current?.(insert);
-    }
+    insertRef.current?.(insert);
     setEmojiOpen(false);
     setEmojiQuery(null);
   }
 
-  function handleSlashSelect(name: string) {
-    insertRef.current?.(`/${name} `);
-    setSlashQuery(null);
+  function handleSlashCommandSelect(cmd: (typeof slashHook.filtered)[0]) {
+    // Clear the editor and insert the chosen command so the user can type args
+    setClearCount((c) => c + 1);
+    setPendingText("");
+    const toInsert = `/${cmd.name} `;
+    setTimeout(() => {
+      insertRef.current?.(toInsert);
+    }, 0);
   }
 
   function handleMentionSelect(_pubkey: string, name: string) {
@@ -216,15 +233,65 @@ export function MessageComposer({
     setMentionQuery(null);
   }
 
+  /** Build the CommandContext used by slash-command execute() calls. */
+  function buildCommandContext(): CommandContext {
+    return {
+      channelId,
+      publishEvent: async ({ kind, content, tags }) => {
+        const signed = await signNostrEvent(
+          { kind, content, tags },
+          { requireNip07: true },
+        );
+        await getRelayClient(relayWsUrl()).publishAndWait(
+          signed as Record<string, unknown>,
+        );
+      },
+    };
+  }
+
   const send = async (text: string) => {
+    // While the palette is active (user is still typing the command name),
+    // pressing Enter tab-completes to the highlighted command so the user
+    // can type the required args before submitting.
+    if (slashHookRef.current.active && slashHookRef.current.filtered.length > 0) {
+      const selectedCmd =
+        slashHookRef.current.filtered[slashHookRef.current.selectedIdx] ??
+        slashHookRef.current.filtered[0];
+      if (selectedCmd) {
+        handleSlashCommandSelect(selectedCmd);
+        return;
+      }
+    }
+
     const trimmed = text.trim();
     if (!trimmed || sending) return;
+
     setSending(true);
     setError(null);
-    setSlashQuery(null);
     setMentionQuery(null);
     setEmojiQuery(null);
 
+    // Detect and execute slash commands — /name [args...]
+    const cmdMatch = trimmed.match(/^\/(\S+)(?:\s+([\s\S]*))?$/);
+    if (cmdMatch) {
+      const cmdName = cmdMatch[1];
+      const cmdArgs = cmdMatch[2]?.trim() ?? "";
+      const cmd = SLASH_COMMANDS.find((c) => c.name === cmdName);
+      if (cmd) {
+        try {
+          await cmd.execute(cmdArgs, buildCommandContext());
+          setClearCount((c) => c + 1);
+          setPendingText("");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Command failed.");
+        } finally {
+          setSending(false);
+        }
+        return;
+      }
+    }
+
+    // Regular message
     try {
       const signed = await signNostrEvent(
         {
@@ -252,7 +319,6 @@ export function MessageComposer({
     }
   };
 
-  const showSlash = slashQuery !== null && filteredSlash.length > 0;
   const showMention = mentionQuery !== null && filteredMembers.length > 0;
   const showEmojiAc = emojiQuery !== null && emojiSuggestions.length > 0;
 
@@ -260,27 +326,12 @@ export function MessageComposer({
     <div className="shrink-0 border-t border-black/10 px-4 py-3 dark:border-white/10">
       {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
 
-      {showSlash && (
-        <div className="mb-1 overflow-hidden rounded-md border border-black/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
-          {filteredSlash.map((cmd) => (
-            <button
-              key={cmd.name}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSlashSelect(cmd.name);
-              }}
-              className="flex w-full items-center gap-3 px-3 py-1.5 text-sm text-black/80 hover:bg-black/5 dark:text-white/80 dark:hover:bg-white/5"
-            >
-              <span className="font-medium text-black dark:text-white">
-                /{cmd.name}
-              </span>
-              <span className="text-black/40 dark:text-white/40">
-                {cmd.description}
-              </span>
-            </button>
-          ))}
-        </div>
+      {slashHook.active && slashHook.filtered.length > 0 && (
+        <SlashCommandPalette
+          commands={slashHook.filtered}
+          selectedIdx={slashHook.selectedIdx}
+          onSelect={handleSlashCommandSelect}
+        />
       )}
       {showMention && (
         <div className="mb-1 overflow-hidden rounded-md border border-black/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
