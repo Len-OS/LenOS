@@ -1,6 +1,8 @@
 import { useState, type KeyboardEvent } from "react";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import { useThreadReplies } from "@/features/messages/useThreadReplies";
+import { useThreadSummary } from "@/features/messages/useThreadSummary";
+import { SummaryCard } from "@/features/messages/ui/SummaryCard";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
 import { truncatePubkey } from "@/shared/lib/pubkey";
@@ -68,6 +70,9 @@ export function ThreadPanel({ rootMessage, channelId, onClose }: Props) {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
 
+  const allMessages = [rootMessage, ...replies];
+  const { summary, loading: summaryLoading, error: summaryError, summarize, dismiss } = useThreadSummary(allMessages);
+
   const sendReply = async () => {
     const trimmed = replyText.trim();
     if (!trimmed || sending) return;
@@ -108,17 +113,42 @@ export function ThreadPanel({ rootMessage, channelId, onClose }: Props) {
         <span className="text-sm font-semibold text-black dark:text-white">
           Thread
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-1 hover:bg-black/5 dark:hover:bg-white/5"
-          aria-label="Close thread"
-        >
-          <X className="h-4 w-4 text-black/60 dark:text-white/60" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => void summarize()}
+            disabled={summaryLoading}
+            title="Summarize thread with AI"
+            className="rounded p-1 hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/5"
+            aria-label="Summarize thread"
+          >
+            <Sparkles className="h-4 w-4 text-black/60 dark:text-white/60" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-1 hover:bg-black/5 dark:hover:bg-white/5"
+            aria-label="Close thread"
+          >
+            <X className="h-4 w-4 text-black/60 dark:text-white/60" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 space-y-1 overflow-y-auto px-4 py-3">
+        {(summary || summaryLoading || summaryError) && (
+          <div className="mb-2">
+            {summaryLoading && (
+              <div className="px-4 py-2 text-xs text-black/40 dark:text-white/40">
+                Summarizing…
+              </div>
+            )}
+            {summaryError && (
+              <div className="px-4 py-2 text-xs text-red-500">{summaryError}</div>
+            )}
+            {summary && <SummaryCard summary={summary} onDismiss={dismiss} />}
+          </div>
+        )}
         <RootRow msg={rootMessage} />
         <div className="space-y-0.5 pt-2">
           {replies.map((r) => (
