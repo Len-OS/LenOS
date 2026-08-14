@@ -143,6 +143,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         )
         // Data export / GDPR (NIP-98 auth, admin or self)
         .route("/api/export", get(api::export::export_user_data))
+        // AI thread summarization — NIP-98 auth, proxies to LenGrowth
+        .route("/api/thread-summary", post(api::thread_summary::summarize_thread))
         // Webhook trigger (secret-authenticated, no NIP-98)
         .route("/hooks/{id}", post(api::bridge::workflow_webhook))
         // Mesh demo echo probe — testbed-only; 404 unless LENOS_MESH=on and

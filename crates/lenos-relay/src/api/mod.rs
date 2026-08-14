@@ -11,6 +11,7 @@ pub mod media;
 pub mod mesh_demo;
 pub mod nip05;
 pub mod operator;
+pub(crate) mod thread_summary;
 pub mod webhooks;
 
 // Re-export imeta helpers used by ingest pipeline.
