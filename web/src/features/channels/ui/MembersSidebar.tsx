@@ -66,7 +66,6 @@ export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
                 member={m}
                 channelId={channelId ?? ""}
                 isCurrentUserAdmin={isCurrentUserAdmin}
-                online={onlinePubkeys.has(m.pubkey)}
               />
             ))}
           </div>
@@ -83,7 +82,6 @@ export function MembersSidebar({ channelId, onClose, currentPubkey }: Props) {
                 member={m}
                 channelId={channelId ?? ""}
                 isCurrentUserAdmin={isCurrentUserAdmin}
-                online={onlinePubkeys.has(m.pubkey)}
               />
             ))}
           </div>

@@ -4,6 +4,7 @@ import { Avatar } from "@/shared/ui/Avatar";
 import { ProfilePopover } from "@/features/profiles/ui/ProfilePopover";
 import { useModerationActions } from "@/features/moderation/useModerationActions";
 import { useProfilePanel } from "@/features/profiles/profile-panel-context";
+import { PresenceBadge } from "@/features/presence/ui/PresenceBadge";
 import type { Member } from "@/features/channels/useMembers";
 
 function truncatePubkey(pk: string): string {
@@ -15,7 +16,6 @@ interface Props {
   channelId: string;
   isCurrentUserAdmin?: boolean;
   onSendDm?: (pubkey: string) => void;
-  online?: boolean;
 }
 
 export function MemberCard({
@@ -23,7 +23,6 @@ export function MemberCard({
   channelId,
   isCurrentUserAdmin,
   onSendDm,
-  online,
 }: Props) {
   const profile = useProfile(member.pubkey);
   const displayName = profile?.name || truncatePubkey(member.pubkey);
@@ -43,13 +42,13 @@ export function MemberCard({
           src={profile?.picture}
           name={displayName}
           size={28}
-          online={online}
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-black dark:text-white">
             {displayName}
           </p>
         </div>
+        <PresenceBadge pubkey={member.pubkey} size="xs" />
         {member.role === "admin" && (
           <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide text-black/40 dark:text-white/40">
             admin
@@ -62,7 +61,6 @@ export function MemberCard({
           pubkey={member.pubkey}
           open={popoverOpen}
           onClose={() => setPopoverOpen(false)}
-          online={online}
           onViewProfile={(pk) => {
             openProfile(pk);
             setPopoverOpen(false);
