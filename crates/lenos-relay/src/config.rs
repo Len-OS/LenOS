@@ -270,6 +270,10 @@ pub struct Config {
     /// Deployment-admin API and SPA configuration. Absent means the surface is disabled.
     pub admin: Option<AdminConfig>,
 
+    /// Base URL for the LenGrowth AI service (e.g. `https://api.lengrowth.com`).
+    /// Required for AI features (thread summaries). Set via `LENGROWTH_API_URL`.
+    pub lengrowth_api_url: Option<String>,
+
     /// Optional path to the web UI `dist/` directory.
     /// When set, the relay serves the invite landing page and its static assets.
     /// When unset, no static file serving happens (relay behaves as before).
@@ -912,6 +916,8 @@ impl Config {
             .map(|value| value == "true" || value == "1")
             .unwrap_or(false);
 
+        let lengrowth_api_url = std::env::var("LENGROWTH_API_URL").ok();
+
         if let Some(ref dir) = web_dir {
             if !dir.join("index.html").is_file() {
                 return Err(ConfigError::InvalidValue(format!(
@@ -988,6 +994,7 @@ impl Config {
             push_gateway_timeout,
             join_policy,
             admin,
+            lengrowth_api_url,
             web_dir,
             serve_git_web_gui,
         })
