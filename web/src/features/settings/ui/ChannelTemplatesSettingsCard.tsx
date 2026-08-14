@@ -1,7 +1,5 @@
 import { useState } from "react";
-import {
-  useChannelTemplates,
-} from "@/features/channels/hooks/useChannelTemplates";
+import { useChannelTemplates } from "@/features/channels/hooks/useChannelTemplates";
 
 export function ChannelTemplatesSettingsCard() {
   const { templates, addTemplate, removeTemplate } = useChannelTemplates();
@@ -90,15 +88,12 @@ export function ChannelTemplatesSettingsCard() {
         >
           {busy ? "Saving…" : "Add Template"}
         </button>
-        {error && (
-          <p className="text-xs text-red-500">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-500">{error}</p>}
       </form>
 
       {templates.length === 0 ? (
         <p className="text-sm text-black/40 dark:text-white/40">
-          No templates yet. Create one to save a reusable channel
-          configuration.
+          No templates yet. Create one to save a reusable channel configuration.
         </p>
       ) : (
         <ul className="space-y-2">

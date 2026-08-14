@@ -71,7 +71,13 @@ export function ThreadPanel({ rootMessage, channelId, onClose }: Props) {
   const [sending, setSending] = useState(false);
 
   const allMessages = [rootMessage, ...replies];
-  const { summary, loading: summaryLoading, error: summaryError, summarize, dismiss } = useThreadSummary(allMessages);
+  const {
+    summary,
+    loading: summaryLoading,
+    error: summaryError,
+    summarize,
+    dismiss,
+  } = useThreadSummary(allMessages);
 
   const sendReply = async () => {
     const trimmed = replyText.trim();
@@ -144,7 +150,9 @@ export function ThreadPanel({ rootMessage, channelId, onClose }: Props) {
               </div>
             )}
             {summaryError && (
-              <div className="px-4 py-2 text-xs text-red-500">{summaryError}</div>
+              <div className="px-4 py-2 text-xs text-red-500">
+                {summaryError}
+              </div>
             )}
             {summary && <SummaryCard summary={summary} onDismiss={dismiss} />}
           </div>

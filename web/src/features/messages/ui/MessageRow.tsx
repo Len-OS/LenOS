@@ -167,12 +167,17 @@ export function MessageRow({
           currentPubkey={currentPubkey}
         />
       </div>
-      {readReceipts && (() => {
-        const readers = Array.from(readReceipts.values()).filter(
-          (r) => r.last_read_event_id === msg.id || r.last_read_at >= msg.createdAt,
-        );
-        return readers.length > 0 ? <ReadAvatarStack receipts={readers} /> : null;
-      })()}
+      {readReceipts &&
+        (() => {
+          const readers = Array.from(readReceipts.values()).filter(
+            (r) =>
+              r.last_read_event_id === msg.id ||
+              r.last_read_at >= msg.createdAt,
+          );
+          return readers.length > 0 ? (
+            <ReadAvatarStack receipts={readers} />
+          ) : null;
+        })()}
       {!editing && (
         <MessageContextMenu
           msg={msg}

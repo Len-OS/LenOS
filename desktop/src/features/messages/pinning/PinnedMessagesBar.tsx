@@ -10,12 +10,7 @@ interface Props {
   onUnpin: (eventId: string) => void;
 }
 
-export function PinnedMessagesBar({
-  pins,
-  isAdmin,
-  onJumpTo,
-  onUnpin,
-}: Props) {
+export function PinnedMessagesBar({ pins, isAdmin, onJumpTo, onUnpin }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   if (pins.length === 0) return null;
@@ -43,7 +38,10 @@ export function PinnedMessagesBar({
       {expanded && (
         <div className="divide-y divide-border/50">
           {pins.map((pin) => (
-            <div key={pin.eventId} className="flex items-center gap-2 px-3 py-1.5">
+            <div
+              key={pin.eventId}
+              className="flex items-center gap-2 px-3 py-1.5"
+            >
               <p className="min-w-0 flex-1 truncate text-xs text-foreground/70">
                 {pin.content ?? "Message"}
               </p>

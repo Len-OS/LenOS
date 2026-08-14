@@ -58,15 +58,24 @@ function TyperAvatar({
   isActivityVariant,
 }: {
   pubkey: string;
-  profile: { avatarUrl?: string | null; displayName?: string | null } | undefined;
+  profile:
+    | { avatarUrl?: string | null; displayName?: string | null }
+    | undefined;
   label: string;
   isActivityVariant: boolean;
 }) {
   const name = profile?.displayName ?? label ?? pubkey.slice(0, 8);
   return (
-    <Avatar className={cn("border border-background", isActivityVariant ? "w-4 h-4" : "w-5 h-5")}>
+    <Avatar
+      className={cn(
+        "border border-background",
+        isActivityVariant ? "w-4 h-4" : "w-5 h-5",
+      )}
+    >
       <AvatarImage src={profile?.avatarUrl ?? undefined} alt={name} />
-      <AvatarFallback className="text-[9px]">{name?.[0]?.toUpperCase()}</AvatarFallback>
+      <AvatarFallback className="text-[9px]">
+        {name?.[0]?.toUpperCase()}
+      </AvatarFallback>
     </Avatar>
   );
 }

@@ -6,7 +6,11 @@ interface Props {
   onSelect: (cmd: SlashCommand) => void;
 }
 
-export function SlashCommandPalette({ commands, selectedIdx, onSelect }: Props) {
+export function SlashCommandPalette({
+  commands,
+  selectedIdx,
+  onSelect,
+}: Props) {
   if (commands.length === 0) return null;
   return (
     <div className="rounded-lg border border-border bg-popover shadow-md overflow-hidden">
@@ -23,9 +27,15 @@ export function SlashCommandPalette({ commands, selectedIdx, onSelect }: Props) 
             i === selectedIdx ? "bg-accent" : "hover:bg-accent",
           ].join(" ")}
         >
-          <span className="font-mono font-medium text-primary">/{cmd.name}</span>
-          <span className="text-xs text-muted-foreground">{cmd.description}</span>
-          <span className="ml-auto text-xs text-muted-foreground/60">{cmd.usage}</span>
+          <span className="font-mono font-medium text-primary">
+            /{cmd.name}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {cmd.description}
+          </span>
+          <span className="ml-auto text-xs text-muted-foreground/60">
+            {cmd.usage}
+          </span>
         </button>
       ))}
     </div>

@@ -253,7 +253,10 @@ export function MessageComposer({
     // While the palette is active (user is still typing the command name),
     // pressing Enter tab-completes to the highlighted command so the user
     // can type the required args before submitting.
-    if (slashHookRef.current.active && slashHookRef.current.filtered.length > 0) {
+    if (
+      slashHookRef.current.active &&
+      slashHookRef.current.filtered.length > 0
+    ) {
       const selectedCmd =
         slashHookRef.current.filtered[slashHookRef.current.selectedIdx] ??
         slashHookRef.current.filtered[0];

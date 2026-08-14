@@ -1,5 +1,5 @@
 import { useProfile } from "@/features/profiles/use-profile";
-import { ReadReceipt } from "./types";
+import type { ReadReceipt } from "./types";
 
 interface Props {
   receipts: ReadReceipt[];

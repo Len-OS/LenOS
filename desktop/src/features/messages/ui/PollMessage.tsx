@@ -14,9 +14,7 @@ export function PollMessage({ pollId, channelMessageEventId }: Props) {
   const votes = usePollVotes(channelMessageEventId);
 
   if (!data) {
-    return (
-      <p className="text-xs text-muted-foreground">Loading poll…</p>
-    );
+    return <p className="text-xs text-muted-foreground">Loading poll…</p>;
   }
 
   const totalVotes = Array.from(votes.values()).reduce(
@@ -31,7 +29,11 @@ export function PollMessage({ pollId, channelMessageEventId }: Props) {
         content: String(optionIdx),
         tags: [["e", channelMessageEventId]],
       });
-      await relayClient.publishEvent(event, "Timed out publishing vote.", "Failed to publish vote.");
+      await relayClient.publishEvent(
+        event,
+        "Timed out publishing vote.",
+        "Failed to publish vote.",
+      );
     } catch {
       // relay error or signer unavailable — silently ignore
     }

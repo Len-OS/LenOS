@@ -15,7 +15,9 @@ export function usePinnedMessages(channelId: string): PinnedMessage[] {
       filter: { kinds: [30078], "#d": [dTag] },
       onEvent: (raw) => {
         try {
-          const parsed = JSON.parse(raw.content as string) as { pins: PinnedMessage[] };
+          const parsed = JSON.parse(raw.content as string) as {
+            pins: PinnedMessage[];
+          };
           setPins(parsed.pins ?? []);
         } catch {
           setPins([]);

@@ -62,14 +62,21 @@ export function useThreadSummary(messages: ThreadMsg[]) {
       const authorization = await nip98PostHeader(url, body);
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: authorization },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authorization,
+        },
         body,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { summary: string };
       setState({ summary: data.summary, loading: false, error: null });
     } catch {
-      setState({ summary: null, loading: false, error: "Failed to summarize thread." });
+      setState({
+        summary: null,
+        loading: false,
+        error: "Failed to summarize thread.",
+      });
     }
   }, [messages]);
 

@@ -98,7 +98,10 @@ export function MessageTimeline({
   }
 
   return (
-    <div ref={setScrollEl} className="flex flex-1 flex-col overflow-y-auto px-6 py-4">
+    <div
+      ref={setScrollEl}
+      className="flex flex-1 flex-col overflow-y-auto px-6 py-4"
+    >
       {messages.map((msg, i) => {
         if (msg.kind === KIND_SYSTEM_MESSAGE) {
           return (

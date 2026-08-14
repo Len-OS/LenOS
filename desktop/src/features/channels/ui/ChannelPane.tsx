@@ -191,8 +191,7 @@ export const ChannelPane = React.memo(function ChannelPane({
   const activeChannelId = activeChannel?.id ?? null;
   const activeChannelIdRef = React.useRef(activeChannelId);
   const { data: membership } = useMyRelayMembershipQuery();
-  const isAdmin =
-    membership?.role === "admin" || membership?.role === "owner";
+  const isAdmin = membership?.role === "admin" || membership?.role === "owner";
   const pins = usePinnedMessages(activeChannelId);
   const { pin, unpin } = usePinMessage(activeChannelId, pins);
   const pinnedMessageIds = React.useMemo(

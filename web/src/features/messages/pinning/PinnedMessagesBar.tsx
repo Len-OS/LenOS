@@ -37,7 +37,10 @@ export function PinnedMessagesBar({ pins, isAdmin, onJumpTo, onUnpin }: Props) {
       {expanded && (
         <div className="divide-y divide-black/5 dark:divide-white/5">
           {pins.map((pin) => (
-            <div key={pin.eventId} className="flex items-center gap-2 px-4 py-2">
+            <div
+              key={pin.eventId}
+              className="flex items-center gap-2 px-4 py-2"
+            >
               <p className="min-w-0 flex-1 truncate text-xs text-black/70 dark:text-white/70">
                 {pin.content ?? "Message"}
               </p>

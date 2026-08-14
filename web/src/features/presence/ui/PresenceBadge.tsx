@@ -39,7 +39,9 @@ export function PresenceBadge({
         className={`rounded-full flex-shrink-0 ${SIZE_CLASSES[size]} ${dotColor}`}
       />
       {showLabel && (
-        <span className="text-xs text-black/40 dark:text-white/40">{label}</span>
+        <span className="text-xs text-black/40 dark:text-white/40">
+          {label}
+        </span>
       )}
     </span>
   );

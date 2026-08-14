@@ -14,7 +14,11 @@ function TyperAvatar({ pubkey }: { pubkey: string }) {
       title={name}
     >
       {profile?.picture ? (
-        <img src={profile.picture} alt={name} className="w-full h-full object-cover" />
+        <img
+          src={profile.picture}
+          alt={name}
+          className="w-full h-full object-cover"
+        />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-[9px] font-medium">
           {name[0]?.toUpperCase()}
@@ -40,15 +44,24 @@ export function TypingIndicator({ pubkeys }: Props) {
   const nameElements = displayedPubkeys.map((pubkey, idx) => (
     <span key={pubkey}>
       {idx > 0 && displayedPubkeys.length === 2 && " and "}
-      {idx > 0 && displayedPubkeys.length > 2 && idx < displayedPubkeys.length - 1 && ", "}
-      {idx > 0 && displayedPubkeys.length > 2 && idx === displayedPubkeys.length - 1 && ", and "}
+      {idx > 0 &&
+        displayedPubkeys.length > 2 &&
+        idx < displayedPubkeys.length - 1 &&
+        ", "}
+      {idx > 0 &&
+        displayedPubkeys.length > 2 &&
+        idx === displayedPubkeys.length - 1 &&
+        ", and "}
       <TypingName pubkey={pubkey} />
     </span>
   ));
 
   // Build suffix
   const verbPhrase = pubkeys.length === 1 ? "is typing…" : "are typing…";
-  const suffix = hiddenCount > 0 ? ` and ${hiddenCount} other${hiddenCount > 1 ? "s" : ""} are typing…` : ` ${verbPhrase}`;
+  const suffix =
+    hiddenCount > 0
+      ? ` and ${hiddenCount} other${hiddenCount > 1 ? "s" : ""} are typing…`
+      : ` ${verbPhrase}`;
 
   return (
     <div className="h-5 animate-pulse px-4 text-xs text-black/40 dark:text-white/40 flex items-center gap-2">

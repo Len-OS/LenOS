@@ -383,7 +383,12 @@ export const MessageRow = React.memo(
               return null;
             })();
             if (pollId) {
-              return <PollMessage pollId={pollId} channelMessageEventId={message.id} />;
+              return (
+                <PollMessage
+                  pollId={pollId}
+                  channelMessageEventId={message.id}
+                />
+              );
             }
           }
           {

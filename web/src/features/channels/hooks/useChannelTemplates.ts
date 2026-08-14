@@ -55,10 +55,7 @@ export function useChannelTemplates() {
 
   const addTemplate = useCallback(
     (t: Omit<ChannelTemplate, "id">) => {
-      const newTemplates = [
-        ...templates,
-        { ...t, id: crypto.randomUUID() },
-      ];
+      const newTemplates = [...templates, { ...t, id: crypto.randomUUID() }];
       return publishTemplates(newTemplates);
     },
     [templates, publishTemplates],

@@ -250,7 +250,9 @@ export function ChannelView() {
               }}
               isAdmin={isCurrentUserAdmin}
               pinnedMessageIds={pinnedMessageIds}
-              onPin={(msg) => void pin(msg.id, currentPubkey ?? "", msg.content)}
+              onPin={(msg) =>
+                void pin(msg.id, currentPubkey ?? "", msg.content)
+              }
               onUnpin={(id) => void unpin(id)}
               readReceipts={readReceipts}
               onAtBottomChange={setIsAtBottom}

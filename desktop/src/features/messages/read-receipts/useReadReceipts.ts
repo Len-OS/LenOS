@@ -3,7 +3,9 @@ import { relayClient } from "@/shared/api/relayClient";
 import { useRelayMembersQuery } from "@/features/community-members/hooks";
 import type { ReadReceipt } from "./types";
 
-export function useReadReceipts(channelId: string | null): Map<string, ReadReceipt> {
+export function useReadReceipts(
+  channelId: string | null,
+): Map<string, ReadReceipt> {
   const [receipts, setReceipts] = useState<Map<string, ReadReceipt>>(new Map());
   const { data: members } = useRelayMembersQuery();
   const memberPubkeys = (members ?? []).map((m) => m.pubkey);

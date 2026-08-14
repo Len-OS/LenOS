@@ -12,11 +12,18 @@ export function SummaryCard({ summary, onDismiss }: Props) {
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           AI Summary
         </span>
-        <Button variant="ghost" size="sm" className="h-5 px-1 text-xs" onClick={onDismiss}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-5 px-1 text-xs"
+          onClick={onDismiss}
+        >
           Dismiss
         </Button>
       </div>
-      <p className="whitespace-pre-wrap leading-relaxed text-foreground/80">{summary}</p>
+      <p className="whitespace-pre-wrap leading-relaxed text-foreground/80">
+        {summary}
+      </p>
     </div>
   );
 }

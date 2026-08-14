@@ -1,6 +1,10 @@
 export interface CommandContext {
   channelId: string;
-  publishEvent(params: { kind: number; content: string; tags: string[][] }): Promise<void>;
+  publishEvent(params: {
+    kind: number;
+    content: string;
+    tags: string[][];
+  }): Promise<void>;
 }
 
 export interface SlashCommand {
@@ -24,8 +28,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: "Create a poll",
     usage: "/poll <question> | <opt1> | <opt2>",
     async execute(args, context) {
-      const parts = args.split("|").map((s) => s.trim()).filter(Boolean);
-      if (parts.length < 3) throw new Error("Poll needs a question and at least 2 options");
+      const parts = args
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (parts.length < 3)
+        throw new Error("Poll needs a question and at least 2 options");
       const [question, ...options] = parts;
       const pollId = crypto.randomUUID();
       await context.publishEvent({
@@ -35,7 +43,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
       });
       await context.publishEvent({
         kind: 30078,
-        content: JSON.stringify({ question, options, createdAt: Math.floor(Date.now() / 1000) }),
+        content: JSON.stringify({
+          question,
+          options,
+          createdAt: Math.floor(Date.now() / 1000),
+        }),
         tags: [["d", `poll-${pollId}`]],
       });
     },

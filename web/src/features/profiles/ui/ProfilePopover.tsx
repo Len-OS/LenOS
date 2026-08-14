@@ -8,7 +8,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useProfile } from "@/features/profiles/use-profile";
-import { useSetUserStatus, useUserStatus } from "@/features/profile/useUserStatus";
+import {
+  useSetUserStatus,
+  useUserStatus,
+} from "@/features/profile/useUserStatus";
 import { Avatar } from "@/shared/ui/Avatar";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 
@@ -39,7 +42,9 @@ export function ProfilePopover({
   const [myPubkey, setMyPubkey] = useState<string | null>(null);
 
   useEffect(() => {
-    getCurrentPubkey().then(setMyPubkey).catch(() => {});
+    getCurrentPubkey()
+      .then(setMyPubkey)
+      .catch(() => {});
   }, []);
 
   const isCurrentUser = myPubkey === pubkey;

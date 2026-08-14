@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { useUserProfileQuery } from "@/features/profile/hooks";
-import { ReadReceipt } from "./types";
+import type { ReadReceipt } from "./types";
 
 interface Props {
   receipts: ReadReceipt[];
@@ -13,7 +13,9 @@ function AvatarPip({ pubkey }: { pubkey: string }) {
   return (
     <Avatar className="w-5 h-5 -ml-1 first:ml-0 border border-background">
       <AvatarImage src={profile?.avatarUrl ?? undefined} alt={name ?? ""} />
-      <AvatarFallback className="text-[9px]">{name?.[0]?.toUpperCase()}</AvatarFallback>
+      <AvatarFallback className="text-[9px]">
+        {name?.[0]?.toUpperCase()}
+      </AvatarFallback>
     </Avatar>
   );
 }

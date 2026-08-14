@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
-import { SLASH_COMMANDS, type SlashCommand } from "@/shared/lib/slashCommandRegistry";
+import {
+  SLASH_COMMANDS,
+  type SlashCommand,
+} from "@/shared/lib/slashCommandRegistry";
 
 interface SlashCommandState {
   active: boolean;
@@ -21,7 +24,9 @@ export function useSlashCommands(text: string, _cursorPos: number) {
     () =>
       active
         ? SLASH_COMMANDS.filter(
-            (c) => query === "" || c.name.toLowerCase().startsWith(query.toLowerCase()),
+            (c) =>
+              query === "" ||
+              c.name.toLowerCase().startsWith(query.toLowerCase()),
           )
         : [],
     [active, query],

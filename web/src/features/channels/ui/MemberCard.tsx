@@ -38,11 +38,7 @@ export function MemberCard({
         onClick={() => setPopoverOpen((v) => !v)}
         className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5"
       >
-        <Avatar
-          src={profile?.picture}
-          name={displayName}
-          size={28}
-        />
+        <Avatar src={profile?.picture} name={displayName} size={28} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-black dark:text-white">
             {displayName}
