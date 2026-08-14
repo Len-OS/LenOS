@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useChannelMutations } from "@/features/channels/useChannelMutations";
+import { useChannelTemplates } from "@/features/channels/hooks/useChannelTemplates";
 
 interface Props {
   isOpen: boolean;
@@ -23,7 +24,18 @@ export function CreateChannelModal({ isOpen, onClose }: Props) {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const { createChannel } = useChannelMutations();
+  const { templates } = useChannelTemplates();
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    const t = templates.find((t) => t.id === templateId);
+    if (!t) return;
+    setName(t.name);
+    setDescription(t.description);
+  };
 
   useEffect(() => {
     if (!idEdited) setId(slugify(name));
@@ -36,6 +48,7 @@ export function CreateChannelModal({ isOpen, onClose }: Props) {
       setIdEdited(false);
       setDescription("");
       setError("");
+      setSelectedTemplateId("");
     }
   }, [isOpen]);
 
@@ -93,6 +106,30 @@ export function CreateChannelModal({ isOpen, onClose }: Props) {
         </div>
 
         <div className="space-y-4">
+          {templates.length > 0 && (
+            <div>
+              <label
+                htmlFor="cc-template"
+                className="mb-1 block text-sm font-medium text-black/70 dark:text-white/70"
+              >
+                Template (optional)
+              </label>
+              <select
+                id="cc-template"
+                className="w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black/30 dark:border-white/15 dark:text-white dark:focus:border-white/30"
+                value={selectedTemplateId}
+                onChange={(e) => handleTemplateChange(e.target.value)}
+              >
+                <option value="">No template</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label
               htmlFor="cc-name"
