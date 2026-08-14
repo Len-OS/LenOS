@@ -1,4 +1,3 @@
-++ b/docs/superpowers/specs/2026-08-14-phase3-design.md
 # Phase 3 Design — LenOS
 
 **Date:** 2026-08-14  
