@@ -8,6 +8,7 @@ import {
 } from "@/features/messages/lib/timelineSnapshot";
 import { preloadTimelineImages } from "@/features/messages/lib/timelineImagePreload";
 import type { TimelineMessage } from "@/features/messages/types";
+import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 import type { MainTimelineEntry } from "@/features/messages/lib/threadPanel";
 import type { ChannelWindowThreadSummary } from "@/features/messages/lib/channelWindowStore";
 import type { UserProfileLookup } from "@/features/profile/lib/identity";
@@ -118,6 +119,10 @@ type MessageTimelineProps = {
   unreadCount?: number;
   /** Per-thread unread counts keyed by thread root id. */
   threadUnreadCounts?: ReadonlyMap<string, number>;
+  /** Read receipts keyed by pubkey for the current channel. */
+  readReceipts?: Map<string, ReadReceipt>;
+  /** Called whenever the physical scroll-at-bottom state changes. */
+  onAtBottomChange?: (isAtBottom: boolean) => void;
 };
 
 /** Stable empty reference used as the `useDeferredValue` initial value so the
@@ -204,6 +209,8 @@ const MessageTimelineBase = React.forwardRef<
     firstUnreadMessageId = null,
     unreadCount = 0,
     threadUnreadCounts,
+    readReceipts,
+    onAtBottomChange,
   }: MessageTimelineProps,
   ref,
 ) {
@@ -482,6 +489,9 @@ const MessageTimelineBase = React.forwardRef<
       setIsUnreadPillDismissed(true);
     }
   }, [isAtBottom]);
+  React.useEffect(() => {
+    onAtBottomChange?.(isAtBottom);
+  }, [isAtBottom, onAtBottomChange]);
   const showUnreadPill =
     !isUnreadPillDismissed &&
     unreadCount > 0 &&
@@ -667,6 +677,7 @@ const MessageTimelineBase = React.forwardRef<
       useVirtualizer={useTimelineVirtualizer}
       threadUnreadCounts={threadUnreadCounts}
       unfollowThreadById={unfollowThreadById}
+      readReceipts={readReceipts}
     />
   ) : null;
 

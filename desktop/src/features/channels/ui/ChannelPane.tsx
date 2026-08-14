@@ -69,6 +69,9 @@ import { useMyRelayMembershipQuery } from "@/features/community-members/hooks";
 import { usePinnedMessages } from "@/features/messages/pinning/usePinnedMessages";
 import { usePinMessage } from "@/features/messages/pinning/usePinMessage";
 import { PinnedMessagesBar } from "@/features/messages/pinning/PinnedMessagesBar";
+import { useReadReceipts } from "@/features/messages/read-receipts/useReadReceipts";
+import { signRelayEvent } from "@/shared/api/tauri";
+import { relayClient } from "@/shared/api/relayClient";
 export const ChannelPane = React.memo(function ChannelPane({
   activeChannel,
   agentPubkeys,
@@ -196,6 +199,59 @@ export const ChannelPane = React.memo(function ChannelPane({
     () => new Set(pins.map((p) => p.eventId)),
     [pins],
   );
+  const readReceipts = useReadReceipts(activeChannelId);
+  const [isAtBottom, setIsAtBottom] = React.useState(true);
+  const handleAtBottomChange = React.useCallback((atBottom: boolean) => {
+    setIsAtBottom(atBottom);
+  }, []);
+  const publishTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const publishReadReceipt = React.useCallback(
+    (latestEventId: string, latestAt: number) => {
+      if (publishTimerRef.current !== null) {
+        clearTimeout(publishTimerRef.current);
+      }
+      publishTimerRef.current = setTimeout(() => {
+        publishTimerRef.current = null;
+        if (!activeChannelId) return;
+        void (async () => {
+          try {
+            const content = JSON.stringify({
+              last_read_event_id: latestEventId,
+              last_read_at: latestAt,
+            });
+            const event = await signRelayEvent({
+              kind: 30078,
+              content,
+              tags: [["d", `read:${activeChannelId}`]],
+            });
+            relayClient.publishEvent(
+              event,
+              "publishing read receipt",
+              "failed to publish read receipt",
+            );
+          } catch {
+            // ignore publish errors — signer may be unavailable
+          }
+        })();
+      }, 2000);
+    },
+    [activeChannelId],
+  );
+  React.useEffect(() => {
+    if (!isAtBottom || !activeChannelId || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.pending) return;
+    publishReadReceipt(last.id, last.createdAt);
+  }, [isAtBottom, activeChannelId, messages, publishReadReceipt]);
+  React.useEffect(() => {
+    return () => {
+      if (publishTimerRef.current !== null) {
+        clearTimeout(publishTimerRef.current);
+      }
+    };
+  }, []);
   const handleJumpToPin = React.useCallback((eventId: string) => {
     document
       .querySelector(`[data-message-id="${CSS.escape(eventId)}"]`)
@@ -706,6 +762,8 @@ export const ChannelPane = React.memo(function ChannelPane({
             onUnpin={(eventId) => {
               void unpin(eventId);
             }}
+            readReceipts={readReceipts}
+            onAtBottomChange={handleAtBottomChange}
             isLoading={isTimelineLoading}
             entranceMessageId={entranceMessageId}
             onEntranceMessageComplete={onEntranceMessageComplete}

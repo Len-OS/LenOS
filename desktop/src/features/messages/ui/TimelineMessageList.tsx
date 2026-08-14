@@ -25,6 +25,7 @@ import type { ChannelWindowThreadSummary } from "@/features/messages/lib/channel
 import { buildVideoReviewContextsByMessageId } from "@/features/messages/lib/videoReviewContext";
 import type { buildVideoReviewContextForMessage } from "@/features/messages/lib/videoReviewContext";
 import type { TimelineMessage } from "@/features/messages/types";
+import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 import { canManageMessageForCurrentUser } from "@/features/messages/lib/canManageMessage";
 import type { UserProfileLookup } from "@/features/profile/lib/identity";
 import type { ChannelType } from "@/shared/api/types";
@@ -98,6 +99,8 @@ type TimelineMessageListProps = {
   ) => Promise<void>;
   /** Map from lowercase pubkey → persona display name for bot members. */
   personaLookup?: Map<string, string>;
+  /** Read receipts keyed by pubkey for the current channel. */
+  readReceipts?: Map<string, ReadReceipt>;
   profiles?: UserProfileLookup;
   ownerProfiles?: UserProfileLookup;
   /** The message ID of the currently active find-in-channel match. */
@@ -162,6 +165,7 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
   searchQuery,
   threadUnreadCounts,
   unfollowThreadById,
+  readReceipts,
   leadingContent,
   historyExhausted = false,
   useVirtualizer = false,
@@ -272,6 +276,7 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
               onOpenThread={onOpenThread}
               onToggleReaction={onToggleReaction}
               profiles={profiles}
+              readReceipts={readReceipts}
               searchActiveMessageId={searchActiveMessageId}
               searchMatchingMessageIds={searchMatchingMessageIds}
               searchQuery={searchQuery}
@@ -309,6 +314,7 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
       onToggleReaction,
       profiles,
       ownerProfiles,
+      readReceipts,
       searchActiveMessageId,
       searchMatchingMessageIds,
       searchQuery,
@@ -804,6 +810,7 @@ type MessageRowItemProps = Pick<
   | "onOpenThread"
   | "onToggleReaction"
   | "profiles"
+  | "readReceipts"
   | "searchActiveMessageId"
   | "searchMatchingMessageIds"
   | "searchQuery"
@@ -847,6 +854,7 @@ function MessageRowItem({
   onOpenThread,
   onToggleReaction,
   profiles,
+  readReceipts,
   searchActiveMessageId,
   searchMatchingMessageIds,
   searchQuery,
@@ -909,6 +917,7 @@ function MessageRowItem({
               : undefined
           }
           profiles={profiles}
+          readReceipts={readReceipts}
           showDepthGuides={false}
           videoReviewContext={videoReviewContext}
         />
@@ -958,6 +967,7 @@ function MessageRowItem({
         onReply={onReply}
         onOpenThread={onOpenThread}
         profiles={profiles}
+        readReceipts={readReceipts}
         searchQuery={isSearchMatch ? searchQuery : undefined}
         showDepthGuides={false}
         videoReviewContext={videoReviewContext}

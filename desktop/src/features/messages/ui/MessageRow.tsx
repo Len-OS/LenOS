@@ -40,6 +40,8 @@ import { resolveSnapshotSharedBy } from "@/features/messages/lib/snapshotSharedB
 import { resolveMentionProps } from "@/shared/lib/resolveMentionNames";
 import { Markdown } from "@/shared/ui/markdown";
 import type { VideoReviewContext } from "@/shared/ui/VideoPlayer";
+import { ReadAvatarStack } from "@/features/messages/read-receipts/ReadAvatarStack";
+import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 import { MessageActionBar } from "./MessageActionBar";
 import { MessageAgentOwner } from "./MessageAgentOwner";
 import { MessageAuthorText, MessageHeaderRow } from "./MessageHeader";
@@ -97,6 +99,7 @@ export const MessageRow = React.memo(
     playEntrance = false,
     onUnfollowThread,
     profiles,
+    readReceipts,
     searchQuery,
     showDepthGuides = true,
     videoReviewContext,
@@ -149,6 +152,7 @@ export const MessageRow = React.memo(
     onEntranceComplete?: (messageId: string) => void;
     playEntrance?: boolean;
     profiles?: UserProfileLookup;
+    readReceipts?: Map<string, ReadReceipt>;
     searchQuery?: string;
     showDepthGuides?: boolean;
     videoReviewContext?: VideoReviewContext;
@@ -250,6 +254,16 @@ export const MessageRow = React.memo(
       message.tags,
     );
     const bodyOffsetClass = emojiOnly ? "mt-1" : "-mt-0.5";
+
+    const readReceiptsNode = React.useMemo(() => {
+      if (!readReceipts || readReceipts.size === 0) return null;
+      const readers = Array.from(readReceipts.values()).filter(
+        (r) =>
+          r.last_read_event_id === message.id ||
+          r.last_read_at >= message.createdAt,
+      );
+      return readers.length > 0 ? <ReadAvatarStack receipts={readers} /> : null;
+    }, [readReceipts, message.id, message.createdAt]);
 
     const { nonDmChannelNames: channelNames } = useChannelNavigation();
 
@@ -831,6 +845,7 @@ export const MessageRow = React.memo(
                 {headerNode}
                 <div className={bodyContainerClass}>{messageBodyNode}</div>
               </div>
+              {readReceiptsNode}
             </>
           ) : (
             <>
@@ -839,6 +854,7 @@ export const MessageRow = React.memo(
                 {headerNode}
                 <div className={bodyContainerClass}>{messageBodyNode}</div>
               </div>
+              {readReceiptsNode}
             </>
           )}
           {actionBarNode}
@@ -903,6 +919,7 @@ export const MessageRow = React.memo(
     prev.onEntranceComplete === next.onEntranceComplete &&
     prev.playEntrance === next.playEntrance &&
     prev.profiles === next.profiles &&
+    prev.readReceipts === next.readReceipts &&
     prev.searchQuery === next.searchQuery &&
     prev.videoReviewContext === next.videoReviewContext,
 );
