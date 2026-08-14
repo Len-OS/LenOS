@@ -76,6 +76,11 @@ const PrivacyPanel = lazy(() =>
     default: m.PrivacySettingsPanel,
   })),
 );
+const ChannelTemplatesPanel = lazy(() =>
+  import("@/features/settings/ui/ChannelTemplatesSettingsCard").then((m) => ({
+    default: m.ChannelTemplatesSettingsCard,
+  })),
+);
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
@@ -93,6 +98,7 @@ const SECTIONS = [
   { id: "moderation", label: "Moderation" },
   { id: "custom-emoji", label: "Custom Emoji" },
   { id: "privacy", label: "Privacy & Data" },
+  { id: "channel-templates", label: "Channel Templates" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -196,6 +202,7 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                 {active === "moderation" && <ModerationPanel />}
                 {active === "custom-emoji" && <CustomEmojiPanel />}
                 {active === "privacy" && <PrivacyPanel />}
+                {active === "channel-templates" && <ChannelTemplatesPanel />}
               </Suspense>
             </div>
           </main>
