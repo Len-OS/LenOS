@@ -78,6 +78,7 @@ export function ChannelView() {
 
   const readReceipts = useReadReceipts(channelId);
   const receiptDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   const handleJumpTo = useCallback((eventId: string) => {
     requestAnimationFrame(() => {
@@ -112,6 +113,10 @@ export function ChannelView() {
     const last = messages[messages.length - 1];
     if (!last) return;
     markRead(last.createdAt);
+    if (!isAtBottom) {
+      if (receiptDebounceRef.current) clearTimeout(receiptDebounceRef.current);
+      return;
+    }
     if (receiptDebounceRef.current) clearTimeout(receiptDebounceRef.current);
     receiptDebounceRef.current = setTimeout(async () => {
       const content = JSON.stringify({
@@ -132,7 +137,7 @@ export function ChannelView() {
         // ignore publish errors — signer may be unavailable
       }
     }, 2000);
-  }, [messages, markRead, channelId]);
+  }, [messages, markRead, channelId, isAtBottom]);
 
   const channel = channels.find((c) => c.id === channelId);
   const channelName = channel?.name ?? channelId;
@@ -248,6 +253,7 @@ export function ChannelView() {
               onPin={(msg) => void pin(msg.id, currentPubkey ?? "", msg.content)}
               onUnpin={(id) => void unpin(id)}
               readReceipts={readReceipts}
+              onAtBottomChange={setIsAtBottom}
             />
             <TypingIndicator pubkeys={[...typingPubkeys]} />
             <MessageComposer

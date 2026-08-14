@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Message } from "@/features/messages/use-messages";
 import type { Reaction } from "@/features/messages/use-reactions";
 import {
@@ -26,6 +26,7 @@ interface Props {
   onPin?: (msg: Message) => void;
   onUnpin?: (eventId: string) => void;
   readReceipts?: Map<string, ReadReceipt>;
+  onAtBottomChange?: (isAtBottom: boolean) => void;
 }
 
 const GROUP_GAP_SECONDS = 300;
@@ -46,13 +47,25 @@ export function MessageTimeline({
   onPin,
   onUnpin,
   readReceipts,
+  onAtBottomChange,
 }: Props) {
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to bottom when new messages arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!onAtBottomChange || !scrollEl || !bottomRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => onAtBottomChange(entry.isIntersecting),
+      { root: scrollEl, threshold: 0 },
+    );
+    observer.observe(bottomRef.current);
+    return () => observer.disconnect();
+  }, [onAtBottomChange, scrollEl]);
 
   if (isLoading) {
     return (
@@ -85,7 +98,7 @@ export function MessageTimeline({
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto px-6 py-4">
+    <div ref={setScrollEl} className="flex flex-1 flex-col overflow-y-auto px-6 py-4">
       {messages.map((msg, i) => {
         if (msg.kind === KIND_SYSTEM_MESSAGE) {
           return (

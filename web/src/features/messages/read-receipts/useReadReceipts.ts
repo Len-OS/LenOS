@@ -31,7 +31,7 @@ export function useReadReceipts(channelId: string | null): Map<string, ReadRecei
         }
       },
     });
-    return () => unsub();
+    return () => { unsub(); setReceipts(new Map()); };
   }, [channelId, memberPubkeys.join(",")]);
 
   return receipts;

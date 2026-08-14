@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { nip19 } from "nostr-tools";
 import {
   Copy,
@@ -10,6 +10,7 @@ import {
 import { useProfile } from "@/features/profiles/use-profile";
 import { useSetUserStatus, useUserStatus } from "@/features/profile/useUserStatus";
 import { Avatar } from "@/shared/ui/Avatar";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 
 interface Props {
   pubkey: string;
@@ -35,6 +36,13 @@ export function ProfilePopover({
   const setUserStatus = useSetUserStatus();
   const [copied, setCopied] = useState(false);
   const [customText, setCustomText] = useState("");
+  const [myPubkey, setMyPubkey] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentPubkey().then(setMyPubkey).catch(() => {});
+  }, []);
+
+  const isCurrentUser = myPubkey === pubkey;
 
   if (!open) return null;
 
@@ -128,7 +136,7 @@ export function ProfilePopover({
         )}
       </div>
 
-      {onOpenSettings && (
+      {isCurrentUser && (
         <div className="mt-2 space-y-2 border-t border-black/10 pt-2 dark:border-white/10">
           <p className="text-xs font-medium text-black/50 dark:text-white/50">
             Status
