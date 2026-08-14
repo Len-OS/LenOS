@@ -47,6 +47,7 @@ import { MessageAgentOwner } from "./MessageAgentOwner";
 import { MessageAuthorText, MessageHeaderRow } from "./MessageHeader";
 import { MessageTimestamp } from "./MessageTimestamp";
 import { WaveMessageAttachment } from "./WaveMessageAttachment";
+import { PollMessage } from "./PollMessage";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
 const DiffMessage = React.lazy(() => import("./DiffMessage"));
@@ -363,6 +364,28 @@ export const MessageRow = React.memo(
             />
           );
         default:
+          {
+            // Poll detection — render interactive poll widget for JSON-encoded poll messages
+            const pollId = (() => {
+              try {
+                const p = JSON.parse(message.body) as Record<string, unknown>;
+                if (
+                  p !== null &&
+                  typeof p === "object" &&
+                  p.type === "poll" &&
+                  typeof p.pollId === "string"
+                ) {
+                  return p.pollId as string;
+                }
+              } catch {
+                // not JSON — regular text message
+              }
+              return null;
+            })();
+            if (pollId) {
+              return <PollMessage pollId={pollId} channelMessageEventId={message.id} />;
+            }
+          }
           {
             const waveMessage = parseWaveMessageContent(message.body);
             if (waveMessage) {

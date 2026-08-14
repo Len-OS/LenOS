@@ -61,6 +61,13 @@ import { Button } from "@/shared/ui/button";
 import { signRelayEvent } from "@/shared/api/tauri";
 import { relayClient } from "@/shared/api/relayClient";
 import { KIND_SCHEDULED_MESSAGE } from "@/shared/constants/kinds";
+import { useSlashCommands } from "@/features/messages/hooks/useSlashCommands";
+import { SlashCommandPalette } from "@/features/messages/ui/SlashCommandPalette";
+import {
+  SLASH_COMMANDS,
+  type CommandContext,
+  type SlashCommand,
+} from "@/shared/lib/slashCommandRegistry";
 
 import type { MessageComposerProps } from "./MessageComposer.types";
 
@@ -102,6 +109,11 @@ function MessageComposerImpl({
     syncComposerContentFromEditor,
     syncContentRefFromEditorRef,
   } = useComposerContentState();
+  const [composerText, setComposerText] = React.useState("");
+  const slashHook = useSlashCommands(composerText, 0);
+  const slashHookRef = React.useRef(slashHook);
+  slashHookRef.current = slashHook;
+
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = React.useState(false);
   const [isFormattingOpen, setIsFormattingOpen] = React.useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = React.useState(false);
@@ -263,6 +275,7 @@ function MessageComposerImpl({
 
   const isAutocompleteOpenRef = React.useRef(false);
   isAutocompleteOpenRef.current =
+    slashHook.active ||
     mentions.isMentionOpen ||
     channelLinks.isChannelOpen ||
     emojiAutocomplete.isEmojiAutocompleteOpen;
@@ -316,6 +329,7 @@ function MessageComposerImpl({
     onLinkSelectionChange: (info) => onLinkSelectionChangeRef.current?.(info),
     onLinkShortcut: () => onLinkShortcutRef.current?.() ?? false,
     onUpdate: ({ cursor, text }) => {
+      setComposerText(text);
       setComposerContentFromText(text);
 
       mentions.updateMentionQuery(text, cursor);
@@ -572,6 +586,20 @@ function MessageComposerImpl({
     mentions.updateMentionQuery,
   ]);
 
+  // ── Slash command palette selection (tab-complete) ──────────────────
+  const handleSlashCommandSelect = React.useCallback(
+    (cmd: SlashCommand) => {
+      const toInsert = `/${cmd.name} `;
+      richText.setContent(toInsert);
+      setComposerContent(toInsert);
+      setComposerText(toInsert);
+      richText.focusEnd();
+    },
+    [richText.setContent, richText.focusEnd, setComposerContent],
+  );
+  const handleSlashCommandSelectRef = React.useRef(handleSlashCommandSelect);
+  handleSlashCommandSelectRef.current = handleSlashCommandSelect;
+
   // ── Submit message ──────────────────────────────────────────────────
   const submitMessage = React.useCallback(async () => {
     const trimmed = syncComposerContentFromEditor().trim();
@@ -655,6 +683,39 @@ function MessageComposerImpl({
       return;
     }
 
+    // Slash command execution — detect /command [args] pattern
+    const cmdMatch = trimmed.match(/^\/(\S+)(?:\s+([\s\S]*))?$/);
+    if (cmdMatch) {
+      const cmdName = cmdMatch[1];
+      const cmdArgs = cmdMatch[2]?.trim() ?? "";
+      const cmd = SLASH_COMMANDS.find((c) => c.name === cmdName);
+      if (cmd) {
+        const commandContext: CommandContext = {
+          channelId: channelId ?? "",
+          publishEvent: async ({ kind, content, tags }) => {
+            const event = await signRelayEvent({ kind, content, tags });
+            await relayClient.publishEvent(
+              event,
+              "Timed out publishing slash command event.",
+              "Failed to publish slash command event.",
+            );
+          },
+        };
+        try {
+          await cmd.execute(cmdArgs, commandContext);
+          setComposerContent("");
+          richText.clearContent();
+          setComposerText("");
+          mentions.clearMentions();
+          channelLinks.clearChannels();
+          emojiAutocomplete.clearEmojis();
+        } catch (err) {
+          console.error("[MessageComposer] slash command failed:", err);
+        }
+        return;
+      }
+    }
+
     const capturedThreadContext = onCaptureSendContext?.() ?? null;
     if (
       capturedThreadContext !== null &&
@@ -697,6 +758,7 @@ function MessageComposerImpl({
     richText.clearContent,
     richText.setContent,
     setComposerContent,
+    setComposerText,
     spoileredAttachmentUrls,
     syncComposerContentFromEditor,
     onCaptureSendContext,
@@ -760,6 +822,39 @@ function MessageComposerImpl({
   // handles autocomplete arrow/enter keys and Escape for edit mode.
   const handleEditorKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Slash command palette navigation — intercept before other autocompletes
+      if (
+        slashHookRef.current.active &&
+        slashHookRef.current.filtered.length > 0
+      ) {
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          event.stopPropagation();
+          slashHookRef.current.moveUp();
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          event.stopPropagation();
+          slashHookRef.current.moveDown();
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          const cmd =
+            slashHookRef.current.filtered[slashHookRef.current.selectedIdx];
+          if (cmd) {
+            handleSlashCommandSelectRef.current(cmd);
+          }
+          return;
+        }
+        if (event.key === "Escape") {
+          slashHookRef.current.dismiss();
+          return;
+        }
+      }
+
       // Let autocomplete handle keys first
       const emojiResult = emojiAutocomplete.handleEmojiKeyDown(event);
       if (emojiResult.handled) {
@@ -986,6 +1081,13 @@ function MessageComposerImpl({
             }}
           >
             {ownsDropZone && media.isDragOver && <DropZoneOverlay />}
+            {slashHook.active && slashHook.filtered.length > 0 && (
+              <SlashCommandPalette
+                commands={slashHook.filtered}
+                selectedIdx={slashHook.selectedIdx}
+                onSelect={handleSlashCommandSelect}
+              />
+            )}
             <EmojiAutocomplete
               onSelect={applyEmojiInsert}
               selectedIndex={emojiAutocomplete.emojiSelectedIndex}
