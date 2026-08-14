@@ -20,6 +20,10 @@ interface Props {
   customEmoji?: Map<string, string>;
   onSave?: (msgId: string) => void;
   onBookmark?: (msgId: string) => void;
+  isAdmin?: boolean;
+  pinnedMessageIds?: Set<string>;
+  onPin?: (msg: Message) => void;
+  onUnpin?: (eventId: string) => void;
 }
 
 const GROUP_GAP_SECONDS = 300;
@@ -35,6 +39,10 @@ export function MessageTimeline({
   customEmoji,
   onSave,
   onBookmark,
+  isAdmin,
+  pinnedMessageIds,
+  onPin,
+  onUnpin,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -120,6 +128,10 @@ export function MessageTimeline({
               onOpenThread={onOpenThread}
               onSave={onSave ? () => onSave(msg.id) : undefined}
               onBookmark={onBookmark ? () => onBookmark(msg.id) : undefined}
+              isAdmin={isAdmin}
+              pinnedMessageIds={pinnedMessageIds}
+              onPin={onPin}
+              onUnpin={onUnpin}
             />
             {!isGrouped && (
               <MessageThreadSummaryRow

@@ -7,6 +7,10 @@ interface Props {
   msg: Message;
   channelId: string;
   currentPubkey: string | null;
+  isAdmin?: boolean;
+  isPinned?: boolean;
+  onPin?: () => void;
+  onUnpin?: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onReply?: () => void;
@@ -18,6 +22,10 @@ export function MessageContextMenu({
   msg,
   channelId,
   currentPubkey,
+  isAdmin,
+  isPinned,
+  onPin,
+  onUnpin,
   onEdit,
   onDelete,
   onReply,
@@ -60,6 +68,24 @@ export function MessageContextMenu({
             className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
           >
             Reply
+          </button>
+        )}
+        {isAdmin && !isPinned && onPin && (
+          <button
+            type="button"
+            onClick={onPin}
+            className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            Pin
+          </button>
+        )}
+        {isAdmin && isPinned && onUnpin && (
+          <button
+            type="button"
+            onClick={onUnpin}
+            className="px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            Unpin
           </button>
         )}
         <button

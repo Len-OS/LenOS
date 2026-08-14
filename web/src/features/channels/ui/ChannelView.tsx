@@ -25,6 +25,10 @@ import { truncatePubkey } from "@/shared/lib/pubkey";
 import { useBookmarks } from "@/features/bookmarks/lib/useBookmarks";
 import { useChannelBookmarks } from "@/features/bookmarks/lib/useChannelBookmarks";
 import { ChannelBookmarksSection } from "@/features/channels/ui/ChannelBookmarksSection";
+import { useMembers } from "@/features/channels/useMembers";
+import { usePinnedMessages } from "@/features/messages/pinning/usePinnedMessages";
+import { usePinMessage } from "@/features/messages/pinning/usePinMessage";
+import { PinnedMessagesBar } from "@/features/messages/pinning/PinnedMessagesBar";
 
 export function ChannelView() {
   const params = useParams({ strict: false }) as { channelId?: string };
@@ -59,6 +63,22 @@ export function ChannelView() {
     channelId,
     currentPubkey,
   );
+
+  const members = useMembers(channelId);
+  const isCurrentUserAdmin =
+    currentPubkey !== null &&
+    members.some((m) => m.pubkey === currentPubkey && m.role === "admin");
+
+  const pins = usePinnedMessages(channelId);
+  const { pin, unpin } = usePinMessage(channelId, pins);
+  const pinnedMessageIds = new Set(pins.map((p) => p.eventId));
+
+  const handleJumpTo = useCallback((eventId: string) => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-message-id="${eventId}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, []);
 
   const closeFindBar = useCallback(() => {
     setFindOpen(false);
@@ -169,6 +189,12 @@ export function ChannelView() {
           />
         ) : (
           <>
+            <PinnedMessagesBar
+              pins={pins}
+              isAdmin={isCurrentUserAdmin}
+              onJumpTo={handleJumpTo}
+              onUnpin={(id) => void unpin(id)}
+            />
             <MessageTimeline
               messages={visibleMessages}
               isLoading={isLoading}
@@ -190,6 +216,10 @@ export function ChannelView() {
               onBookmark={(msgId) => {
                 void bookmarkInChannel(msgId);
               }}
+              isAdmin={isCurrentUserAdmin}
+              pinnedMessageIds={pinnedMessageIds}
+              onPin={(msg) => void pin(msg.id, currentPubkey ?? "", msg.content)}
+              onUnpin={(id) => void unpin(id)}
             />
             <TypingIndicator pubkeys={[...typingPubkeys]} />
             <MessageComposer

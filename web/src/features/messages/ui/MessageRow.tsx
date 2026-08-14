@@ -46,6 +46,10 @@ interface Props {
   onOpenThread?: (messageId: string) => void;
   onSave?: () => void;
   onBookmark?: () => void;
+  isAdmin?: boolean;
+  pinnedMessageIds?: Set<string>;
+  onPin?: (msg: Message) => void;
+  onUnpin?: (eventId: string) => void;
 }
 
 export function MessageRow({
@@ -58,6 +62,10 @@ export function MessageRow({
   onOpenThread,
   onSave,
   onBookmark,
+  isAdmin,
+  pinnedMessageIds,
+  onPin,
+  onUnpin,
 }: Props) {
   const profile = useProfile(msg.pubkey);
   const displayName = profile?.name || truncatePubkey(msg.pubkey);
@@ -91,6 +99,7 @@ export function MessageRow({
   return (
     <div
       id={msg.id}
+      data-message-id={msg.id}
       className={[
         "group relative",
         isGrouped ? "pl-[44px]" : "mt-4 flex items-start gap-2.5",
@@ -138,6 +147,10 @@ export function MessageRow({
           msg={msg}
           channelId={channelId}
           currentPubkey={currentPubkey}
+          isAdmin={isAdmin}
+          isPinned={pinnedMessageIds?.has(msg.id)}
+          onPin={onPin ? () => onPin(msg) : undefined}
+          onUnpin={onUnpin ? () => onUnpin(msg.id) : undefined}
           onEdit={() => {
             setEditText(msg.content);
             setEditing(true);
