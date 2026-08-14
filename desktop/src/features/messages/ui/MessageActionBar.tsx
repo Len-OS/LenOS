@@ -12,6 +12,8 @@ import {
   MailCheck,
   MailOpen,
   Pencil,
+  Pin,
+  PinOff,
   SmilePlus,
   Trash2,
 } from "lucide-react";
@@ -62,12 +64,16 @@ function MoreActionsMenu({
   onMarkUnread,
   onMarkRead,
   onOpenChange,
+  onPin,
+  onUnpin,
   onRemindLater,
   onSave,
   onBookmark,
   onUnfollowThread,
   open,
+  isAdmin,
   isFollowingThread,
+  isPinned,
   isUnread,
 }: {
   /** Channel UUID for the "Copy link" action. When null/undefined, the
@@ -80,12 +86,16 @@ function MoreActionsMenu({
   onMarkUnread?: (message: TimelineMessage) => void;
   onMarkRead?: (message: TimelineMessage) => void;
   onOpenChange: (open: boolean) => void;
+  onPin?: () => void;
+  onUnpin?: () => void;
   onRemindLater?: (message: TimelineMessage) => void;
   onSave?: (message: TimelineMessage) => void;
   onBookmark?: (message: TimelineMessage) => void;
   onUnfollowThread?: (message: TimelineMessage) => void;
   open: boolean;
+  isAdmin?: boolean;
   isFollowingThread?: boolean;
+  isPinned?: boolean;
   isUnread?: boolean;
 }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -191,6 +201,20 @@ function MoreActionsMenu({
                 <BellRing className="h-4 w-4" />
               )}
               {isFollowingThread ? "Unfollow thread" : "Follow thread"}
+            </DropdownMenuItem>
+          ) : null}
+
+          {isAdmin && !isPinned && onPin ? (
+            <DropdownMenuItem onClick={onPin}>
+              <Pin className="h-4 w-4" />
+              Pin message
+            </DropdownMenuItem>
+          ) : null}
+
+          {isAdmin && isPinned && onUnpin ? (
+            <DropdownMenuItem onClick={onUnpin}>
+              <PinOff className="h-4 w-4" />
+              Unpin message
             </DropdownMenuItem>
           ) : null}
 
@@ -359,6 +383,8 @@ export const MessageActionBar = React.memo(function MessageActionBar({
   onFollowThread,
   onMarkUnread,
   onMarkRead,
+  onPin,
+  onUnpin,
   onReactionBadgeBurstRequest,
   onReactionSelect,
   onRemindLater,
@@ -368,7 +394,9 @@ export const MessageActionBar = React.memo(function MessageActionBar({
   onUnfollowThread,
   reactionErrorMessage = null,
   reactions,
+  isAdmin,
   isFollowingThread,
+  isPinned,
   isUnread,
 }: {
   /** Channel UUID — required for the "Copy link" action; when omitted the
@@ -380,6 +408,8 @@ export const MessageActionBar = React.memo(function MessageActionBar({
   onFollowThread?: (message: TimelineMessage) => void;
   onMarkUnread?: (message: TimelineMessage) => void;
   onMarkRead?: (message: TimelineMessage) => void;
+  onPin?: () => void;
+  onUnpin?: () => void;
   onReactionBadgeBurstRequest?: (emoji: string) => void;
   onReactionSelect?: (emoji: string) => Promise<void>;
   onRemindLater?: (message: TimelineMessage) => void;
@@ -389,7 +419,9 @@ export const MessageActionBar = React.memo(function MessageActionBar({
   onUnfollowThread?: (message: TimelineMessage) => void;
   reactionErrorMessage?: string | null;
   reactions: TimelineReaction[];
+  isAdmin?: boolean;
   isFollowingThread?: boolean;
+  isPinned?: boolean;
   /** Current read state of the clicked message, from the same predicate the
    *  unread badge uses. Drives the single mark-read/unread toggle label. */
   isUnread?: boolean;
@@ -423,6 +455,7 @@ export const MessageActionBar = React.memo(function MessageActionBar({
     Boolean(onRemindLater) ||
     Boolean(onSave) ||
     Boolean(onBookmark) ||
+    (isAdmin && (Boolean(onPin) || Boolean(onUnpin))) ||
     !message.pending;
 
   const wouldAddReaction = React.useCallback(
@@ -569,12 +602,16 @@ export const MessageActionBar = React.memo(function MessageActionBar({
               onMarkUnread={onMarkUnread}
               onMarkRead={onMarkRead}
               onOpenChange={setIsDropdownOpen}
+              onPin={onPin}
+              onUnpin={onUnpin}
               onRemindLater={onRemindLater}
               onSave={onSave}
               onBookmark={onBookmark}
               onUnfollowThread={onUnfollowThread}
               open={isDropdownOpen}
+              isAdmin={isAdmin}
               isFollowingThread={isFollowingThread}
+              isPinned={isPinned}
               isUnread={isUnread}
             />
           ) : null}

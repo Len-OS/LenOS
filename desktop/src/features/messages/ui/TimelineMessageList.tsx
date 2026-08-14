@@ -72,10 +72,14 @@ type TimelineMessageListProps = {
    *  rows, so without the relay map every summary row unmounts mid-scrollback. */
   threadSummaries?: ReadonlyMap<string, ChannelWindowThreadSummary>;
   messages: TimelineMessage[];
+  isAdmin?: boolean;
+  pinnedMessageIds?: Set<string>;
   onDelete?: (message: TimelineMessage) => void;
   onEdit?: (message: TimelineMessage) => void;
   onMarkUnread?: (message: TimelineMessage) => void;
   onMarkRead?: (message: TimelineMessage) => void;
+  onPin?: (message: TimelineMessage) => void;
+  onUnpin?: (eventId: string) => void;
   onReply?: (message: TimelineMessage) => void;
   onOpenThread?: (message: TimelineMessage) => void;
   isSendingVideoReviewComment?: boolean;
@@ -130,6 +134,7 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
   highlightedMessageId = null,
   huddleMemberPubkeys,
   huddleMemberPubkeysPending = false,
+  isAdmin,
   isFollowingThreadById,
   isMessageUnreadById,
   entranceMessageId = null,
@@ -142,6 +147,9 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
   onEdit,
   onMarkUnread,
   onMarkRead,
+  onPin,
+  onUnpin,
+  pinnedMessageIds,
   onReply,
   onOpenThread,
   isSendingVideoReviewComment = false,
@@ -246,16 +254,20 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
               highlightedMessageId={highlightedMessageId}
               huddleMemberPubkeys={huddleMemberPubkeys}
               huddleMemberPubkeysPending={huddleMemberPubkeysPending}
+              isAdmin={isAdmin}
               isContinuation={item.isContinuation}
               isFollowedByContinuation={item.isFollowedByContinuation}
               isFollowingThreadById={isFollowingThreadById}
               isUnread={isMessageUnreadById?.(item.entry.message.id)}
+              pinnedMessageIds={pinnedMessageIds}
               playEntrance={item.entry.message.id === entranceMessageId}
               onEntranceComplete={onEntranceMessageComplete}
               onDelete={onDelete}
               onEdit={onEdit}
               onMarkRead={onMarkRead}
               onMarkUnread={onMarkUnread}
+              onPin={onPin}
+              onUnpin={onUnpin}
               onReply={onReply}
               onOpenThread={onOpenThread}
               onToggleReaction={onToggleReaction}
@@ -279,6 +291,7 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
       highlightedMessageId,
       huddleMemberPubkeys,
       huddleMemberPubkeysPending,
+      isAdmin,
       isFollowingThreadById,
       isMessageUnreadById,
       entranceMessageId,
@@ -288,6 +301,9 @@ export const TimelineMessageList = React.memo(function TimelineMessageList({
       onEdit,
       onMarkRead,
       onMarkUnread,
+      onPin,
+      onUnpin,
+      pinnedMessageIds,
       onReply,
       onOpenThread,
       onToggleReaction,
@@ -775,11 +791,15 @@ type MessageRowItemProps = Pick<
   | "highlightedMessageId"
   | "huddleMemberPubkeys"
   | "huddleMemberPubkeysPending"
+  | "isAdmin"
   | "isFollowingThreadById"
   | "onDelete"
   | "onEdit"
   | "onMarkUnread"
   | "onMarkRead"
+  | "onPin"
+  | "onUnpin"
+  | "pinnedMessageIds"
   | "onReply"
   | "onOpenThread"
   | "onToggleReaction"
@@ -809,16 +829,20 @@ function MessageRowItem({
   highlightedMessageId,
   huddleMemberPubkeys,
   huddleMemberPubkeysPending,
+  isAdmin,
   isContinuation = false,
   isFollowedByContinuation = false,
   isFollowingThreadById,
   isUnread,
+  pinnedMessageIds,
   playEntrance = false,
   onEntranceComplete,
   onDelete,
   onEdit,
   onMarkUnread,
   onMarkRead,
+  onPin,
+  onUnpin,
   onReply,
   onOpenThread,
   onToggleReaction,
@@ -855,11 +879,13 @@ function MessageRowItem({
           hoverBackground={false}
           huddleMemberPubkeys={huddleMemberPubkeys}
           huddleMemberPubkeysPending={huddleMemberPubkeysPending}
+          isAdmin={isAdmin}
           isFollowingThread={
             isFollowingThreadById
               ? isFollowingThreadById(message.id)
               : undefined
           }
+          isPinned={pinnedMessageIds?.has(message.id)}
           isUnread={isUnread}
           isContinuation={isContinuation}
           playEntrance={playEntrance}
@@ -872,6 +898,8 @@ function MessageRowItem({
           }
           onMarkRead={onMarkRead}
           onMarkUnread={onMarkUnread}
+          onPin={onPin ? () => onPin(message) : undefined}
+          onUnpin={onUnpin ? () => onUnpin(message.id) : undefined}
           onToggleReaction={onToggleReaction}
           onReply={onReply}
           onOpenThread={onOpenThread}
@@ -913,7 +941,9 @@ function MessageRowItem({
         highlighted={message.id === highlightedMessageId || isSearchActive}
         huddleMemberPubkeys={huddleMemberPubkeys}
         huddleMemberPubkeysPending={huddleMemberPubkeysPending}
+        isAdmin={isAdmin}
         isContinuation={isContinuation}
+        isPinned={pinnedMessageIds?.has(message.id)}
         isUnread={isUnread}
         playEntrance={playEntrance}
         onEntranceComplete={onEntranceComplete}
@@ -922,6 +952,8 @@ function MessageRowItem({
         onEdit={canEdit}
         onMarkRead={onMarkRead}
         onMarkUnread={onMarkUnread}
+        onPin={onPin ? () => onPin(message) : undefined}
+        onUnpin={onUnpin ? () => onUnpin(message.id) : undefined}
         onToggleReaction={onToggleReaction}
         onReply={onReply}
         onOpenThread={onOpenThread}

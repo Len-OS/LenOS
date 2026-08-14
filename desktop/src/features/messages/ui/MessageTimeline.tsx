@@ -79,10 +79,14 @@ type MessageTimelineProps = {
   followThreadById?: (rootId: string) => void;
   isFollowingThreadById?: (rootId: string) => boolean;
   isMessageUnreadById?: (messageId: string) => boolean;
+  isAdmin?: boolean;
+  pinnedMessageIds?: Set<string>;
   onDelete?: (message: TimelineMessage) => void;
   onEdit?: (message: TimelineMessage) => void;
   onMarkUnread?: (message: TimelineMessage) => void;
   onMarkRead?: (message: TimelineMessage) => void;
+  onPin?: (message: TimelineMessage) => void;
+  onUnpin?: (eventId: string) => void;
   onReply?: (message: TimelineMessage) => void;
   onOpenThread?: (message: TimelineMessage) => void;
   isSendingVideoReviewComment?: boolean;
@@ -168,16 +172,20 @@ const MessageTimelineBase = React.forwardRef<
     followThreadById,
     huddleMemberPubkeys,
     huddleMemberPubkeysPending = false,
+    isAdmin,
     isFollowingThreadById,
     isMessageUnreadById,
     messageFooters,
     personaLookup,
+    pinnedMessageIds,
     profiles,
     ownerProfiles,
     onDelete,
     onEdit,
     onMarkUnread,
     onMarkRead,
+    onPin,
+    onUnpin,
     onReply,
     onOpenThread,
     channelName,
@@ -632,6 +640,10 @@ const MessageTimelineBase = React.forwardRef<
       historyExhausted={renderedHistoryExhausted}
       threadSummaries={threadSummaries}
       messages={renderedMessages}
+      isAdmin={isAdmin}
+      pinnedMessageIds={pinnedMessageIds}
+      onPin={onPin}
+      onUnpin={onUnpin}
       onDelete={onDelete}
       onEdit={onEdit}
       onMarkUnread={onMarkUnread}

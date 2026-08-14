@@ -72,8 +72,10 @@ export const MessageRow = React.memo(
     huddleMemberPubkeysPending = false,
     actionBarPlacement = "floating",
     collapseDescendantsLabel,
+    isAdmin,
     isFollowingThread,
     isContinuation = false,
+    isPinned,
     isUnread,
     layoutVariant = "default",
     message,
@@ -86,6 +88,8 @@ export const MessageRow = React.memo(
     onFollowThread,
     onMarkUnread,
     onMarkRead,
+    onPin,
+    onUnpin,
     onToggleReaction,
     onReply,
     onOpenThread,
@@ -110,8 +114,10 @@ export const MessageRow = React.memo(
     huddleMemberPubkeysPending?: boolean;
     actionBarPlacement?: "floating" | "inside";
     collapseDescendantsLabel?: string;
+    isAdmin?: boolean;
     isFollowingThread?: boolean;
     isContinuation?: boolean;
+    isPinned?: boolean;
     isUnread?: boolean;
     layoutVariant?: "default" | "thread-reply";
     message: TimelineMessage;
@@ -130,6 +136,8 @@ export const MessageRow = React.memo(
     onFollowThread?: (message: TimelineMessage) => void;
     onMarkUnread?: (message: TimelineMessage) => void;
     onMarkRead?: (message: TimelineMessage) => void;
+    onPin?: () => void;
+    onUnpin?: () => void;
     onToggleReaction?: (
       message: TimelineMessage,
       emoji: string,
@@ -495,7 +503,9 @@ export const MessageRow = React.memo(
       >
         <MessageActionBar
           channelId={channelId}
+          isAdmin={isAdmin}
           isFollowingThread={isFollowingThread}
+          isPinned={isPinned}
           isUnread={isUnread}
           message={message}
           onDelete={onDelete}
@@ -503,6 +513,8 @@ export const MessageRow = React.memo(
           onFollowThread={onFollowThread}
           onMarkUnread={onMarkUnread}
           onMarkRead={onMarkRead}
+          onPin={onPin}
+          onUnpin={onUnpin}
           onReactionBadgeBurstRequest={
             reactionPending ? undefined : setBadgeBurstEmoji
           }
@@ -876,8 +888,10 @@ export const MessageRow = React.memo(
     prev.hoverBackground === next.hoverBackground &&
     prev.huddleMemberPubkeys === next.huddleMemberPubkeys &&
     prev.huddleMemberPubkeysPending === next.huddleMemberPubkeysPending &&
+    prev.isAdmin === next.isAdmin &&
     prev.isContinuation === next.isContinuation &&
     prev.isFollowingThread === next.isFollowingThread &&
+    prev.isPinned === next.isPinned &&
     prev.isUnread === next.isUnread &&
     prev.layoutVariant === next.layoutVariant &&
     prev.onCollapseDepthGuide === next.onCollapseDepthGuide &&

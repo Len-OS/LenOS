@@ -65,6 +65,10 @@ import { KIND_SYSTEM_MESSAGE } from "@/shared/constants/kinds";
 import { useIsThreadPanelOverlay } from "@/shared/hooks/use-mobile";
 import { channelChrome } from "@/shared/layout/chromeLayout";
 import { cn } from "@/shared/lib/cn";
+import { useMyRelayMembershipQuery } from "@/features/community-members/hooks";
+import { usePinnedMessages } from "@/features/messages/pinning/usePinnedMessages";
+import { usePinMessage } from "@/features/messages/pinning/usePinMessage";
+import { PinnedMessagesBar } from "@/features/messages/pinning/PinnedMessagesBar";
 export const ChannelPane = React.memo(function ChannelPane({
   activeChannel,
   agentPubkeys,
@@ -183,6 +187,20 @@ export const ChannelPane = React.memo(function ChannelPane({
   const hasMainComposerOverlay = !isNonMemberView;
   const activeChannelId = activeChannel?.id ?? null;
   const activeChannelIdRef = React.useRef(activeChannelId);
+  const { data: membership } = useMyRelayMembershipQuery();
+  const isAdmin =
+    membership?.role === "admin" || membership?.role === "owner";
+  const pins = usePinnedMessages(activeChannelId);
+  const { pin, unpin } = usePinMessage(activeChannelId, pins);
+  const pinnedMessageIds = React.useMemo(
+    () => new Set(pins.map((p) => p.eventId)),
+    [pins],
+  );
+  const handleJumpToPin = React.useCallback((eventId: string) => {
+    document
+      .querySelector(`[data-message-id="${CSS.escape(eventId)}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
   const channelPaneMountedRef = React.useRef(false);
   activeChannelIdRef.current = activeChannelId;
   React.useEffect(() => {
@@ -622,6 +640,14 @@ export const ChannelPane = React.memo(function ChannelPane({
           }
         >
           {header}
+          <PinnedMessagesBar
+            pins={pins}
+            isAdmin={isAdmin}
+            onJumpTo={handleJumpToPin}
+            onUnpin={(eventId) => {
+              void unpin(eventId);
+            }}
+          />
           {channelFind.isOpen ? (
             <div className={cn("absolute inset-x-0 z-40", channelChrome.top)}>
               <ChannelFindBar
@@ -668,6 +694,18 @@ export const ChannelPane = React.memo(function ChannelPane({
                   : "No messages yet"
                 : "No channel selected"
             }
+            isAdmin={isAdmin}
+            pinnedMessageIds={pinnedMessageIds}
+            onPin={(message) => {
+              void pin(
+                message.id,
+                currentPubkey ?? "",
+                message.body.slice(0, 100),
+              );
+            }}
+            onUnpin={(eventId) => {
+              void unpin(eventId);
+            }}
             isLoading={isTimelineLoading}
             entranceMessageId={entranceMessageId}
             onEntranceMessageComplete={onEntranceMessageComplete}
