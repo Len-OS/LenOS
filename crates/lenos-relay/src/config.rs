@@ -274,6 +274,10 @@ pub struct Config {
     /// Required for AI features (thread summaries). Set via `LENGROWTH_API_URL`.
     pub lengrowth_api_url: Option<String>,
 
+    /// API key for the Giphy search proxy. When absent the `/api/giphy` endpoint
+    /// returns an empty GIF list rather than an error. Set via `GIPHY_API_KEY`.
+    pub giphy_api_key: Option<String>,
+
     /// Optional path to the web UI `dist/` directory.
     /// When set, the relay serves the invite landing page and its static assets.
     /// When unset, no static file serving happens (relay behaves as before).
@@ -917,6 +921,7 @@ impl Config {
             .unwrap_or(false);
 
         let lengrowth_api_url = std::env::var("LENGROWTH_API_URL").ok();
+        let giphy_api_key = std::env::var("GIPHY_API_KEY").ok();
 
         if let Some(ref dir) = web_dir {
             if !dir.join("index.html").is_file() {
@@ -995,6 +1000,7 @@ impl Config {
             join_policy,
             admin,
             lengrowth_api_url,
+            giphy_api_key,
             web_dir,
             serve_git_web_gui,
         })

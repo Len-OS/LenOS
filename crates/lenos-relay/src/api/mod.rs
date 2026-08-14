@@ -5,6 +5,7 @@ pub mod bridge;
 pub mod documents;
 pub mod events;
 pub mod export;
+pub(crate) mod giphy;
 pub mod git;
 pub mod invites;
 pub mod media;
