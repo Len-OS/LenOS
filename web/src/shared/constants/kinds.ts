@@ -76,6 +76,8 @@ export const KIND_GIT_STATUS_DRAFT = 1633;
 // NIP-DV: relay-signed per-viewer DM visibility snapshot (d=viewer pubkey,
 // h-tags = currently-hidden DM channel ids).
 export const KIND_DM_VISIBILITY = 30622;
+// NIP-78 pinned messages. d-tag: "pins:{channelId}"; content: { pins: PinnedMessage[] }.
+export const KIND_PINNED_MESSAGES = 30078;
 
 // Human-visible "new content" message kinds. Used as the unread trigger set
 // (sidebar badges, catch-up queries) and as the Home-feed mention query.
