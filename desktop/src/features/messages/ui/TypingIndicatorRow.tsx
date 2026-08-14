@@ -4,7 +4,7 @@ import {
   resolveUserLabel,
   type UserProfileLookup,
 } from "@/features/profile/lib/identity";
-import { ProfileAvatar } from "@/features/profile/ui/ProfileAvatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import type { Channel } from "@/shared/api/types";
 import { cn } from "@/shared/lib/cn";
 import { Shimmer } from "@/shared/ui/Shimmer";
@@ -41,14 +41,34 @@ function formatTypingLabel(names: string[]) {
   }
 
   if (names.length === 2) {
-    return `${names[0]} and ${names[1]} are typing...`;
+    return `${names[0]}, ${names[1]} are typing...`;
   }
 
   if (names.length === 3) {
-    return `${names[0]}, ${names[1]}, and ${names[2]} are typing...`;
+    return `${names[0]}, ${names[1]}, ${names[2]} are typing...`;
   }
 
   return `${names[0]}, ${names[1]}, and ${names.length - 2} others are typing...`;
+}
+
+function TyperAvatar({
+  pubkey,
+  profile,
+  label,
+  isActivityVariant,
+}: {
+  pubkey: string;
+  profile: { avatarUrl?: string | null; displayName?: string | null } | undefined;
+  label: string;
+  isActivityVariant: boolean;
+}) {
+  const name = profile?.displayName ?? label ?? pubkey.slice(0, 8);
+  return (
+    <Avatar className={cn("border border-background", isActivityVariant ? "w-4 h-4" : "w-5 h-5")}>
+      <AvatarImage src={profile?.avatarUrl ?? undefined} alt={name} />
+      <AvatarFallback className="text-[9px]">{name?.[0]?.toUpperCase()}</AvatarFallback>
+    </Avatar>
+  );
 }
 
 export function TypingIndicatorRow({
@@ -74,6 +94,11 @@ export function TypingIndicatorRow({
     [channel, currentPubkey, profiles, typingPubkeys],
   );
 
+  // Show max 3 names in both avatars and text
+  const maxVisible = 3;
+  const displayPubkeys = typingPubkeys.slice(0, maxVisible);
+  const displayLabels = labels.slice(0, maxVisible);
+
   return (
     <div
       aria-live="polite"
@@ -94,32 +119,17 @@ export function TypingIndicatorRow({
           )}
         >
           <div className="flex shrink-0 items-center">
-            {typingPubkeys.map((pubkey, index) => {
+            {displayPubkeys.map((pubkey, index) => {
               const profile = profiles?.[pubkey.toLowerCase()];
-              const label = labels[index] ?? truncatePubkey(pubkey);
+              const label = displayLabels[index] ?? truncatePubkey(pubkey);
               return (
-                <div
+                <TyperAvatar
                   key={pubkey}
-                  className={cn(
-                    "relative shrink-0 rounded-lg ring-1 ring-background",
-                    isActivityVariant ? "h-4 w-4" : "h-5 w-5",
-                    index > 0 && "-ml-1.5",
-                  )}
-                  data-testid="message-typing-avatar"
-                >
-                  <ProfileAvatar
-                    avatarUrl={profile?.avatarUrl ?? null}
-                    label={label}
-                    className={cn(
-                      isActivityVariant
-                        ? "h-4 w-4 text-3xs"
-                        : "h-5 w-5 text-3xs",
-                    )}
-                    iconClassName={
-                      isActivityVariant ? "h-2.5 w-2.5" : "h-4 w-4"
-                    }
-                  />
-                </div>
+                  pubkey={pubkey}
+                  profile={profile}
+                  label={label}
+                  isActivityVariant={isActivityVariant}
+                />
               );
             })}
           </div>
@@ -132,7 +142,7 @@ export function TypingIndicatorRow({
             )}
             data-testid="message-typing-indicator-label"
           >
-            <Shimmer>{formatTypingLabel(labels)}</Shimmer>
+            <Shimmer>{formatTypingLabel(displayLabels)}</Shimmer>
           </p>
         </div>
       )}
