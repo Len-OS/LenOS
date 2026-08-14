@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Sparkles } from "lucide-react";
 
 import { useKnownAgentPubkeys } from "@/features/agents/useKnownAgentPubkeys";
 import { orderMentionPubkeysByText } from "@/features/messages/lib/orderMentionPubkeys";
@@ -27,6 +27,7 @@ import { AuxiliaryPanel } from "@/shared/layout/AuxiliaryPanel";
 import { AuxiliaryPanelBody } from "@/shared/layout/AuxiliaryPanel";
 import {
   AuxiliaryPanelHeader,
+  AuxiliaryPanelHeaderActions,
   AuxiliaryPanelHeaderGroup,
   AuxiliaryPanelTitle,
 } from "@/shared/layout/AuxiliaryPanel";
@@ -38,6 +39,8 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Separator } from "@/shared/ui/separator";
 import type { VideoReviewContext } from "@/shared/ui/VideoPlayer";
+import { useThreadSummary } from "@/features/messages/useThreadSummary";
+import { SummaryCard } from "@/features/messages/ui/SummaryCard";
 import { ComposerActivityAccessory } from "./ComposerActivityAccessory";
 import { ComposerDockBackdrop } from "./ComposerDockBackdrop";
 import { MessageComposer } from "./MessageComposer";
@@ -535,6 +538,30 @@ export function MessageThreadPanel({
     );
   }, [currentPubkey, knownAgentPubkeys, profiles, threadHead]);
 
+  const allThreadMessages = [
+    ...(threadHead
+      ? [
+          {
+            pubkey: threadHead.pubkey ?? "",
+            content: threadHead.body,
+            createdAt: threadHead.createdAt,
+          },
+        ]
+      : []),
+    ...threadReplies.map((r) => ({
+      pubkey: r.message.pubkey ?? "",
+      content: r.message.body,
+      createdAt: r.message.createdAt,
+    })),
+  ];
+  const {
+    summary,
+    loading,
+    error: summaryError,
+    summarize,
+    dismiss,
+  } = useThreadSummary(allThreadMessages);
+
   if (!threadHead) {
     return null;
   }
@@ -548,6 +575,21 @@ export function MessageThreadPanel({
       tabIndex={-1}
       ref={threadBodyRef}
     >
+      {(summary || loading || summaryError) && (
+        <>
+          {loading && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              Summarizing…
+            </div>
+          )}
+          {summaryError && (
+            <div className="px-3 py-2 text-xs text-destructive">
+              {summaryError}
+            </div>
+          )}
+          {summary && <SummaryCard summary={summary} onDismiss={dismiss} />}
+        </>
+      )}
       <div
         className={cn(hasConstrainedColumn && THREAD_PANEL_COLUMN_CLASS)}
         ref={threadContentRef}
@@ -929,6 +971,18 @@ export function MessageThreadPanel({
         onBack={isSinglePanelView && !isFocusMode ? onClose : undefined}
       >
         <AuxiliaryPanelTitle>Thread</AuxiliaryPanelTitle>
+        <AuxiliaryPanelHeaderActions>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Summarize thread with AI"
+            disabled={loading}
+            onClick={() => void summarize()}
+            aria-label="Summarize thread"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+        </AuxiliaryPanelHeaderActions>
       </AuxiliaryPanelHeaderGroup>
     </>
   );
