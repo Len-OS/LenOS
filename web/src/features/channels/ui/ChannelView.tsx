@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "@tanstack/react-router";
 import { Bookmark, Settings, Users } from "lucide-react";
 import { ForumView } from "@/features/forum/ui/ForumView";
@@ -10,7 +10,7 @@ import { MessageTimeline } from "@/features/messages/ui/MessageTimeline";
 import { MessageComposer } from "@/features/messages/ui/MessageComposer";
 import { ThreadPanel } from "@/features/messages/ui/ThreadPanel";
 import { useReadState } from "@/features/channels/readState/useReadState";
-import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { getCurrentPubkey, signNostrEvent } from "@/shared/lib/nostr-signer";
 import { useTypingState } from "@/features/messages/useTypingState";
 import { TypingIndicator } from "@/features/messages/ui/TypingIndicator";
 import { ChannelFindBar } from "@/features/search/ui/ChannelFindBar";
@@ -29,6 +29,9 @@ import { useMembers } from "@/features/channels/useMembers";
 import { usePinnedMessages } from "@/features/messages/pinning/usePinnedMessages";
 import { usePinMessage } from "@/features/messages/pinning/usePinMessage";
 import { PinnedMessagesBar } from "@/features/messages/pinning/PinnedMessagesBar";
+import { useReadReceipts } from "@/features/messages/read-receipts/useReadReceipts";
+import { getRelayClient } from "@/shared/lib/relay-live-client";
+import { relayWsUrl } from "@/shared/lib/relay-url";
 
 export function ChannelView() {
   const params = useParams({ strict: false }) as { channelId?: string };
@@ -73,6 +76,9 @@ export function ChannelView() {
   const { pin, unpin } = usePinMessage(channelId, pins);
   const pinnedMessageIds = new Set(pins.map((p) => p.eventId));
 
+  const readReceipts = useReadReceipts(channelId);
+  const receiptDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleJumpTo = useCallback((eventId: string) => {
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-message-id="${eventId}"]`);
@@ -104,8 +110,29 @@ export function ChannelView() {
 
   useEffect(() => {
     const last = messages[messages.length - 1];
-    if (last) markRead(last.createdAt);
-  }, [messages, markRead]);
+    if (!last) return;
+    markRead(last.createdAt);
+    if (receiptDebounceRef.current) clearTimeout(receiptDebounceRef.current);
+    receiptDebounceRef.current = setTimeout(async () => {
+      const content = JSON.stringify({
+        last_read_event_id: last.id,
+        last_read_at: last.createdAt,
+      });
+      try {
+        const event = await signNostrEvent({
+          kind: 30078,
+          content,
+          tags: [["d", `read:${channelId}`]],
+          created_at: Math.floor(Date.now() / 1000),
+        });
+        await getRelayClient(relayWsUrl()).publishAndWait(
+          event as Record<string, unknown>,
+        );
+      } catch {
+        // ignore publish errors — signer may be unavailable
+      }
+    }, 2000);
+  }, [messages, markRead, channelId]);
 
   const channel = channels.find((c) => c.id === channelId);
   const channelName = channel?.name ?? channelId;
@@ -220,6 +247,7 @@ export function ChannelView() {
               pinnedMessageIds={pinnedMessageIds}
               onPin={(msg) => void pin(msg.id, currentPubkey ?? "", msg.content)}
               onUnpin={(id) => void unpin(id)}
+              readReceipts={readReceipts}
             />
             <TypingIndicator pubkeys={[...typingPubkeys]} />
             <MessageComposer

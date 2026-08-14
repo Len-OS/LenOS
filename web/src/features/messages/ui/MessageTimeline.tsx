@@ -8,6 +8,7 @@ import {
 import { MessageRow } from "@/features/messages/ui/MessageRow";
 import { MessageThreadSummaryRow } from "@/features/messages/ui/MessageThreadSummaryRow";
 import { HuddleAttachment } from "@/features/huddle/ui/HuddleAttachment";
+import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 
 interface Props {
   messages: Message[];
@@ -24,6 +25,7 @@ interface Props {
   pinnedMessageIds?: Set<string>;
   onPin?: (msg: Message) => void;
   onUnpin?: (eventId: string) => void;
+  readReceipts?: Map<string, ReadReceipt>;
 }
 
 const GROUP_GAP_SECONDS = 300;
@@ -43,6 +45,7 @@ export function MessageTimeline({
   pinnedMessageIds,
   onPin,
   onUnpin,
+  readReceipts,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +135,7 @@ export function MessageTimeline({
               pinnedMessageIds={pinnedMessageIds}
               onPin={onPin}
               onUnpin={onUnpin}
+              readReceipts={readReceipts}
             />
             {!isGrouped && (
               <MessageThreadSummaryRow

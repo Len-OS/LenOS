@@ -8,6 +8,8 @@ import type { Reaction } from "@/features/messages/use-reactions";
 import { MessageReactions } from "@/features/messages/ui/MessageReactions";
 import { MessageContextMenu } from "@/features/messages/ui/MessageContextMenu";
 import { useMessageActions } from "@/features/messages/useMessageActions";
+import type { ReadReceipt } from "@/features/messages/read-receipts/types";
+import { ReadAvatarStack } from "@/features/messages/read-receipts/ReadAvatarStack";
 
 function renderContent(
   content: string,
@@ -50,6 +52,7 @@ interface Props {
   pinnedMessageIds?: Set<string>;
   onPin?: (msg: Message) => void;
   onUnpin?: (eventId: string) => void;
+  readReceipts?: Map<string, ReadReceipt>;
 }
 
 export function MessageRow({
@@ -66,6 +69,7 @@ export function MessageRow({
   pinnedMessageIds,
   onPin,
   onUnpin,
+  readReceipts,
 }: Props) {
   const profile = useProfile(msg.pubkey);
   const displayName = profile?.name || truncatePubkey(msg.pubkey);
@@ -142,6 +146,12 @@ export function MessageRow({
           currentPubkey={currentPubkey}
         />
       </div>
+      {readReceipts && (() => {
+        const readers = Array.from(readReceipts.values()).filter(
+          (r) => r.last_read_event_id === msg.id || r.last_read_at >= msg.createdAt,
+        );
+        return readers.length > 0 ? <ReadAvatarStack receipts={readers} /> : null;
+      })()}
       {!editing && (
         <MessageContextMenu
           msg={msg}
