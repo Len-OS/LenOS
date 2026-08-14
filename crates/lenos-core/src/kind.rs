@@ -73,6 +73,19 @@ pub const KIND_USER_STATUS: u32 = 30315;
 /// Stored globally (channel_id = NULL); user-owned personal data, not channel-scoped.
 /// Content is NIP-44 encrypted to the user's own keypair.
 pub const KIND_READ_STATE: u32 = 30078;
+/// LenGrowth growth report (parameterized replaceable, d=report_type).
+///
+/// Agent-authored. Published by LenGrowth on weekly/monthly schedule.
+/// Keyed by `(pubkey, kind, d_tag)` where `d_tag` is `"weekly"` or `"monthly"`.
+/// Stored globally (channel_id = NULL); no `h` tag.
+pub const KIND_GROWTH_REPORT: u32 = 30079;
+
+/// LenGrowth growth suggestion (parameterized replaceable, d=signal_type).
+///
+/// Agent-authored. Published when a bottleneck score exceeds threshold.
+/// Keyed by `(pubkey, kind, d_tag)` where `d_tag` is the signal category value.
+/// Stored globally (channel_id = NULL); no `h` tag.
+pub const KIND_GROWTH_SUGGESTION: u32 = 30080;
 /// NIP-42 auth event — never stored (carries bearer tokens).
 pub const KIND_AUTH: u32 = 22242;
 /// BUD-01: Blossom upload auth (used in upload.rs, not stored).
@@ -711,6 +724,8 @@ pub const ALL_KINDS: &[u32] = &[
     KIND_MEMBER_ADDED_NOTIFICATION,
     KIND_MEMBER_REMOVED_NOTIFICATION,
     KIND_AGENT_TURN_METRIC,
+    KIND_GROWTH_REPORT,
+    KIND_GROWTH_SUGGESTION,
     KIND_WORKFLOW_DEF,
     KIND_LONG_FORM,
     KIND_USER_STATUS,
@@ -879,6 +894,8 @@ const _: () = assert!(!is_ephemeral(KIND_REPORT));
 const _: () = assert!(is_moderation_command_kind(KIND_MODERATION_BAN));
 const _: () = assert!(is_moderation_command_kind(KIND_MODERATION_RESOLVE_REPORT));
 const _: () = assert!(!is_moderation_command_kind(KIND_REPORT));
+const _: () = assert!(is_parameterized_replaceable(KIND_GROWTH_REPORT)); // 30079 ∈ 30000–39999
+const _: () = assert!(is_parameterized_replaceable(KIND_GROWTH_SUGGESTION)); // 30080 ∈ 30000–39999
 
 #[cfg(test)]
 mod tests {
