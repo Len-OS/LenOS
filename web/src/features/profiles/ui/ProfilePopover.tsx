@@ -8,7 +8,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useProfile } from "@/features/profiles/use-profile";
-import { useUserStatus } from "@/features/profile/useUserStatus";
+import { useSetUserStatus, useUserStatus } from "@/features/profile/useUserStatus";
 import { Avatar } from "@/shared/ui/Avatar";
 
 interface Props {
@@ -32,7 +32,9 @@ export function ProfilePopover({
 }: Props) {
   const profile = useProfile(pubkey);
   const status = useUserStatus(pubkey);
+  const setUserStatus = useSetUserStatus();
   const [copied, setCopied] = useState(false);
+  const [customText, setCustomText] = useState("");
 
   if (!open) return null;
 
@@ -125,6 +127,40 @@ export function ProfilePopover({
           </button>
         )}
       </div>
+
+      {onOpenSettings && (
+        <div className="mt-2 space-y-2 border-t border-black/10 pt-2 dark:border-white/10">
+          <p className="text-xs font-medium text-black/50 dark:text-white/50">
+            Status
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                { status: "online", emoji: "🟢", label: "Online" },
+                { status: "away", emoji: "🌙", label: "Away" },
+                { status: "dnd", emoji: "⛔", label: "DND" },
+                { status: "offline", emoji: "⭕", label: "Offline" },
+              ] as const
+            ).map(({ status: s, emoji, label }) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => void setUserStatus(s, customText || undefined)}
+                className="flex items-center gap-1 rounded-full border border-black/10 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+              >
+                <span>{emoji}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+          <input
+            className="w-full rounded border border-black/10 bg-transparent px-2 py-1 text-xs placeholder:text-black/40 dark:border-white/10 dark:placeholder:text-white/40"
+            placeholder="Add a status message…"
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+          />
+        </div>
+      )}
     </div>
   );
 }

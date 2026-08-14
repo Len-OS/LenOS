@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 import { KIND_USER_STATUS } from "@/shared/constants/kinds";
@@ -55,4 +56,32 @@ export function useUserStatus(pubkey: string): UserStatus | null {
   const now = Math.floor(Date.now() / 1000);
   if (status?.expiresAt !== undefined && status.expiresAt < now) return null;
   return status;
+}
+
+const emojiMap: Record<string, string> = {
+  online: "🟢",
+  away: "🌙",
+  dnd: "⛔",
+  offline: "⭕",
+};
+
+export function useSetUserStatus() {
+  return useCallback(
+    async (
+      status: "online" | "away" | "dnd" | "offline",
+      statusText?: string,
+    ) => {
+      const content = statusText
+        ? `${emojiMap[status]} ${statusText}`
+        : emojiMap[status];
+      const event = await signNostrEvent({
+        kind: KIND_USER_STATUS,
+        content,
+        tags: [["d", "general"]],
+        created_at: Math.floor(Date.now() / 1000),
+      });
+      await getRelayClient(relayWsUrl()).publishAndWait(event);
+    },
+    [],
+  );
 }
