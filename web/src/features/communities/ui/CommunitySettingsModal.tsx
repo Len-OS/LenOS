@@ -8,6 +8,7 @@ import { useMembers } from "@/features/channels/useMembers";
 import { useInvites } from "../useInvites";
 import { useCreateInvite } from "../useCreateInvite";
 import { uploadEmojiFile, validateEmojiFile } from "@/features/emoji/uploadEmoji";
+import { useUpdateSubdomain } from "../hooks/useUpdateSubdomain";
 
 type Tab = "overview" | "members" | "invites" | "danger";
 
@@ -15,6 +16,7 @@ interface Props {
   isOpen: boolean;
   communityId: string;
   isAdmin: boolean;
+  isOwner: boolean;
   onClose: () => void;
 }
 
@@ -27,6 +29,7 @@ export function CommunitySettingsModal({
   isOpen,
   communityId,
   isAdmin,
+  isOwner,
   onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -39,6 +42,9 @@ export function CommunitySettingsModal({
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [accentColor, setAccentColor] = useState("#5b4fcf");
+  const [subdomainSlug, setSubdomainSlug] = useState("");
+  const { updateSubdomain, isUpdating: subdomainUpdating, error: subdomainError } =
+    useUpdateSubdomain();
 
   const members = useMembers(communityId);
   const invites = useInvites(communityId);
@@ -252,6 +258,42 @@ export function CommunitySettingsModal({
                       maxLength={7}
                       className="w-24 rounded-lg border border-black/10 bg-transparent px-3 py-1 font-mono text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
                     />
+                  </div>
+                </div>
+              )}
+              {isOwner && (
+                <div>
+                  <label
+                    htmlFor="ws-subdomain"
+                    className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
+                  >
+                    Subdomain
+                  </label>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <input
+                        id="ws-subdomain"
+                        type="text"
+                        value={subdomainSlug}
+                        onChange={(e) => setSubdomainSlug(e.target.value.toLowerCase())}
+                        placeholder="your-workspace"
+                        className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
+                      />
+                      <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                        Changing your subdomain will break existing links for all members.
+                      </p>
+                      {subdomainError && (
+                        <p className="mt-1 text-xs text-red-500">{subdomainError}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={subdomainUpdating || !subdomainSlug.trim()}
+                      onClick={() => void updateSubdomain(subdomainSlug.trim())}
+                      className="rounded-lg border border-black/10 px-3 py-2 text-sm text-black/70 hover:bg-black/5 disabled:opacity-40 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/5"
+                    >
+                      {subdomainUpdating ? "Changing…" : "Change"}
+                    </button>
                   </div>
                 </div>
               )}
