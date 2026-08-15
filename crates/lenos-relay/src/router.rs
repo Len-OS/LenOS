@@ -9,7 +9,7 @@ use axum::{
     http::{HeaderMap, Request, StatusCode},
     middleware,
     response::{IntoResponse, Json},
-    routing::{get, post, put},
+    routing::{get, patch, post, put},
     Router,
 };
 use serde_json::json;
@@ -125,6 +125,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(api::invites::accept_policy),
         )
         .route("/api/invites/claim", post(api::invites::claim_invite))
+        .route(
+            "/api/admin/v1/workspace/subdomain",
+            patch(api::workspace::patch_subdomain),
+        )
         // Moderation queue reads (NIP-98 auth + mod-authz gate, L6)
         .route("/moderation/reports", get(api::bridge::moderation_reports))
         .route("/moderation/audit", get(api::bridge::moderation_audit))
