@@ -4,10 +4,14 @@ import type { Reaction } from "@/features/messages/use-reactions";
 import {
   KIND_SYSTEM_MESSAGE,
   KIND_HUDDLE_STARTED,
+  KIND_GROWTH_REPORT,
+  KIND_GROWTH_SUGGESTION,
 } from "@/shared/constants/kinds";
 import { MessageRow } from "@/features/messages/ui/MessageRow";
 import { MessageThreadSummaryRow } from "@/features/messages/ui/MessageThreadSummaryRow";
 import { HuddleAttachment } from "@/features/huddle/ui/HuddleAttachment";
+import { GrowthReportMessage } from "@/features/messages/ui/GrowthReportMessage";
+import { GrowthSuggestionCard } from "@/features/messages/ui/GrowthSuggestionCard";
 import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 
 interface Props {
@@ -124,6 +128,21 @@ export function MessageTimeline({
               startedAt={msg.createdAt}
               startedEventId={msg.id}
               startedEventPubkey={msg.pubkey}
+            />
+          );
+        }
+
+        if (msg.kind === KIND_GROWTH_REPORT) {
+          return <GrowthReportMessage key={msg.id} msg={msg} />;
+        }
+
+        if (msg.kind === KIND_GROWTH_SUGGESTION) {
+          return (
+            <GrowthSuggestionCard
+              key={msg.id}
+              msg={msg}
+              channelId={channelId}
+              currentPubkey={currentPubkey}
             />
           );
         }

@@ -8,6 +8,8 @@ import {
   KIND_SYSTEM_MESSAGE,
   KIND_DELETION,
   KIND_HUDDLE_STARTED,
+  KIND_GROWTH_REPORT,
+  KIND_GROWTH_SUGGESTION,
 } from "@/shared/constants/kinds";
 
 export interface Message {
@@ -26,6 +28,8 @@ const HISTORY_KINDS = [
   KIND_HUDDLE_STARTED,
 ];
 const LIVE_KINDS = [...HISTORY_KINDS, KIND_DELETION];
+// Global-only kinds (no h-tag): fetched without channel filter
+const GLOBAL_KINDS = [KIND_GROWTH_REPORT, KIND_GROWTH_SUGGESTION];
 const HISTORY_LIMIT = 50;
 
 export function useMessages(channelId: string | null): {
@@ -97,6 +101,38 @@ export function useMessages(channelId: string | null): {
       filter: {
         kinds: LIVE_KINDS,
         "#h": [channelId],
+        since,
+      },
+      onEvent: addEvent,
+    });
+
+    return unsub;
+  }, [channelId, addEvent]);
+
+  // History fetch for global-only growth events (no h-tag)
+  useEffect(() => {
+    if (!channelId) return;
+    queryEvents(relayWsUrl(), {
+      kinds: GLOBAL_KINDS,
+      limit: HISTORY_LIMIT,
+    })
+      .then((events) => {
+        for (const e of events) addEvent(e as Record<string, unknown>);
+      })
+      .catch(() => {});
+  }, [channelId, addEvent]);
+
+  // Live subscription for global-only growth events (no h-tag)
+  useEffect(() => {
+    if (!channelId) return;
+    const since = Math.floor(Date.now() / 1000) - 10;
+    const subId = `growth-${channelId}`;
+    const client = getRelayClient(relayWsUrl());
+
+    const unsub = client.subscribe({
+      id: subId,
+      filter: {
+        kinds: GLOBAL_KINDS,
         since,
       },
       onEvent: addEvent,
