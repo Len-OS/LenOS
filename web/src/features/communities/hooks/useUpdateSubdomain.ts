@@ -13,8 +13,8 @@ export function useUpdateSubdomain() {
     setIsUpdating(true);
     try {
       const url = `${relayHttpBaseUrl()}/api/admin/v1/workspace/subdomain`;
-      const authHeader = await makeNip98AuthHeader(url, "PATCH");
       const body = JSON.stringify({ slug });
+      const authHeader = await makeNip98AuthHeader(url, "PATCH", { body });
       const res = await fetch(url, {
         method: "PATCH",
         headers: {

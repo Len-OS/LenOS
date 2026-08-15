@@ -50,7 +50,11 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
   const members = useMembers(communityId);
   const isAdmin =
     currentPubkey != null &&
-    members.some((m) => m.pubkey === currentPubkey && m.role === "admin");
+    members.some(
+      (m) =>
+        m.pubkey === currentPubkey &&
+        (m.role === "admin" || m.role === "owner"),
+    );
   const isOwner =
     currentPubkey != null &&
     members.some((m) => m.pubkey === currentPubkey && m.role === "owner");
