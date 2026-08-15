@@ -146,15 +146,22 @@ Needed for B2B/enterprise customers:
 4. **Audit trail UI** — admin view over `lenos-audit` crate data; filter by user/channel/event type; export
 5. **Channel analytics** — messages/day, active members, top contributors per channel; workspace-level rollup
 
-### Phase 4 — LenGrowth Intelligence Loop (Sprint 8-12, ~6 weeks)
+### Phase 4 — LenGrowth Intelligence Loop (Sprint 8-10, ~4 weeks)
 
-Upgrade from telemetry → learning:
+Make LenGrowth proactive — the system acts on signals without the user asking.
 
-1. **Signal-to-recommendation pipeline** — connect GA/GSC/paid media signal drops to automatic task creation (already partially wired via `bottleneck_scorer.py`; needs threshold triggers)
-2. **Recommendation feedback loop** — `RecommendationFeedbackType` already stored; build dashboard showing accept/reject rates per agent/recommendation type; use to tune agent prompt defaults
-3. **Proactive growth reports** — weekly/monthly auto-report via scheduled agent; uses `reporting_service.py` + relay broadcast to workspace; no user action required
-4. **Agent performance scoring** — track task completion quality (user rating or outcome signal); surface per-agent score in workspace; auto-route tasks to best-performing agent type
-5. **Cross-company pattern library** — anonymized signal-to-action patterns across companies; seed future recommendations for new users (privacy-preserving; opt-in)
+**Dropped / deferred from original plan:**
+- ~~Dashboard in LenOS~~ — feedback analytics belong in the LenGrowth frontend, not the chat platform
+- ~~Agent performance scoring UI~~ — deferred to Phase 5; backend tracking still collected
+- ~~Cross-company pattern library~~ — deferred to Phase 5; premature and privacy complexity not worth it yet
+
+**3 deliverables:**
+
+1. **Proactive growth reports** _(centerpiece)_ — scheduled pipeline runs `reporting_service.py` weekly/monthly; broadcasts report as a Nostr event to the workspace channel via relay; no user action required. Infrastructure is nearly complete (`reporting_service.py` 1625 lines mature, `lengrowth_create_cron` MCP tool exists, relay broadcast plumbing exists). Work: add scheduler entry-point in LenGrowth, emit relay event with report payload, LenOS renders it as a structured message in the agent channel.
+
+2. **Signal threshold → suggest mode** — `bottleneck_scorer.py` emits a suggestion event when a bottleneck severity score crosses a configurable threshold; agent posts the suggestion in workspace for user approval before any task is created. Auto-create only enabled after N accepted suggestions (confidence gate). Prevents wrong-data-at-start problem while building toward full autonomy. Work: add threshold config table + monitor loop in LenGrowth; new MCP tool `lengrowth_set_signal_threshold`; LenOS renders suggestion cards with approve/dismiss actions.
+
+3. **Feedback wire-up** _(backend only, no new LenOS UI)_ — `RecommendationFeedbackType` already defined (accepted/dismissed/snoozed/not_meaningful_now/prefer_different_mode); outcomes already tracked in `telemetry_service.py`. Work: pipe accepted/dismissed outcomes back into `bottleneck_scorer.py` category weights so high-dismissal signal types get lower severity scores over time. Pure LenGrowth backend change.
 
 ### Phase 5 — Platform Expansion (Backlog)
 
@@ -181,9 +188,10 @@ Nice-to-have after core is solid:
 | 24 MCP tools accessible from browser agent | ✅ | LENGROWTH_MCP_URL must be set in prod env |
 | GA / GSC / paid media data in agent context | ✅ | Integrations must be connected per company |
 | Recurring cron tasks via `lengrowth_create_cron` | ✅ | — |
-| Proactive daily/weekly growth reports | ❌ | Phase 4 — not yet triggered automatically |
-| Recommendation feedback → improved suggestions | ❌ | Phase 4 — telemetry collected, not yet closed loop |
-| Cross-company learning | ❌ | Phase 5 — not started |
+| Proactive daily/weekly growth reports | ❌ | Phase 4 — scheduler + relay broadcast not wired |
+| Signal threshold → workspace suggestion | ❌ | Phase 4 — bottleneck_scorer exists, threshold monitor + suggest mode missing |
+| Recommendation feedback → improved suggestions | ❌ | Phase 4 — telemetry collected, weight feedback loop not wired |
+| Cross-company learning | ❌ | Phase 5 — deferred |
 
 ---
 
@@ -194,6 +202,6 @@ NOW:   agent callbacks prod  |  relay health  |  E2E smoke test  |  desktop pari
 P1:    DnD  |  saved msgs  |  bookmarks  |  keyword rules  |  user directory
 P2:    scheduled msgs  |  custom emoji  |  webhooks  |  GDPR export  |  huddle quality
 P3:    SSO/SAML  |  2FA  |  bulk invite  |  audit UI  |  channel analytics
-P4:    growth signal triggers  |  feedback loop  |  auto-reports  |  agent scoring
+P4:    proactive reports  |  signal suggest-mode  |  feedback weight tuning
 P5:    huddle recording  |  mobile parity  |  relay federation  |  app directory
 ```
