@@ -4,10 +4,12 @@ import type { Reaction } from "@/features/messages/use-reactions";
 import {
   KIND_SYSTEM_MESSAGE,
   KIND_HUDDLE_STARTED,
+  KIND_GROWTH_REPORT,
 } from "@/shared/constants/kinds";
 import { MessageRow } from "@/features/messages/ui/MessageRow";
 import { MessageThreadSummaryRow } from "@/features/messages/ui/MessageThreadSummaryRow";
 import { HuddleAttachment } from "@/features/huddle/ui/HuddleAttachment";
+import { GrowthReportMessage } from "@/features/messages/ui/GrowthReportMessage";
 import type { ReadReceipt } from "@/features/messages/read-receipts/types";
 
 interface Props {
@@ -126,6 +128,10 @@ export function MessageTimeline({
               startedEventPubkey={msg.pubkey}
             />
           );
+        }
+
+        if (msg.kind === KIND_GROWTH_REPORT) {
+          return <GrowthReportMessage key={msg.id} msg={msg} />;
         }
 
         const prev = messages[i - 1];
