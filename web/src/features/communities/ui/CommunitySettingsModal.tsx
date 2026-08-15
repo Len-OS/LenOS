@@ -7,6 +7,7 @@ import { truncatePubkey } from "@/shared/lib/pubkey";
 import { useMembers } from "@/features/channels/useMembers";
 import { useInvites } from "../useInvites";
 import { useCreateInvite } from "../useCreateInvite";
+import { uploadEmojiFile, validateEmojiFile } from "@/features/emoji/uploadEmoji";
 
 type Tab = "overview" | "members" | "invites" | "danger";
 
@@ -34,12 +35,38 @@ export function CommunitySettingsModal({
   const [saving, setSaving] = useState(false);
   const [newInviteUrl, setNewInviteUrl] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [accentColor, setAccentColor] = useState("#5b4fcf");
 
   const members = useMembers(communityId);
   const invites = useInvites(communityId);
   const { createInvite, isCreating } = useCreateInvite(communityId);
 
   if (!isOpen) return null;
+
+  async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validationError = validateEmojiFile(file);
+    if (validationError) {
+      setAvatarError(validationError);
+      return;
+    }
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      const url = await uploadEmojiFile(file);
+      setAvatarUrl(url);
+    } catch (err) {
+      setAvatarError(
+        err instanceof Error ? err.message : "Upload failed.",
+      );
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
 
   async function saveOverview() {
     setSaving(true);
@@ -52,6 +79,8 @@ export function CommunitySettingsModal({
             ["h", communityId],
             ["name", name],
             ["about", about],
+            ...(avatarUrl ? [["picture", avatarUrl]] : []),
+            ["color", accentColor],
           ],
         },
         { requireNip07: true },
@@ -168,6 +197,64 @@ export function CommunitySettingsModal({
                   className="w-full resize-none rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
                 />
               </div>
+              {isAdmin && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60">
+                    Workspace Avatar
+                  </label>
+                  {avatarUrl && (
+                    <img
+                      src={avatarUrl}
+                      alt="Workspace avatar preview"
+                      className="mb-2 h-16 w-16 rounded-lg object-cover"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => void handleAvatarFile(e)}
+                    disabled={avatarUploading}
+                    className="block text-sm text-black/60 dark:text-white/60"
+                  />
+                  {avatarUploading && (
+                    <p className="mt-1 text-xs text-black/40 dark:text-white/40">
+                      Uploading…
+                    </p>
+                  )}
+                  {avatarError && (
+                    <p className="mt-1 text-xs text-red-500">{avatarError}</p>
+                  )}
+                </div>
+              )}
+              {isAdmin && (
+                <div>
+                  <label
+                    htmlFor="ws-accent-color"
+                    className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
+                  >
+                    Accent Color
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="ws-accent-color"
+                      type="color"
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className="h-8 w-8 cursor-pointer rounded border border-black/10 p-0.5 dark:border-white/10"
+                    />
+                    <input
+                      type="text"
+                      value={accentColor}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setAccentColor(v);
+                      }}
+                      maxLength={7}
+                      className="w-24 rounded-lg border border-black/10 bg-transparent px-3 py-1 font-mono text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
+                    />
+                  </div>
+                </div>
+              )}
               {isAdmin && (
                 <button
                   type="button"
