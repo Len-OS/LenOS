@@ -22,8 +22,7 @@ function parsePayload(content: string): SuggestionPayload | null {
 }
 
 function severityBadgeClass(severity: number): string {
-  if (severity >= 0.9)
-    return "bg-red-500/15 text-red-600 dark:text-red-400";
+  if (severity >= 0.9) return "bg-red-500/15 text-red-600 dark:text-red-400";
   if (severity >= 0.75)
     return "bg-orange-500/15 text-orange-600 dark:text-orange-400";
   return "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400";
@@ -35,7 +34,11 @@ interface Props {
   currentPubkey: string | null;
 }
 
-export function GrowthSuggestionCard({ msg, channelId, currentPubkey: _currentPubkey }: Props) {
+export function GrowthSuggestionCard({
+  msg,
+  channelId,
+  currentPubkey: _currentPubkey,
+}: Props) {
   const [dismissed, setDismissed] = useState(false);
   const [creating, setCreating] = useState(false);
   const payload = parsePayload(msg.content);
@@ -70,7 +73,9 @@ export function GrowthSuggestionCard({ msg, channelId, currentPubkey: _currentPu
         },
         { requireNip07: true },
       );
-      await getRelayClient(relayWsUrl()).publishAndWait(signed as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        signed as Record<string, unknown>,
+      );
     } catch (err) {
       console.error("create task from suggestion failed", err);
     } finally {
@@ -89,7 +94,9 @@ export function GrowthSuggestionCard({ msg, channelId, currentPubkey: _currentPu
         },
         { requireNip07: true },
       );
-      await getRelayClient(relayWsUrl()).publishAndWait(deletion as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        deletion as Record<string, unknown>,
+      );
 
       const feedback = await signNostrEvent(
         {
@@ -109,7 +116,9 @@ export function GrowthSuggestionCard({ msg, channelId, currentPubkey: _currentPu
         },
         { requireNip07: true },
       );
-      await getRelayClient(relayWsUrl()).publishAndWait(feedback as Record<string, unknown>);
+      await getRelayClient(relayWsUrl()).publishAndWait(
+        feedback as Record<string, unknown>,
+      );
     } catch (err) {
       console.error("dismiss suggestion failed", err);
     }
@@ -119,14 +128,18 @@ export function GrowthSuggestionCard({ msg, channelId, currentPubkey: _currentPu
     <div className="my-2 rounded-lg border border-orange-200 bg-orange-50/50 px-4 py-3 dark:border-orange-900/40 dark:bg-orange-950/20">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded px-2 py-0.5 text-xs font-semibold ${severityBadgeClass(payload.severity)}`}>
+          <span
+            className={`rounded px-2 py-0.5 text-xs font-semibold ${severityBadgeClass(payload.severity)}`}
+          >
             {Math.round(payload.severity * 100)}% severity
           </span>
           <span className="text-xs capitalize text-black/40 dark:text-white/30">
             {payload.signal_type.replace(/_/g, " ")}
           </span>
         </div>
-        <p className="text-sm font-medium text-black/90 dark:text-white/80">{payload.title}</p>
+        <p className="text-sm font-medium text-black/90 dark:text-white/80">
+          {payload.title}
+        </p>
         <p className="text-xs leading-relaxed text-black/60 line-clamp-2 dark:text-white/50">
           {payload.description}
         </p>

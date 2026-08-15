@@ -6,6 +6,8 @@ export const KIND_STREAM_MESSAGE = 9;
 // LenOS-native deletion. The relay soft-deletes the target and emits a
 // kind:40099 system message. Treated as a deletion marker alongside kind:5.
 export const KIND_NIP29_DELETE_EVENT = 9005;
+// NIP-29 group metadata — carries name, about, picture, color tags.
+export const KIND_COMMUNITY_DEFINITION = 9002;
 // NIP-56 report + community-moderation command kinds. Reports (1984) persist to
 // the mod queue only; commands (9040–9044) are relay-validated and never stored.
 // Tag shapes are pinned by lenos-sdk builders + relay moderation_commands.rs.

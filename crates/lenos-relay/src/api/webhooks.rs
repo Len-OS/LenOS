@@ -17,7 +17,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::Json,
 };
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 
 use lenos_core::TenantContext;

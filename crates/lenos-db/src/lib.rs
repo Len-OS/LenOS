@@ -640,6 +640,17 @@ pub struct TokenSummary {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
+/// Outcome of a subdomain slug update.
+#[derive(Debug)]
+pub enum UpdateSlugOutcome {
+    /// Successfully updated — contains the new full host.
+    Updated { new_host: String },
+    /// Another community already holds the target host.
+    Conflict,
+    /// The community was not found or not active.
+    NotFound,
+}
+
 impl Db {
     /// Creates a new `Db` by connecting a Postgres pool with the given config.
     ///
@@ -1522,6 +1533,50 @@ impl Db {
             })
         })
         .transpose()
+    }
+
+    /// Update a community's subdomain slug. `current_host` is the full existing
+    /// hostname (e.g. `"acme.lengrowth.com"`); `new_slug` is the bare slug
+    /// (e.g. `"newname"`). The new host is constructed by replacing the first
+    /// segment of `current_host`.
+    ///
+    /// Returns [`UpdateSlugOutcome::Conflict`] if the new host is already taken
+    /// (unique constraint violation), [`UpdateSlugOutcome::NotFound`] if the
+    /// community is not active, and [`UpdateSlugOutcome::Updated`] on success.
+    pub async fn update_community_slug(
+        &self,
+        community_id: CommunityId,
+        current_host: &str,
+        new_slug: &str,
+    ) -> Result<UpdateSlugOutcome> {
+        let domain = current_host
+            .find('.')
+            .map(|i| &current_host[i + 1..])
+            .unwrap_or(current_host);
+        let new_host = format!("{new_slug}.{domain}");
+
+        let result = sqlx::query(
+            r#"UPDATE communities
+               SET host = $3
+               WHERE id = $1
+                 AND lower(host) = lower($2)
+                 AND archived_at IS NULL
+               RETURNING host"#,
+        )
+        .bind(community_id.as_uuid())
+        .bind(current_host)
+        .bind(&new_host)
+        .fetch_optional(&self.pool)
+        .await;
+
+        match result {
+            Ok(Some(_)) => Ok(UpdateSlugOutcome::Updated { new_host }),
+            Ok(None) => Ok(UpdateSlugOutcome::NotFound),
+            Err(sqlx::Error::Database(e)) if e.code().as_deref() == Some("23505") => {
+                Ok(UpdateSlugOutcome::Conflict)
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     /// Idempotently archives a community when the asserted pubkey is its current owner.
@@ -8686,5 +8741,17 @@ mod tests {
         );
 
         drop_scratch_db(&admin, pool, &name).await;
+    }
+}
+
+#[cfg(test)]
+mod slug_tests {
+    use super::*;
+
+    #[test]
+    fn update_slug_outcome_variants_exist() {
+        let _: UpdateSlugOutcome = UpdateSlugOutcome::Updated { new_host: "test.example.com".to_string() };
+        let _: UpdateSlugOutcome = UpdateSlugOutcome::Conflict;
+        let _: UpdateSlugOutcome = UpdateSlugOutcome::NotFound;
     }
 }

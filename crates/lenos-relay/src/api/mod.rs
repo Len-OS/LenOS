@@ -14,6 +14,7 @@ pub mod nip05;
 pub mod operator;
 pub(crate) mod thread_summary;
 pub mod webhooks;
+pub mod workspace;
 
 // Re-export imeta helpers used by ingest pipeline.
 pub use crate::handlers::imeta::{validate_imeta_tags, verify_imeta_blobs};

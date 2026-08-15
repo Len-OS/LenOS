@@ -6,6 +6,10 @@ import {
   WorkspaceNotFoundError,
   type WorkspaceInfo,
 } from "./workspace";
+import {
+  useWorkspaceBranding,
+  type WorkspaceBranding,
+} from "@/features/communities/hooks/useWorkspaceBranding";
 
 type WorkspaceState =
   | { status: "loading" }
@@ -15,6 +19,10 @@ type WorkspaceState =
   | { status: "no_subdomain" };
 
 const WorkspaceContext = createContext<WorkspaceState | undefined>(undefined);
+const BrandingContext = createContext<WorkspaceBranding>({
+  avatar: null,
+  accentColor: null,
+});
 
 // Stable for the page lifetime — hostname never changes.
 const slug = extractSlug();
@@ -47,9 +55,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     state = { status: "loading" };
   }
 
+  const communityId =
+    state.status === "found" ? state.workspace.communityId : null;
+  const branding = useWorkspaceBranding(communityId);
+
   return (
     <WorkspaceContext.Provider value={state}>
-      {children}
+      <BrandingContext.Provider value={branding}>
+        {children}
+      </BrandingContext.Provider>
     </WorkspaceContext.Provider>
   );
 }
@@ -65,4 +79,8 @@ export function useWorkspace(): WorkspaceState {
 export function useCommunityId(): string | null {
   const state = useWorkspace();
   return state.status === "found" ? state.workspace.communityId : null;
+}
+
+export function useWorkspaceBrandingContext(): WorkspaceBranding {
+  return useContext(BrandingContext);
 }

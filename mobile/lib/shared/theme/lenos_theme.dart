@@ -47,3 +47,21 @@ LinearGradient? lenosTopSectionGradient(
     ],
   );
 }
+
+/// Build a [ThemeData] seeded from [accent], replacing the branded LenOS
+/// gradient palette with the workspace's own accent color.
+///
+/// Pass [dark] = true to get the dark variant. Falls back to the default
+/// [ColorScheme.fromSeed] system tone map; does not apply the LenOS gradient.
+ThemeData lenosAccentTheme(Color accent, {bool dark = false}) {
+  final brightness = dark ? Brightness.dark : Brightness.light;
+  final scheme = ColorScheme.fromSeed(
+    seedColor: accent,
+    brightness: brightness,
+  );
+  return ThemeData(
+    colorScheme: scheme,
+    brightness: brightness,
+    useMaterial3: true,
+  );
+}

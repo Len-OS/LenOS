@@ -8,6 +8,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../shared/theme/theme.dart';
+import '../../shared/theme/workspace_branding_service.dart';
 import '../../shared/widgets/mobile_tab_footer_backdrop.dart';
 import '../activity/activity_page.dart';
 import '../channels/channels_page.dart';
@@ -65,6 +66,13 @@ class HomePage extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: _WorkspaceAvatar(),
+        ),
+        leadingWidth: 52,
+      ),
       // Keep the floating navigation and Home quick actions anchored while the
       // keyboard is visible on any tab.
       resizeToAvoidBottomInset: false,
@@ -149,6 +157,35 @@ MediaQueryData _mediaQueryWithFloatingTabBarClearance(
       bottom: mediaQuery.viewPadding.bottom + clearance,
     ),
   );
+}
+
+class _WorkspaceAvatar extends ConsumerWidget {
+  const _WorkspaceAvatar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final branding = ref.watch(workspaceBrandingProvider);
+    final avatarUrl = branding.avatar;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 16,
+        backgroundImage: NetworkImage(avatarUrl),
+      );
+    }
+    // Initials fallback — single letter "W"
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      child: Text(
+        'W',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
+      ),
+    );
+  }
 }
 
 class _HomeDestination {
