@@ -288,3 +288,17 @@ export function createThemeVars(
     },
   };
 }
+
+/**
+ * Given a workspace accent hex (#rrggbb), return CSS custom property overrides
+ * for sidebar primary tokens so the active nav pill reflects the brand color.
+ * Returns an empty object if accentColor is null or not a valid 6-digit hex.
+ */
+export function deriveWorkspaceAccentOverrides(
+  accentColor: string | null,
+): Record<string, string> {
+  if (!accentColor || !/^#[0-9a-fA-F]{6}$/.test(accentColor)) return {};
+  return {
+    "--workspace-accent": accentColor,
+  };
+}
