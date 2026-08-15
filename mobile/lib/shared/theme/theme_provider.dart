@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'accent_colors.dart';
 import 'adaptive_theme.dart';
 import 'lenos_theme.dart';
+import 'workspace_branding_service.dart';
 import 'color_scheme.dart';
 import 'theme_catalog.dart';
 import 'theme_pairs.dart';
@@ -267,3 +268,8 @@ ThemeColors _themeForBrightness(
   final fallback = wantDark ? groups.dark : groups.light;
   return fallback.isEmpty ? selected : fallback.first;
 }
+
+/// Exposes the workspace accent color (or null if not set).
+final workspaceAccentProvider = Provider<Color?>((ref) {
+  return ref.watch(workspaceBrandingProvider).accentColor;
+});
