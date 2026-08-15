@@ -79,6 +79,10 @@ export const KIND_DM_VISIBILITY = 30622;
 // NIP-78 pinned messages. d-tag: "pins:{channelId}"; content: { pins: PinnedMessage[] }.
 export const KIND_PINNED_MESSAGES = 30078;
 
+// LenGrowth intelligence events (parameterized replaceable).
+export const KIND_GROWTH_REPORT = 30079;
+export const KIND_GROWTH_SUGGESTION = 30080;
+
 // Human-visible "new content" message kinds. Used as the unread trigger set
 // (sidebar badges, catch-up queries) and as the Home-feed mention query.
 // Reactions, edits, diffs, deletions, and system messages are deliberately
@@ -143,6 +147,8 @@ export const CHANNEL_TIMELINE_CONTENT_KINDS = [
   KIND_JOB_CANCEL, // 43005
   KIND_JOB_ERROR, // 43006
   KIND_HUDDLE_STARTED, // 48100 — huddle session card
+  KIND_GROWTH_REPORT, // 30079 — weekly/monthly growth report card
+  KIND_GROWTH_SUGGESTION, // 30080 — signal suggestion card
 ] as const;
 
 // Timeline kinds that are NOT conversational: relay-signed system rows
@@ -162,6 +168,8 @@ const NON_CONVERSATIONAL_UNREAD_KINDS: ReadonlySet<number> = new Set([
   KIND_HUDDLE_PARTICIPANT_JOINED, // 48101
   KIND_HUDDLE_PARTICIPANT_LEFT, // 48102
   KIND_HUDDLE_ENDED, // 48103
+  KIND_GROWTH_REPORT, // 30079 — not conversational, no unread badge
+  KIND_GROWTH_SUGGESTION, // 30080 — not conversational, no unread badge
 ]);
 
 // Whether a timeline message kind should count toward unread tallies. An
