@@ -6,7 +6,10 @@ import {
   WorkspaceNotFoundError,
   type WorkspaceInfo,
 } from "./workspace";
-import { useWorkspaceBranding, type WorkspaceBranding } from "@/features/communities/hooks/useWorkspaceBranding";
+import {
+  useWorkspaceBranding,
+  type WorkspaceBranding,
+} from "@/features/communities/hooks/useWorkspaceBranding";
 
 type WorkspaceState =
   | { status: "loading" }

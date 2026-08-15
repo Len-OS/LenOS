@@ -15,7 +15,9 @@ export function WorkspaceShell({ sidebar, children, rightPanel }: Props) {
     <div
       className="flex h-screen w-screen overflow-hidden bg-white dark:bg-[#1a1a1a]"
       style={
-        accentColor ? { "--workspace-accent": accentColor } as React.CSSProperties : undefined
+        accentColor
+          ? ({ "--workspace-accent": accentColor } as React.CSSProperties)
+          : undefined
       }
     >
       <CommunityRail />

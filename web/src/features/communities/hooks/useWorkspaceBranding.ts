@@ -39,8 +39,7 @@ export function useWorkspaceBranding(
 
         setBranding({
           avatar: picture ?? null,
-          accentColor:
-            color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : null,
+          accentColor: color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : null,
         });
       },
     });

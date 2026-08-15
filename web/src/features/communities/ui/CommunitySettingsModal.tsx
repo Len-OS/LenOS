@@ -7,7 +7,10 @@ import { truncatePubkey } from "@/shared/lib/pubkey";
 import { useMembers } from "@/features/channels/useMembers";
 import { useInvites } from "../useInvites";
 import { useCreateInvite } from "../useCreateInvite";
-import { uploadEmojiFile, validateEmojiFile } from "@/features/emoji/uploadEmoji";
+import {
+  uploadEmojiFile,
+  validateEmojiFile,
+} from "@/features/emoji/uploadEmoji";
 import { useUpdateSubdomain } from "../hooks/useUpdateSubdomain";
 
 type Tab = "overview" | "members" | "invites" | "danger";
@@ -43,8 +46,11 @@ export function CommunitySettingsModal({
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [accentColor, setAccentColor] = useState("#5b4fcf");
   const [subdomainSlug, setSubdomainSlug] = useState("");
-  const { updateSubdomain, isUpdating: subdomainUpdating, error: subdomainError } =
-    useUpdateSubdomain();
+  const {
+    updateSubdomain,
+    isUpdating: subdomainUpdating,
+    error: subdomainError,
+  } = useUpdateSubdomain();
 
   const members = useMembers(communityId);
   const invites = useInvites(communityId);
@@ -66,9 +72,7 @@ export function CommunitySettingsModal({
       const url = await uploadEmojiFile(file);
       setAvatarUrl(url);
     } catch (err) {
-      setAvatarError(
-        err instanceof Error ? err.message : "Upload failed.",
-      );
+      setAvatarError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setAvatarUploading(false);
     }
@@ -275,15 +279,20 @@ export function CommunitySettingsModal({
                         id="ws-subdomain"
                         type="text"
                         value={subdomainSlug}
-                        onChange={(e) => setSubdomainSlug(e.target.value.toLowerCase())}
+                        onChange={(e) =>
+                          setSubdomainSlug(e.target.value.toLowerCase())
+                        }
                         placeholder="your-workspace"
                         className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-white dark:focus:border-white/30"
                       />
                       <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                        Changing your subdomain will break existing links for all members.
+                        Changing your subdomain will break existing links for
+                        all members.
                       </p>
                       {subdomainError && (
-                        <p className="mt-1 text-xs text-red-500">{subdomainError}</p>
+                        <p className="mt-1 text-xs text-red-500">
+                          {subdomainError}
+                        </p>
                       )}
                     </div>
                     <button

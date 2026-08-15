@@ -41,7 +41,8 @@ export function GrowthReportMessage({ msg }: Props) {
     );
   }
 
-  const label = payload.report_type === "weekly" ? "Weekly Report" : "Monthly Report";
+  const label =
+    payload.report_type === "weekly" ? "Weekly Report" : "Monthly Report";
   const top3 = payload.opportunities.slice(0, 3);
 
   return (
@@ -100,7 +101,9 @@ export function GrowthReportMessage({ msg }: Props) {
             {Object.entries(payload.metrics_snapshot).map(([k, v]) => (
               <div key={k} className="text-xs">
                 <span className="text-black/40 dark:text-white/30">{k}: </span>
-                <span className="text-black/70 dark:text-white/60">{String(v)}</span>
+                <span className="text-black/70 dark:text-white/60">
+                  {String(v)}
+                </span>
               </div>
             ))}
           </div>
