@@ -24,6 +24,11 @@ import { Route as workspaceDotlenosDotsplatRouteImport } from "./routes/_workspa
 import { Route as workspaceDotchannelsDotchannelIdRouteImport } from "./routes/_workspace.channels.$channelId";
 import { Route as workspaceDotreposDotrepoIdDotblobDotsplatRouteImport } from "./routes/_workspace.repos.$repoId.blob.$";
 import { Route as workspaceDotchannelsDotchannelIdDotpostsDotpostIdRouteImport } from "./routes/_workspace.channels.$channelId.posts.$postId";
+import { Route as workspaceDotdocumentsRouteImport } from "./routes/_workspace.documents";
+import { Route as workspaceDotdraftsIndexRouteImport } from "./routes/_workspace.drafts.index";
+import { Route as workspaceDotdraftsScheduledRouteImport } from "./routes/_workspace.drafts.scheduled";
+import { Route as workspaceDotpeopleRouteImport } from "./routes/_workspace.people";
+import { Route as workspaceDotsavedRouteImport } from "./routes/_workspace.saved";
 
 const workspaceRoute = workspaceRouteImport.update({
   id: "/_workspace",
@@ -126,17 +131,48 @@ const workspaceDotchannelsDotchannelIdDotpostsDotpostIdRoute =
     path: "/channels/$channelId/posts/$postId",
     getParentRoute: () => workspaceRoute,
   } as any);
+const workspaceDotdocumentsRoute = workspaceDotdocumentsRouteImport.update({
+  id: "/documents",
+  path: "/documents",
+  getParentRoute: () => workspaceRoute,
+} as any);
+const workspaceDotpeopleRoute = workspaceDotpeopleRouteImport.update({
+  id: "/people",
+  path: "/people",
+  getParentRoute: () => workspaceRoute,
+} as any);
+const workspaceDotsavedRoute = workspaceDotsavedRouteImport.update({
+  id: "/saved",
+  path: "/saved",
+  getParentRoute: () => workspaceRoute,
+} as any);
+const workspaceDotdraftsIndexRoute = workspaceDotdraftsIndexRouteImport.update({
+  id: "/drafts/",
+  path: "/",
+  getParentRoute: () => workspaceDotdraftsRoute,
+} as any);
+const workspaceDotdraftsScheduledRoute =
+  workspaceDotdraftsScheduledRouteImport.update({
+    id: "/drafts/scheduled",
+    path: "/scheduled",
+    getParentRoute: () => workspaceDotdraftsRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof indexRoute;
   "/agents": typeof workspaceDotagentsRoute;
   "/channels": typeof workspaceDotchannelsRoute;
-  "/drafts": typeof workspaceDotdraftsRoute;
+  "/documents": typeof workspaceDotdocumentsRoute;
+  "/drafts": typeof workspaceDotdraftsRouteWithChildren;
+  "/drafts/": typeof workspaceDotdraftsIndexRoute;
+  "/drafts/scheduled": typeof workspaceDotdraftsScheduledRoute;
   "/home": typeof workspaceDothomeRoute;
   "/messages": typeof workspaceDotmessagesRoute;
+  "/people": typeof workspaceDotpeopleRoute;
   "/pulse": typeof workspaceDotpulseRoute;
   "/reminders": typeof workspaceDotremindersRoute;
   "/repos": typeof workspaceDotreposRoute;
+  "/saved": typeof workspaceDotsavedRoute;
   "/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
@@ -151,12 +187,17 @@ export interface FileRoutesByTo {
   "/": typeof indexRoute;
   "/agents": typeof workspaceDotagentsRoute;
   "/channels": typeof workspaceDotchannelsRoute;
-  "/drafts": typeof workspaceDotdraftsRoute;
+  "/documents": typeof workspaceDotdocumentsRoute;
+  "/drafts": typeof workspaceDotdraftsRouteWithChildren;
+  "/drafts/": typeof workspaceDotdraftsIndexRoute;
+  "/drafts/scheduled": typeof workspaceDotdraftsScheduledRoute;
   "/home": typeof workspaceDothomeRoute;
   "/messages": typeof workspaceDotmessagesRoute;
+  "/people": typeof workspaceDotpeopleRoute;
   "/pulse": typeof workspaceDotpulseRoute;
   "/reminders": typeof workspaceDotremindersRoute;
   "/repos": typeof workspaceDotreposRoute;
+  "/saved": typeof workspaceDotsavedRoute;
   "/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
@@ -173,12 +214,17 @@ export interface FileRoutesById {
   "/_workspace": typeof workspaceRouteWithChildren;
   "/_workspace/agents": typeof workspaceDotagentsRoute;
   "/_workspace/channels": typeof workspaceDotchannelsRoute;
-  "/_workspace/drafts": typeof workspaceDotdraftsRoute;
+  "/_workspace/documents": typeof workspaceDotdocumentsRoute;
+  "/_workspace/drafts": typeof workspaceDotdraftsRouteWithChildren;
+  "/_workspace/drafts/": typeof workspaceDotdraftsIndexRoute;
+  "/_workspace/drafts/scheduled": typeof workspaceDotdraftsScheduledRoute;
   "/_workspace/home": typeof workspaceDothomeRoute;
   "/_workspace/messages": typeof workspaceDotmessagesRoute;
+  "/_workspace/people": typeof workspaceDotpeopleRoute;
   "/_workspace/pulse": typeof workspaceDotpulseRoute;
   "/_workspace/reminders": typeof workspaceDotremindersRoute;
   "/_workspace/repos": typeof workspaceDotreposRoute;
+  "/_workspace/saved": typeof workspaceDotsavedRoute;
   "/_workspace/workflows": typeof workspaceDotworkflowsRoute;
   "/invite/$code": typeof inviteDotcodeRoute;
   "/_workspace/channels/$channelId": typeof workspaceDotchannelsDotchannelIdRoute;
@@ -195,12 +241,17 @@ export interface FileRouteTypes {
     | "/"
     | "/agents"
     | "/channels"
+    | "/documents"
     | "/drafts"
+    | "/drafts/"
+    | "/drafts/scheduled"
     | "/home"
     | "/messages"
+    | "/people"
     | "/pulse"
     | "/reminders"
     | "/repos"
+    | "/saved"
     | "/workflows"
     | "/invite/$code"
     | "/channels/$channelId"
@@ -215,12 +266,17 @@ export interface FileRouteTypes {
     | "/"
     | "/agents"
     | "/channels"
+    | "/documents"
     | "/drafts"
+    | "/drafts/"
+    | "/drafts/scheduled"
     | "/home"
     | "/messages"
+    | "/people"
     | "/pulse"
     | "/reminders"
     | "/repos"
+    | "/saved"
     | "/workflows"
     | "/invite/$code"
     | "/channels/$channelId"
@@ -236,12 +292,17 @@ export interface FileRouteTypes {
     | "/_workspace"
     | "/_workspace/agents"
     | "/_workspace/channels"
+    | "/_workspace/documents"
     | "/_workspace/drafts"
+    | "/_workspace/drafts/"
+    | "/_workspace/drafts/scheduled"
     | "/_workspace/home"
     | "/_workspace/messages"
+    | "/_workspace/people"
     | "/_workspace/pulse"
     | "/_workspace/reminders"
     | "/_workspace/repos"
+    | "/_workspace/saved"
     | "/_workspace/workflows"
     | "/invite/$code"
     | "/_workspace/channels/$channelId"
@@ -394,18 +455,70 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof workspaceDotchannelsDotchannelIdDotpostsDotpostIdRouteImport;
       parentRoute: typeof workspaceRoute;
     };
+    "/_workspace/documents": {
+      id: "/_workspace/documents";
+      path: "/documents";
+      fullPath: "/documents";
+      preLoaderRoute: typeof workspaceDotdocumentsRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
+    "/_workspace/people": {
+      id: "/_workspace/people";
+      path: "/people";
+      fullPath: "/people";
+      preLoaderRoute: typeof workspaceDotpeopleRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
+    "/_workspace/saved": {
+      id: "/_workspace/saved";
+      path: "/saved";
+      fullPath: "/saved";
+      preLoaderRoute: typeof workspaceDotsavedRouteImport;
+      parentRoute: typeof workspaceRoute;
+    };
+    "/_workspace/drafts/": {
+      id: "/_workspace/drafts/";
+      path: "/";
+      fullPath: "/drafts/";
+      preLoaderRoute: typeof workspaceDotdraftsIndexRouteImport;
+      parentRoute: typeof workspaceDotdraftsRoute;
+    };
+    "/_workspace/drafts/scheduled": {
+      id: "/_workspace/drafts/scheduled";
+      path: "/scheduled";
+      fullPath: "/drafts/scheduled";
+      preLoaderRoute: typeof workspaceDotdraftsScheduledRouteImport;
+      parentRoute: typeof workspaceDotdraftsRoute;
+    };
   }
 }
+
+interface workspaceDotdraftsRouteChildren {
+  workspaceDotdraftsIndexRoute: typeof workspaceDotdraftsIndexRoute;
+  workspaceDotdraftsScheduledRoute: typeof workspaceDotdraftsScheduledRoute;
+}
+
+const workspaceDotdraftsRouteChildren: workspaceDotdraftsRouteChildren = {
+  workspaceDotdraftsIndexRoute: workspaceDotdraftsIndexRoute,
+  workspaceDotdraftsScheduledRoute: workspaceDotdraftsScheduledRoute,
+};
+
+const workspaceDotdraftsRouteWithChildren = workspaceDotdraftsRoute._addFileChildren(
+  workspaceDotdraftsRouteChildren,
+);
 
 interface workspaceRouteChildren {
   workspaceDotagentsRoute: typeof workspaceDotagentsRoute;
   workspaceDotchannelsRoute: typeof workspaceDotchannelsRoute;
-  workspaceDotdraftsRoute: typeof workspaceDotdraftsRoute;
+  workspaceDotdocumentsRoute: typeof workspaceDotdocumentsRoute;
+  workspaceDotdraftsRoute: typeof workspaceDotdraftsRouteWithChildren;
   workspaceDothomeRoute: typeof workspaceDothomeRoute;
   workspaceDotmessagesRoute: typeof workspaceDotmessagesRoute;
+  workspaceDotpeopleRoute: typeof workspaceDotpeopleRoute;
   workspaceDotpulseRoute: typeof workspaceDotpulseRoute;
   workspaceDotremindersRoute: typeof workspaceDotremindersRoute;
   workspaceDotreposRoute: typeof workspaceDotreposRoute;
+  workspaceDotsavedRoute: typeof workspaceDotsavedRoute;
   workspaceDotworkflowsRoute: typeof workspaceDotworkflowsRoute;
   workspaceDotchannelsDotchannelIdRoute: typeof workspaceDotchannelsDotchannelIdRoute;
   workspaceDotlenosDotsplatRoute: typeof workspaceDotlenosDotsplatRoute;
@@ -419,12 +532,15 @@ interface workspaceRouteChildren {
 const workspaceRouteChildren: workspaceRouteChildren = {
   workspaceDotagentsRoute: workspaceDotagentsRoute,
   workspaceDotchannelsRoute: workspaceDotchannelsRoute,
-  workspaceDotdraftsRoute: workspaceDotdraftsRoute,
+  workspaceDotdocumentsRoute: workspaceDotdocumentsRoute,
+  workspaceDotdraftsRoute: workspaceDotdraftsRouteWithChildren,
   workspaceDothomeRoute: workspaceDothomeRoute,
   workspaceDotmessagesRoute: workspaceDotmessagesRoute,
+  workspaceDotpeopleRoute: workspaceDotpeopleRoute,
   workspaceDotpulseRoute: workspaceDotpulseRoute,
   workspaceDotremindersRoute: workspaceDotremindersRoute,
   workspaceDotreposRoute: workspaceDotreposRoute,
+  workspaceDotsavedRoute: workspaceDotsavedRoute,
   workspaceDotworkflowsRoute: workspaceDotworkflowsRoute,
   workspaceDotchannelsDotchannelIdRoute: workspaceDotchannelsDotchannelIdRoute,
   workspaceDotlenosDotsplatRoute: workspaceDotlenosDotsplatRoute,

@@ -42,7 +42,7 @@ export function AutomationsSettingsPanel() {
   const handleDelete = async (cronId: string) => {
     await fetch(
       `${LENGROWTH_API}/api/agent/crons/${cronId}?company_id=${companyId}`,
-      { method: "DELETE", headers: { Authorization: `Bearer ${token()}` } },
+      { method: "DELETE", headers: { Authorization: `Bearer ${getToken()}` } },
     );
     setCrons((prev) => prev.filter((c) => c.cron_id !== cronId));
   };
