@@ -5,13 +5,15 @@
 # responds within TIMEOUT seconds.
 #
 # Usage:
-#   RELAY_URL=wss://relay.example.com ./scripts/smoke-agent.sh
+#   RELAY_URL=wss://relay.example.com SMOKE_CHANNEL_ID=<hex-id> ./scripts/smoke-agent.sh
 #
 # Optional env vars:
 #   TIMEOUT           Seconds to wait for an agent response (default: 30).
 #   TEST_PRIVKEY_HEX  64-char hex private key (safe deterministic default used
 #                     if not set).
 #   AGENT_PUBKEY      Hex pubkey of the agent to @-mention in the test event.
+#   SMOKE_CHANNEL_ID  Hex event-id of the channel to post into (required when
+#                     the relay enforces h-tag scoping on kind-40002 events).
 
 set -euo pipefail
 

@@ -16,6 +16,9 @@ Env vars:
                       if omitted — safe to leave unset in CI).
     AGENT_PUBKEY      Hex pubkey to @-mention in the test event. When set the
                       test expects a direct response from that agent.
+    SMOKE_CHANNEL_ID  Hex event-id of the channel to scope the test event into.
+                      Required when the relay enforces h-tag scoping on
+                      kind-40002 events (e.g. production LenOS relay).
 """
 import hashlib, json, os, socket, ssl, struct, sys, time, urllib.parse
 from base64 import b64encode
@@ -194,6 +197,7 @@ PRIV_HEX    = os.environ.get(
     "b0b1b2b3b4b5b6b7b8b9babbbcbdbebf0102030405060708090a0b0c0d0e0f10",
 )
 AGENT_PUBKEY = os.environ.get("AGENT_PUBKEY", "").strip()
+CHANNEL_ID   = os.environ.get("SMOKE_CHANNEL_ID", "").strip()
 
 
 def _log(msg):
@@ -223,7 +227,14 @@ def main():
     }]))
 
     # Publish a test channel message, optionally @-mentioning the test agent.
-    tags = [["p", AGENT_PUBKEY]] if AGENT_PUBKEY else []
+    # The h tag is required by the relay for channel-scoped events (kind 40002).
+    tags = []
+    if CHANNEL_ID:
+        tags.append(["h", CHANNEL_ID])
+    else:
+        print("[smoke] WARN: SMOKE_CHANNEL_ID not set — relay may reject the event", flush=True)
+    if AGENT_PUBKEY:
+        tags.append(["p", AGENT_PUBKEY])
     evt  = _nostr_event(KIND_STREAM_MESSAGE, "lenos-smoke-test", tags, PRIV_HEX)
     _ws_send(sock, json.dumps(["EVENT", evt]))
     _log(f"published test event {evt['id'][:8]}…")

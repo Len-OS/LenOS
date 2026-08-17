@@ -360,6 +360,9 @@ jobs:
         env:
           # Set RELAY_URL in repository secrets: wss://relay.lengrowth.com
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          # Set SMOKE_CHANNEL_ID in repository secrets: hex event-id of the
+          # smoke-test channel on the production relay.
+          SMOKE_CHANNEL_ID: ${{ secrets.SMOKE_CHANNEL_ID }}
           TIMEOUT: "30"
 
   push-gateway-build:
