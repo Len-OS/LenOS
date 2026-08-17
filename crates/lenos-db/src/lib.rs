@@ -8750,7 +8750,9 @@ mod slug_tests {
 
     #[test]
     fn update_slug_outcome_variants_exist() {
-        let _: UpdateSlugOutcome = UpdateSlugOutcome::Updated { new_host: "test.example.com".to_string() };
+        let _: UpdateSlugOutcome = UpdateSlugOutcome::Updated {
+            new_host: "test.example.com".to_string(),
+        };
         let _: UpdateSlugOutcome = UpdateSlugOutcome::Conflict;
         let _: UpdateSlugOutcome = UpdateSlugOutcome::NotFound;
     }

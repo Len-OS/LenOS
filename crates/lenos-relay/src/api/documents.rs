@@ -80,8 +80,7 @@ async fn resolve_and_auth(
     headers: &HeaderMap,
     method: &str,
     path: &str,
-) -> Result<(lenos_core::TenantContext, nostr::PublicKey), (StatusCode, Json<serde_json::Value>)>
-{
+) -> Result<(lenos_core::TenantContext, nostr::PublicKey), (StatusCode, Json<serde_json::Value>)> {
     let raw_host = headers
         .get(header::HOST)
         .and_then(|v| v.to_str().ok())
@@ -89,11 +88,21 @@ async fn resolve_and_auth(
 
     let tenant = crate::tenant::bind_community(&state.db, raw_host)
         .await
-        .map_err(|_| api_error(StatusCode::NOT_FOUND, "relay: no community is configured for this host"))?;
+        .map_err(|_| {
+            api_error(
+                StatusCode::NOT_FOUND,
+                "relay: no community is configured for this host",
+            )
+        })?;
 
     let url = super::bridge::nip98_expected_url(&state.config.relay_url, &tenant, path);
-    let (pubkey, event_id_bytes) =
-        super::bridge::verify_bridge_auth(headers, method, &url, None, state.config.require_auth_token)?;
+    let (pubkey, event_id_bytes) = super::bridge::verify_bridge_auth(
+        headers,
+        method,
+        &url,
+        None,
+        state.config.require_auth_token,
+    )?;
 
     super::bridge::check_nip98_replay(state, &tenant, event_id_bytes).await?;
 
@@ -107,8 +116,7 @@ pub async fn upload_document(
     headers: HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let (tenant, pubkey) =
-        resolve_and_auth(&state, &headers, "POST", "/api/documents").await?;
+    let (tenant, pubkey) = resolve_and_auth(&state, &headers, "POST", "/api/documents").await?;
 
     let rag = state
         .rag
@@ -134,12 +142,14 @@ pub async fn upload_document(
                 if let Some(ct) = field.content_type() {
                     mime_type = ct.to_owned();
                 }
-                let data = field
-                    .bytes()
-                    .await
-                    .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("file read error: {e}")))?;
+                let data = field.bytes().await.map_err(|e| {
+                    api_error(StatusCode::BAD_REQUEST, &format!("file read error: {e}"))
+                })?;
                 if data.len() > MAX_DOCUMENT_BYTES {
-                    return Err(api_error(StatusCode::PAYLOAD_TOO_LARGE, "file exceeds 50 MB limit"));
+                    return Err(api_error(
+                        StatusCode::PAYLOAD_TOO_LARGE,
+                        "file exceeds 50 MB limit",
+                    ));
                 }
                 file_bytes = Some(data.to_vec());
             }
@@ -154,8 +164,8 @@ pub async fn upload_document(
         }
     }
 
-    let bytes = file_bytes
-        .ok_or_else(|| api_error(StatusCode::BAD_REQUEST, "missing file field"))?;
+    let bytes =
+        file_bytes.ok_or_else(|| api_error(StatusCode::BAD_REQUEST, "missing file field"))?;
 
     let effective_mime = infer_mime(&bytes, &mime_type);
 
@@ -203,8 +213,7 @@ pub async fn list_documents(
     headers: HeaderMap,
     Query(params): Query<ListQuery>,
 ) -> Result<Json<Vec<DocumentResponse>>, (StatusCode, Json<serde_json::Value>)> {
-    let (tenant, _pubkey) =
-        resolve_and_auth(&state, &headers, "GET", "/api/documents").await?;
+    let (tenant, _pubkey) = resolve_and_auth(&state, &headers, "GET", "/api/documents").await?;
 
     let docs = state
         .db
@@ -273,8 +282,7 @@ pub async fn delete_document(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let path = format!("/api/documents/{id}");
-    let (tenant, pubkey) =
-        resolve_and_auth(&state, &headers, "DELETE", &path).await?;
+    let (tenant, pubkey) = resolve_and_auth(&state, &headers, "DELETE", &path).await?;
 
     let deleted = state
         .db
@@ -285,7 +293,10 @@ pub async fn delete_document(
     if deleted {
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(api_error(StatusCode::FORBIDDEN, "document not found or not owned by you"))
+        Err(api_error(
+            StatusCode::FORBIDDEN,
+            "document not found or not owned by you",
+        ))
     }
 }
 

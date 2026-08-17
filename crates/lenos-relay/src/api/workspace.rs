@@ -20,16 +20,20 @@ use crate::state::AppState;
 use super::{api_error, bridge};
 
 const RESERVED_SLUGS: &[&str] = &[
-    "www", "app", "relay", "api", "growth-api", "lenos", "mail", "smtp",
+    "www",
+    "app",
+    "relay",
+    "api",
+    "growth-api",
+    "lenos",
+    "mail",
+    "smtp",
 ];
 
 fn validate_slug(slug: &str) -> bool {
     let re = regex::Regex::new(r"^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$|^[a-z0-9]{3,63}$")
         .expect("static regex");
-    re.is_match(slug)
-        && slug.len() >= 3
-        && slug.len() <= 63
-        && !RESERVED_SLUGS.contains(&slug)
+    re.is_match(slug) && slug.len() >= 3 && slug.len() <= 63 && !RESERVED_SLUGS.contains(&slug)
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,15 +58,13 @@ pub async fn patch_subdomain(
         .await
         .map_err(|_| api_error(StatusCode::NOT_FOUND, "no community for this host"))?;
 
-    let url = bridge::nip98_expected_url(&state.config.relay_url, &tenant, "/api/admin/v1/workspace/subdomain");
-    let (pubkey, event_id_bytes) = bridge::verify_bridge_auth_with_options(
-        &headers,
-        "PATCH",
-        &url,
-        Some(&body),
-        true,
-        true,
-    )?;
+    let url = bridge::nip98_expected_url(
+        &state.config.relay_url,
+        &tenant,
+        "/api/admin/v1/workspace/subdomain",
+    );
+    let (pubkey, event_id_bytes) =
+        bridge::verify_bridge_auth_with_options(&headers, "PATCH", &url, Some(&body), true, true)?;
     bridge::check_nip98_replay(&state, &tenant, event_id_bytes).await?;
 
     // Owner-only check.
@@ -101,7 +103,9 @@ pub async fn patch_subdomain(
         .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "db error"))?
     {
         UpdateSlugOutcome::Updated { .. } => Ok(StatusCode::OK),
-        UpdateSlugOutcome::Conflict => Err(api_error(StatusCode::CONFLICT, "subdomain already taken")),
+        UpdateSlugOutcome::Conflict => {
+            Err(api_error(StatusCode::CONFLICT, "subdomain already taken"))
+        }
         UpdateSlugOutcome::NotFound => Err(api_error(StatusCode::NOT_FOUND, "community not found")),
     }
 }
@@ -132,8 +136,20 @@ mod tests {
 
     #[test]
     fn reserved_slugs_fail() {
-        for reserved in ["www", "app", "relay", "api", "growth-api", "lenos", "mail", "smtp"] {
-            assert!(!validate_slug(reserved), "reserved slug should fail: {reserved}");
+        for reserved in [
+            "www",
+            "app",
+            "relay",
+            "api",
+            "growth-api",
+            "lenos",
+            "mail",
+            "smtp",
+        ] {
+            assert!(
+                !validate_slug(reserved),
+                "reserved slug should fail: {reserved}"
+            );
         }
     }
 

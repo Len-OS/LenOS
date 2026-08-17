@@ -9,22 +9,16 @@ use crate::RagError;
 /// Returns `Err(RagError::UnsupportedMimeType)` for unrecognized types.
 pub fn extract_text(bytes: &[u8], mime_type: &str) -> Result<String, RagError> {
     match mime_type {
-        "text/plain" => {
-            String::from_utf8(bytes.to_vec()).map_err(|e| {
-                RagError::ExtractionFailed(format!("invalid UTF-8 in text file: {e}"))
-            })
-        }
+        "text/plain" => String::from_utf8(bytes.to_vec())
+            .map_err(|e| RagError::ExtractionFailed(format!("invalid UTF-8 in text file: {e}"))),
         "text/markdown" => {
             let raw = String::from_utf8(bytes.to_vec()).map_err(|e| {
                 RagError::ExtractionFailed(format!("invalid UTF-8 in markdown file: {e}"))
             })?;
             Ok(strip_markdown(&raw))
         }
-        "application/pdf" => {
-            pdf_extract::extract_text_from_mem(bytes).map_err(|e| {
-                RagError::ExtractionFailed(format!("PDF text extraction failed: {e}"))
-            })
-        }
+        "application/pdf" => pdf_extract::extract_text_from_mem(bytes)
+            .map_err(|e| RagError::ExtractionFailed(format!("PDF text extraction failed: {e}"))),
         other => Err(RagError::UnsupportedMimeType(other.to_owned())),
     }
 }

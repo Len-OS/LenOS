@@ -876,8 +876,7 @@ impl Config {
             hints_enabled: parse_env("LENOS_AGENT_NO_HINTS", 0u8)? == 0,
             thinking_effort: parse_thinking_effort(env("LENOS_AGENT_THINKING_EFFORT").as_deref())?,
             prompt_caching: parse_env("LENOS_AGENT_PROMPT_CACHING", 1u8)? != 0,
-            relay_http_url: env("LENOS_RELAY_BASE_URL")
-                .map(|u| u.trim_end_matches('/').to_owned()),
+            relay_http_url: env("LENOS_RELAY_BASE_URL").map(|u| u.trim_end_matches('/').to_owned()),
             relay_nostr_secret_key: env("LENOS_AGENT_NOSTR_SECRET_KEY"),
             mcp_http_servers: {
                 let mut servers: Vec<crate::types::McpHttpServerConfig> =

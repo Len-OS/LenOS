@@ -463,12 +463,19 @@ async fn main() -> anyhow::Result<()> {
     // Initialize RAG engine if OPENAI_API_KEY is configured.
     if let Ok(openai_api_key) = std::env::var("OPENAI_API_KEY") {
         let storage = Arc::clone(&app_state.media_storage);
-        let s3_put = std::sync::Arc::new(move |key: String, bytes: Vec<u8>, content_type: String| {
-            let storage = Arc::clone(&storage);
-            Box::pin(async move {
-                storage.put(&key, &bytes, &content_type).await.map_err(|e| e.to_string())
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
-        });
+        let s3_put =
+            std::sync::Arc::new(move |key: String, bytes: Vec<u8>, content_type: String| {
+                let storage = Arc::clone(&storage);
+                Box::pin(async move {
+                    storage
+                        .put(&key, &bytes, &content_type)
+                        .await
+                        .map_err(|e| e.to_string())
+                })
+                    as std::pin::Pin<
+                        Box<dyn std::future::Future<Output = Result<(), String>> + Send>,
+                    >
+            });
         app_state.rag = Some(std::sync::Arc::new(lenos_rag::RagEngine {
             db: app_state.db.clone(),
             openai_api_key,

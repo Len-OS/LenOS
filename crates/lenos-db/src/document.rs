@@ -59,7 +59,10 @@ pub struct ChunkSearchResult {
 }
 
 /// Insert a document record and return it.
-pub async fn create_document(pool: &PgPool, params: CreateDocumentParams) -> Result<DocumentRecord> {
+pub async fn create_document(
+    pool: &PgPool,
+    params: CreateDocumentParams,
+) -> Result<DocumentRecord> {
     let row = sqlx::query(
         r#"
         INSERT INTO documents (id, community_id, channel_id, uploaded_by, filename, mime_type, s3_key, byte_size)
@@ -90,15 +93,13 @@ pub async fn update_document_status(
     status: &str,
     error: Option<&str>,
 ) -> Result<()> {
-    sqlx::query(
-        "UPDATE documents SET status = $1, error = $2 WHERE community_id = $3 AND id = $4",
-    )
-    .bind(status)
-    .bind(error)
-    .bind(community_id.as_uuid())
-    .bind(id)
-    .execute(pool)
-    .await?;
+    sqlx::query("UPDATE documents SET status = $1, error = $2 WHERE community_id = $3 AND id = $4")
+        .bind(status)
+        .bind(error)
+        .bind(community_id.as_uuid())
+        .bind(id)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 
@@ -115,10 +116,7 @@ pub async fn insert_chunks(pool: &PgPool, chunks: &[ChunkRecord]) -> Result<()> 
             "INSERT INTO document_chunks (document_id, community_id, chunk_index, content, token_count, embedding) ",
         );
         qb.push_values(batch, |mut b, chunk| {
-            let embedding = chunk
-                .embedding
-                .as_ref()
-                .map(|v| Vector::from(v.clone()));
+            let embedding = chunk.embedding.as_ref().map(|v| Vector::from(v.clone()));
             b.push_bind(chunk.document_id)
                 .push_bind(chunk.community_id.as_uuid())
                 .push_bind(chunk.chunk_index)
