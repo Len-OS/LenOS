@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMembers } from "@/features/channels/useMembers";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
@@ -9,7 +9,7 @@ export function useReadReceipts(
 ): Map<string, ReadReceipt> {
   const [receipts, setReceipts] = useState<Map<string, ReadReceipt>>(new Map());
   const members = useMembers(channelId);
-  const memberPubkeys = members.map((m) => m.pubkey);
+  const memberPubkeys = useMemo(() => members.map((m) => m.pubkey), [members]);
 
   useEffect(() => {
     if (!channelId || memberPubkeys.length === 0) return;
@@ -44,7 +44,7 @@ export function useReadReceipts(
       unsub();
       setReceipts(new Map());
     };
-  }, [channelId, memberPubkeys.join(",")]);
+  }, [channelId, memberPubkeys]);
 
   return receipts;
 }

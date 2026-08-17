@@ -84,6 +84,6 @@ function parseRemindTime(s: string): number {
     return now + n * secs;
   }
   const abs = Date.parse(s);
-  if (!isNaN(abs)) return Math.floor(abs / 1000);
+  if (!Number.isNaN(abs)) return Math.floor(abs / 1000);
   throw new Error(`Cannot parse time: ${s}`);
 }

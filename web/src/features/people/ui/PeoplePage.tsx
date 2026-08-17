@@ -124,6 +124,7 @@ export function PeoplePage() {
     : members;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: transparent click-outside dismissal wrapper
     <div
       className="flex flex-1 flex-col overflow-y-auto"
       onClick={() => setOpenPopoverId(null)}

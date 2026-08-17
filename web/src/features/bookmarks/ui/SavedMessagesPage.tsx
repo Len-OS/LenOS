@@ -27,7 +27,7 @@ function SavedMessageRow({
   isRemoving: boolean;
 }) {
   const profile = useProfile(message.pubkey);
-  const displayName = profile?.name || message.pubkey.slice(0, 8) + "...";
+  const displayName = profile?.name || `${message.pubkey.slice(0, 8)}...`;
 
   return (
     <div className="flex items-start gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10">

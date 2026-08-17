@@ -209,7 +209,10 @@ export function CommunitySettingsModal({
               </div>
               {isAdmin && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60">
+                  <label
+                    htmlFor="workspace-avatar-input"
+                    className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
+                  >
                     Workspace Avatar
                   </label>
                   {avatarUrl && (
@@ -220,6 +223,7 @@ export function CommunitySettingsModal({
                     />
                   )}
                   <input
+                    id="workspace-avatar-input"
                     type="file"
                     accept="image/*"
                     onChange={(e) => void handleAvatarFile(e)}

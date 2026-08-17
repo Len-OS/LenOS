@@ -76,7 +76,7 @@ export function ChannelBookmarksSection({
                   <p className="truncate text-xs text-black/80 dark:text-white/80">
                     {event
                       ? event.content.slice(0, 80) || "(no text)"
-                      : id.slice(0, 12) + "…"}
+                      : `${id.slice(0, 12)}…`}
                   </p>
                   {event && (
                     <p className="mt-0.5 text-[10px] text-black/40 dark:text-white/40">

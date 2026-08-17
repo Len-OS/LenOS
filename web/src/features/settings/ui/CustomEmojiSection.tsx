@@ -293,7 +293,10 @@ export function CustomEmojiSection() {
 
           {/* File pick */}
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-black/60 dark:text-white/60">
+            <label
+              htmlFor="emoji-image-input"
+              className="block text-xs font-medium text-black/60 dark:text-white/60"
+            >
               Image
             </label>
             <div className="flex items-center gap-3">
@@ -323,6 +326,7 @@ export function CustomEmojiSection() {
                 </p>
               </div>
               <input
+                id="emoji-image-input"
                 ref={fileInputRef}
                 type="file"
                 accept="image/png,image/gif,image/webp"

@@ -60,9 +60,9 @@ export function DocumentSearchPanel({ channelId }: Props) {
 
       {results.length > 0 && (
         <div className="space-y-2">
-          {results.map((chunk, i) => (
+          {results.map((chunk) => (
             <div
-              key={`${chunk.document_id}-${chunk.chunk_index}-${i}`}
+              key={`${chunk.document_id}-${chunk.chunk_index}`}
               className="rounded-lg border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.02]"
             >
               <div className="mb-1 flex items-center justify-between gap-2">

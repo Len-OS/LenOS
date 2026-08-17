@@ -40,7 +40,7 @@ export function useThreadSummary(messages: Message[]) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { summary: string };
       setState({ summary: data.summary, loading: false, error: null });
-    } catch (e) {
+    } catch {
       setState({
         summary: null,
         loading: false,
