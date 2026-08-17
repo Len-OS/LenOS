@@ -2,44 +2,48 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Show which members have read each message, via kind:30078 `d:"read:{channelId}"` events, with avatar stacks on each MessageRow.
+**Goal:** Show small avatar stacks on messages indicating which members have read past that point; publish read receipts when the user scrolls to the bottom of a channel (debounced, guarded against spam).
 
-**Architecture:** Each user publishes their own read receipt (kind:30078) when they reach the bottom of the channel. All members subscribe to all receipts. MessageRow shows avatars of users whose last_read_event_id matches the event or whose last_read_at >= event.created_at.
+**Architecture:** Each user publishes kind:30078 d:`"read:{channelId}"` with `{ last_read_event_id, last_read_at }`. A `useReadReceipts(channelId)` hook subscribes to these events from all channel members and returns a `Map<pubkey, ReadReceipt>`. `MessageRow` renders a `ReadAvatarStack` showing up to 3 avatars of members who have read at or past that message. Publish is debounced 2 s and guarded by `last_read_at > existingPublishedValue + 10_000`.
 
-**Tech Stack:** TypeScript/React, Nostr kind:30078, shadcn/ui (desktop), Tailwind (web)
+**Tech Stack:** TypeScript/React, Nostr kind:30078, `useMembers` (web) / `relayClient.subscribe` (desktop)
 
-**Spec:** docs/superpowers/specs/2026-08-14-phase3-design.md (Feature 3)
+**Spec:** `docs/superpowers/specs/2026-08-14-phase3-design.md` — Feature 3
 
 ## Global Constraints
 
-- Web + Desktop parity: every feature ships on BOTH platforms
-- Web publish: `signNostrEvent` + `getRelayClient(relayWsUrl()).publishAndWait()`
-- Desktop publish: `signRelayEvent` + `relayClient.publishEvent(event, timeoutMsg, errorMsg)`
-- Desktop subscribe: `relayClient.subscribeLive(filter, onEvent)` — public API (NOT `relayClient.subscribe`)
-- Desktop `RelaySubscriptionFilter` requires `limit` field — include `limit: 1` for parameterized replaceable events
-- Web admin check: `useMembers(channelId)` → member.role === "admin"
-- Desktop admin check: `useMyRelayMembershipQuery()` → `role === "admin" || role === "owner"`
-- shadcn/ui components on desktop (Button, Avatar, etc.), Tailwind-only on web
-- KIND_READ_RECEIPTS = 30078 (same kind as pinning, different d-tag)
-- d-tag: `"read:{channelId}"` — distinct from `"read-state:{slotId}"` (no conflict)
-- Pre-existing compile error in `crates/lenos-relay/src/api/webhooks.rs:239` — do NOT touch webhooks.rs
+- Web + desktop parity.
+- kind:30078 d-tag: `"read:{channelId}"` — distinct from existing `"read-state:{slotId}"`.
+- Only publish if `last_read_at > existingPublishedValue + 10_000` ms (10 s guard).
+- Debounce publish 2 000 ms after scroll-to-bottom.
+- Show at most 3 avatars; overflow as `+N`.
 
 ---
 
-### Task 1: Web — useReadReceipts hook
+### Task 1: Types
 
 **Files:**
-- Create: `web/src/features/messages/read-receipts/useReadReceipts.ts`
-- Create: `web/src/features/messages/read-receipts/types.ts`
+- Create: `web/src/features/messages/readReceipts/types.ts`
+- Create: `desktop/src/features/messages/readReceipts/types.ts`
 
 **Interfaces:**
-- Produces: `useReadReceipts(channelId: string | null): Map<string, ReadReceipt>`
-- Produces type: `ReadReceipt { last_read_event_id: string; last_read_at: number; pubkey: string }`
+- Produces: `ReadReceipt` used by all subsequent tasks
 
-- [ ] **Step 1: Write types.ts**
+- [ ] **Step 1: Create web types**
 
 ```typescript
-// web/src/features/messages/read-receipts/types.ts
+// web/src/features/messages/readReceipts/types.ts
+export interface ReadReceipt {
+  pubkey: string;
+  last_read_event_id: string;
+  last_read_at: number;  // unix ms
+}
+```
+
+- [ ] **Step 2: Create desktop types** (identical)
+
+```typescript
+// desktop/src/features/messages/readReceipts/types.ts
 export interface ReadReceipt {
   pubkey: string;
   last_read_event_id: string;
@@ -47,158 +51,247 @@ export interface ReadReceipt {
 }
 ```
 
-- [ ] **Step 2: Write useReadReceipts.ts**
+- [ ] **Step 3: Commit**
 
-Get the list of relay websocket URL from `relayWsUrl()` (from `@/shared/lib/relay`). Get members via `useMembers(channelId)`. Subscribe to kind:30078 with `#d: ["read:" + channelId]` and `authors: memberPubkeys`.
+```bash
+git add web/src/features/messages/readReceipts/types.ts \
+        desktop/src/features/messages/readReceipts/types.ts
+git commit -m "feat: add ReadReceipt type for read receipts feature"
+```
+
+---
+
+### Task 2: Web — `useReadReceipts` hook
+
+**Files:**
+- Create: `web/src/features/messages/readReceipts/useReadReceipts.ts`
+
+**Interfaces:**
+- Consumes: `useMembers(channelId)` from `@/features/channels/useMembers`
+- Produces: `useReadReceipts(channelId)` → `Map<pubkey, ReadReceipt>`
+
+- [ ] **Step 1: Write hook**
 
 ```typescript
-import { useState, useEffect } from "react";
-import { useMembers } from "@/features/channels/hooks/useMembers";
-import { getRelayClient, relayWsUrl } from "@/shared/lib/relay";
-import { ReadReceipt } from "./types";
+// web/src/features/messages/readReceipts/useReadReceipts.ts
+import { useEffect, useState, useRef } from "react";
+import { getRelayClient } from "@/shared/lib/relay-live-client";
+import { relayWsUrl } from "@/shared/lib/relay-url";
+import { useMembers } from "@/features/channels/useMembers";
+import type { ReadReceipt } from "./types";
 
-export function useReadReceipts(channelId: string | null): Map<string, ReadReceipt> {
+export function useReadReceipts(channelId: string): Map<string, ReadReceipt> {
+  const members = useMembers(channelId);
   const [receipts, setReceipts] = useState<Map<string, ReadReceipt>>(new Map());
-  const members = useMembers(channelId ?? "");
-  const memberPubkeys = members.map((m) => m.pubkey);
+  const memberPubkeysRef = useRef<string[]>([]);
 
   useEffect(() => {
-    if (!channelId || memberPubkeys.length === 0) return;
+    memberPubkeysRef.current = members.map((m) => m.pubkey);
+  }, [members]);
+
+  useEffect(() => {
+    if (!channelId || members.length === 0) return;
+    const dTag = `read:${channelId}`;
+    const authors = members.map((m) => m.pubkey);
     const client = getRelayClient(relayWsUrl());
-    const sub = client.subscribe(
-      [{ kinds: [30078], "#d": [`read:${channelId}`], authors: memberPubkeys }],
-      (event) => {
+
+    const unsub = client.subscribe({
+      id: `read-receipts-${channelId}`,
+      filter: { kinds: [30078], "#d": [dTag], authors },
+      onEvent: (raw) => {
         try {
-          const data = JSON.parse(event.content) as {
+          const content = JSON.parse(raw.content as string) as {
             last_read_event_id: string;
             last_read_at: number;
           };
           setReceipts((prev) => {
             const next = new Map(prev);
-            next.set(event.pubkey, { pubkey: event.pubkey, ...data });
+            next.set(raw.pubkey as string, {
+              pubkey: raw.pubkey as string,
+              last_read_event_id: content.last_read_event_id,
+              last_read_at: content.last_read_at,
+            });
             return next;
           });
         } catch {
-          // ignore malformed events
+          // malformed event — ignore
         }
-      }
-    );
-    return () => sub.close();
-  }, [channelId, memberPubkeys.join(",")]);
+      },
+    });
+
+    return () => {
+      unsub();
+      setReceipts(new Map());
+    };
+  }, [channelId, members]);
 
   return receipts;
+}
+```
+
+- [ ] **Step 2: Type-check**
+
+```bash
+cd web && pnpm tsc --noEmit 2>&1 | head -10
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add web/src/features/messages/readReceipts/useReadReceipts.ts
+git commit -m "feat(web): add useReadReceipts hook"
+```
+
+---
+
+### Task 3: Web — `usePublishReadReceipt` hook
+
+**Files:**
+- Create: `web/src/features/messages/readReceipts/usePublishReadReceipt.ts`
+
+**Interfaces:**
+- Produces: `usePublishReadReceipt(channelId)` → `{ markRead(eventId: string): void }`
+
+- [ ] **Step 1: Write test (Node-runnable pure-logic part)**
+
+Since web has no unit runner, verify the guard logic manually:
+- Guard: only publish if `Date.now() > lastPublishedAt + 10_000`
+- Debounce: 2 000 ms
+
+- [ ] **Step 2: Write hook**
+
+```typescript
+// web/src/features/messages/readReceipts/usePublishReadReceipt.ts
+import { useCallback, useRef } from "react";
+import { signNostrEvent } from "@/shared/lib/nostr-signer";
+import { getRelayClient } from "@/shared/lib/relay-live-client";
+import { relayWsUrl } from "@/shared/lib/relay-url";
+
+const GUARD_MS = 10_000;
+const DEBOUNCE_MS = 2_000;
+
+export function usePublishReadReceipt(channelId: string) {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPublishedAtRef = useRef<number>(0);
+
+  const markRead = useCallback(
+    (eventId: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        const now = Date.now();
+        if (now - lastPublishedAtRef.current < GUARD_MS) return;
+        lastPublishedAtRef.current = now;
+        try {
+          const signed = await signNostrEvent(
+            {
+              kind: 30078,
+              content: JSON.stringify({
+                last_read_event_id: eventId,
+                last_read_at: now,
+              }),
+              tags: [["d", `read:${channelId}`]],
+            },
+            { requireNip07: false },
+          );
+          await getRelayClient(relayWsUrl()).publishAndWait(
+            signed as Record<string, unknown>,
+          );
+        } catch {
+          // non-critical
+        }
+      }, DEBOUNCE_MS);
+    },
+    [channelId],
+  );
+
+  return { markRead };
 }
 ```
 
 - [ ] **Step 3: Type-check**
 
 ```bash
-cd web && pnpm tsc --noEmit 2>&1 | head -20
+cd web && pnpm tsc --noEmit 2>&1 | head -10
 ```
-
-Expected: no new errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add web/src/features/messages/read-receipts/
-git commit -m "feat(web): add useReadReceipts hook and ReadReceipt types"
+git add web/src/features/messages/readReceipts/usePublishReadReceipt.ts
+git commit -m "feat(web): add usePublishReadReceipt hook"
 ```
 
 ---
 
-### Task 2: Web — ReadAvatarStack component
+### Task 4: Web — `ReadAvatarStack` component
 
 **Files:**
-- Create: `web/src/features/messages/read-receipts/ReadAvatarStack.tsx`
+- Create: `web/src/features/messages/readReceipts/ReadAvatarStack.tsx`
 
 **Interfaces:**
-- Consumes: `ReadReceipt` from `./types`
-- Produces: `<ReadAvatarStack receipts={ReadReceipt[]} maxVisible={3} />` — renders overlapping avatars
+- Consumes: list of pubkeys who have read at/past this message
+- Produces: `<ReadAvatarStack pubkeys={[...]} />` — 3-avatar stack or `+N` overflow
 
-- [ ] **Step 1: Find Avatar component usage in web codebase**
-
-```bash
-grep -rn "Avatar\|avatar" web/src/shared/ui/ --include="*.tsx" | head -10
-grep -rn "useProfile\|getDisplayName" web/src/features/profiles/ --include="*.ts" | head -5
-```
-
-- [ ] **Step 2: Write ReadAvatarStack.tsx**
-
-Show at most 3 avatars. If more readers, show "+N". Use `useProfile(pubkey)` to get display name and picture.
+- [ ] **Step 1: Write component**
 
 ```tsx
-import { useProfile } from "@/features/profiles/hooks/useProfile";
-import { ReadReceipt } from "./types";
+// web/src/features/messages/readReceipts/ReadAvatarStack.tsx
+import { useProfile } from "@/features/profiles/use-profile";
+import { Avatar } from "@/shared/ui/Avatar";
+import { truncatePubkey } from "@/shared/lib/pubkey";
+
+const MAX_VISIBLE = 3;
+
+function AvatarItem({ pubkey }: { pubkey: string }) {
+  const profile = useProfile(pubkey);
+  const name = profile?.name || truncatePubkey(pubkey);
+  return (
+    <div title={name} className="-ml-1.5 first:ml-0">
+      <Avatar src={profile?.picture} name={name} size={16} />
+    </div>
+  );
+}
 
 interface Props {
-  receipts: ReadReceipt[];
-  maxVisible?: number;
+  pubkeys: string[];
 }
 
-function AvatarPip({ pubkey }: { pubkey: string }) {
-  const profile = useProfile(pubkey);
-  const name = profile?.displayName ?? profile?.name ?? pubkey.slice(0, 8);
-  const src = profile?.picture;
-  return (
-    <div
-      className="w-5 h-5 rounded-full border border-background overflow-hidden bg-muted -ml-1 first:ml-0"
-      title={name}
-    >
-      {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-[9px] font-medium bg-primary/20 text-primary">
-          {name[0]?.toUpperCase()}
-        </div>
-      )}
-    </div>
-  );
-}
+export function ReadAvatarStack({ pubkeys }: Props) {
+  if (pubkeys.length === 0) return null;
+  const visible = pubkeys.slice(0, MAX_VISIBLE);
+  const overflow = pubkeys.length - visible.length;
 
-export function ReadAvatarStack({ receipts, maxVisible = 3 }: Props) {
-  if (receipts.length === 0) return null;
-  const visible = receipts.slice(0, maxVisible);
-  const overflow = receipts.length - visible.length;
   return (
-    <div className="flex items-center">
-      {visible.map((r) => (
-        <AvatarPip key={r.pubkey} pubkey={r.pubkey} />
+    <div className="flex items-center" aria-label={`Read by ${pubkeys.length}`}>
+      {visible.map((pk) => (
+        <AvatarItem key={pk} pubkey={pk} />
       ))}
       {overflow > 0 && (
-        <div className="w-5 h-5 rounded-full border border-background bg-muted -ml-1 flex items-center justify-center text-[9px] font-medium">
+        <span className="-ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/10 text-[9px] font-medium text-black/60 dark:bg-white/10 dark:text-white/60">
           +{overflow}
-        </div>
+        </span>
       )}
     </div>
   );
 }
 ```
 
-- [ ] **Step 3: Verify useProfile hook path**
+- [ ] **Step 2: Type-check**
 
 ```bash
-grep -rn "export.*useProfile" web/src/features/profiles/ --include="*.ts" | head -5
+cd web && pnpm tsc --noEmit 2>&1 | head -10
 ```
 
-Adjust the import path in ReadAvatarStack.tsx if needed.
-
-- [ ] **Step 4: Type-check**
+- [ ] **Step 3: Commit**
 
 ```bash
-cd web && pnpm tsc --noEmit 2>&1 | head -20
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add web/src/features/messages/read-receipts/ReadAvatarStack.tsx
+git add web/src/features/messages/readReceipts/ReadAvatarStack.tsx
 git commit -m "feat(web): add ReadAvatarStack component"
 ```
 
 ---
 
-### Task 3: Web — publish read receipts + wire into MessageRow
+### Task 5: Web — wire into `ChannelView` + `MessageRow`
 
 **Files:**
 - Modify: `web/src/features/channels/ui/ChannelView.tsx`
@@ -206,345 +299,329 @@ git commit -m "feat(web): add ReadAvatarStack component"
 - Modify: `web/src/features/messages/ui/MessageTimeline.tsx`
 
 **Interfaces:**
-- Consumes: `useReadReceipts(channelId)` from `../read-receipts/useReadReceipts`
-- Consumes: `ReadAvatarStack` from `../read-receipts/ReadAvatarStack`
-- Publish receipt: `signNostrEvent` + `getRelayClient(relayWsUrl()).publishAndWait()`
+- Consumes: `useReadReceipts`, `usePublishReadReceipt`, `ReadAvatarStack` from prior tasks
 
-**Steps:**
+- [ ] **Step 1: Add read receipt hooks to `ChannelView`**
 
-- [ ] **Step 1: Read ChannelView.tsx to understand current bottomRef / scroll detection**
+Add imports:
 
-```bash
-grep -n "bottomRef\|isAtBottom\|lastMessage\|publishAndWait\|signNostrEvent" web/src/features/channels/ui/ChannelView.tsx | head -20
-```
-
-- [ ] **Step 2: Add publish-read-receipt logic to ChannelView.tsx**
-
-Find the bottomRef useEffect (or create one). Add debounced receipt publish. Add `useReadReceipts` hook call.
-
-Pattern for the publish (inside a useCallback with 2000ms debounce):
 ```typescript
-// debounced receipt publisher — call when isAtBottom and messages exist
-const publishReadReceipt = useCallback(
-  debounce(async (latestMessage: { id: string; created_at: number }) => {
-    const url = relayHttpBaseUrl() + "/api/nostr";  // direct publish via relay ws
-    const content = JSON.stringify({
-      last_read_event_id: latestMessage.id,
-      last_read_at: latestMessage.created_at,
-    });
-    const event = await signNostrEvent({
-      kind: 30078,
-      content,
-      tags: [["d", `read:${channelId}`]],
-      created_at: Math.floor(Date.now() / 1000),
-    });
-    await getRelayClient(relayWsUrl()).publishAndWait(event);
-  }, 2000),
-  [channelId]
-);
+import { useReadReceipts } from "@/features/messages/readReceipts/useReadReceipts";
+import { usePublishReadReceipt } from "@/features/messages/readReceipts/usePublishReadReceipt";
 ```
 
-Call `publishReadReceipt(latestMessage)` inside an effect that watches `isAtBottom` (or bottomRef intersection).
+Inside `ChannelView()`:
 
-Also add:
 ```typescript
-const readReceipts = useReadReceipts(channelId);
+  const readReceipts = useReadReceipts(channelId);
+  const { markRead } = usePublishReadReceipt(channelId);
 ```
 
-Pass `readReceipts` as a prop to `<MessageTimeline>`.
+- [ ] **Step 2: Trigger `markRead` on scroll-to-bottom**
 
-- [ ] **Step 3: Read MessageRow.tsx to find correct prop addition location**
+The existing `useEffect` (line ~85) already calls `markRead(last.createdAt)` from read-state. After it, add a scroll-to-bottom detector:
 
-```bash
-grep -n "interface.*Props\|onPin\|isAdmin\|isPinned" web/src/features/messages/ui/MessageRow.tsx | head -20
-```
-
-- [ ] **Step 4: Add readReceipts prop to MessageRow**
-
-Add to Props:
 ```typescript
-readReceipts?: Map<string, ReadReceipt>;
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last) return;
+    // Existing read-state mark:
+    markReadState(last.createdAt);
+    // New: read receipt mark — bottom of scroll triggers this via MessageTimeline's onAtBottom
+  }, [messages, markReadState]);
 ```
 
-At the right edge of the message row JSX (after the main content), add:
+Pass `onAtBottom` to `MessageTimeline`:
+
 ```tsx
-{readReceipts && (() => {
-  const readers = Array.from(readReceipts.values()).filter(
-    (r) => r.last_read_event_id === msg.id || r.last_read_at >= msg.created_at
-  );
-  return readers.length > 0 ? <ReadAvatarStack receipts={readers} /> : null;
-})()}
+<MessageTimeline
+  ...
+  readReceipts={readReceipts}
+  onAtBottom={() => {
+    const last = visibleMessages[visibleMessages.length - 1];
+    if (last) markRead(last.id);
+  }}
+/>
 ```
 
-- [ ] **Step 5: Forward readReceipts through MessageTimeline**
+- [ ] **Step 3: Add `readReceipts` + `onAtBottom` to `MessageTimeline`**
 
-```bash
-grep -n "interface.*Props\|onPin\|pinnedMessageIds" web/src/features/messages/ui/MessageTimeline.tsx | head -20
+In `MessageTimeline.tsx`, add to props interface:
+
+```typescript
+  readReceipts?: Map<string, ReadReceipt>;
+  onAtBottom?: () => void;
 ```
 
-Add `readReceipts?: Map<string, ReadReceipt>` to MessageTimeline props and forward to MessageRow.
+Import `ReadReceipt` from `@/features/messages/readReceipts/types`.
 
-- [ ] **Step 6: Type-check**
+In the existing `bottomRef` `useEffect`, call `onAtBottom?.()`:
 
-```bash
-cd web && pnpm tsc --noEmit 2>&1 | head -30
+```typescript
+  useEffect(() => {
+    // existing scroll logic...
+    onAtBottom?.();
+  }, [messages, onAtBottom]);
 ```
 
-Fix any errors before committing.
+Pass `readReceipts` down to each `MessageRow`:
 
-- [ ] **Step 7: Commit**
+```tsx
+<MessageRow
+  ...
+  readReceipts={readReceipts}
+/>
+```
+
+- [ ] **Step 4: Add `ReadAvatarStack` to `MessageRow`**
+
+In `MessageRow.tsx`, add to props:
+
+```typescript
+  readReceipts?: Map<string, ReadReceipt>;
+```
+
+Import `ReadAvatarStack` and compute which pubkeys have read at/past this message:
+
+```typescript
+import { ReadAvatarStack } from "@/features/messages/readReceipts/ReadAvatarStack";
+import type { ReadReceipt } from "@/features/messages/readReceipts/types";
+
+// Inside component:
+const readByPubkeys = readReceipts
+  ? Array.from(readReceipts.values())
+      .filter(
+        (r) =>
+          r.last_read_event_id === msg.id ||
+          r.last_read_at >= msg.createdAt * 1000,
+      )
+      .map((r) => r.pubkey)
+  : [];
+```
+
+Render at the bottom-right of the message row, inside the existing row container:
+
+```tsx
+{readByPubkeys.length > 0 && (
+  <div className="absolute bottom-0.5 right-2">
+    <ReadAvatarStack pubkeys={readByPubkeys} />
+  </div>
+)}
+```
+
+Ensure the row's container has `relative` positioning.
+
+- [ ] **Step 5: Type-check**
 
 ```bash
-git add web/src/features/channels/ui/ChannelView.tsx web/src/features/messages/ui/MessageRow.tsx web/src/features/messages/ui/MessageTimeline.tsx
-git commit -m "feat(web): publish read receipts and show ReadAvatarStack on MessageRow"
+cd web && pnpm tsc --noEmit 2>&1 | head -20
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add web/src/features/channels/ui/ChannelView.tsx \
+        web/src/features/messages/ui/MessageTimeline.tsx \
+        web/src/features/messages/ui/MessageRow.tsx
+git commit -m "feat(web): wire read receipts into ChannelView and MessageRow"
 ```
 
 ---
 
-### Task 4: Desktop — useReadReceipts hook
+### Task 6: Desktop — read receipts hooks + MessageRow integration
 
 **Files:**
-- Create: `desktop/src/features/messages/read-receipts/types.ts`
-- Create: `desktop/src/features/messages/read-receipts/useReadReceipts.ts`
+- Create: `desktop/src/features/messages/readReceipts/useReadReceipts.ts`
+- Create: `desktop/src/features/messages/readReceipts/usePublishReadReceipt.ts`
+- Create: `desktop/src/features/messages/readReceipts/ReadAvatarStack.tsx`
+- Modify: `desktop/src/features/messages/ui/MessageRow.tsx`
+- Modify: desktop channel view file (found in Task 2 Step 1 of pinning plan)
 
 **Interfaces:**
-- Produces: `useReadReceipts(channelId: string | null): Map<string, ReadReceipt>`
-- Same ReadReceipt type as web
+- Consumes: `relayClient.subscribe`, `signRelayEvent`, `relayClient.publishEvent`, `useAnchoredScroll.isAtBottom`
 
-- [ ] **Step 1: Find desktop relay client and member query patterns**
-
-```bash
-grep -rn "subscribeLive\|relayClient\." desktop/src/features/messages/pinning/usePinnedMessages.ts | head -10
-grep -rn "useRelayMembersQuery\|memberPubkeys\|authors" desktop/src/features/community-members/ --include="*.ts" | head -10
-```
-
-- [ ] **Step 2: Write types.ts** (identical to web)
+- [ ] **Step 1: Create `useReadReceipts.ts`**
 
 ```typescript
-export interface ReadReceipt {
-  pubkey: string;
-  last_read_event_id: string;
-  last_read_at: number;
-}
-```
+// desktop/src/features/messages/readReceipts/useReadReceipts.ts
+import { useEffect, useState } from "react";
+import { relayClient } from "@/shared/api/relayClient";
+import type { ChannelMember } from "@/shared/api/types";
+import type { ReadReceipt } from "./types";
 
-- [ ] **Step 3: Write useReadReceipts.ts**
-
-Mirror the pattern from `desktop/src/features/messages/pinning/usePinnedMessages.ts` (uses `relayClient.subscribeLive`, disposed-flag async pattern, `limit: 1` in filter).
-
-```typescript
-import { useState, useEffect } from "react";
-import { useRelayClient } from "@/shared/api/relay-client";
-import { useRelayMembersQuery } from "@/features/community-members/hooks";
-import { ReadReceipt } from "./types";
-
-export function useReadReceipts(channelId: string | null): Map<string, ReadReceipt> {
+export function useReadReceipts(
+  channelId: string | null,
+  members: ChannelMember[],
+): Map<string, ReadReceipt> {
   const [receipts, setReceipts] = useState<Map<string, ReadReceipt>>(new Map());
-  const relayClient = useRelayClient();
-  const { data: members } = useRelayMembersQuery();
-  const memberPubkeys = (members ?? []).map((m) => m.pubkey);
 
   useEffect(() => {
-    if (!channelId || !relayClient || memberPubkeys.length === 0) return;
-    let disposed = false;
-    const unsub = relayClient.subscribeLive(
-      {
-        kinds: [30078],
-        "#d": [`read:${channelId}`],
-        authors: memberPubkeys,
-        limit: 1,
-      },
-      (event) => {
-        if (disposed) return;
+    if (!channelId || members.length === 0) return;
+    const authors = members.map((m) => m.pubkey);
+    const unsub = relayClient.subscribe(
+      { kinds: [30078], "#d": [`read:${channelId}`], authors },
+      (raw) => {
         try {
-          const data = JSON.parse(event.content) as {
+          const content = JSON.parse(raw.content as string) as {
             last_read_event_id: string;
             last_read_at: number;
           };
           setReceipts((prev) => {
             const next = new Map(prev);
-            next.set(event.pubkey, { pubkey: event.pubkey, ...data });
+            next.set(raw.pubkey as string, {
+              pubkey: raw.pubkey as string,
+              ...content,
+            });
             return next;
           });
         } catch {
-          // ignore malformed
+          // ignore
         }
-      }
+      },
     );
     return () => {
-      disposed = true;
       unsub();
+      setReceipts(new Map());
     };
-  }, [channelId, relayClient, memberPubkeys.join(",")]);
+  }, [channelId, members]);
 
   return receipts;
 }
 ```
 
-Check the actual import paths for `useRelayClient` and `useRelayMembersQuery` by looking at how `usePinnedMessages.ts` imports them, then adjust.
+- [ ] **Step 2: Create `usePublishReadReceipt.ts`**
 
-- [ ] **Step 4: Type-check**
+```typescript
+// desktop/src/features/messages/readReceipts/usePublishReadReceipt.ts
+import { useCallback, useRef } from "react";
+import { signRelayEvent } from "@/shared/api/tauri";
+import { relayClient } from "@/shared/api/relayClient";
 
-```bash
-cd desktop && pnpm tsc --noEmit 2>&1 | head -20
+const GUARD_MS = 10_000;
+const DEBOUNCE_MS = 2_000;
+
+export function usePublishReadReceipt(channelId: string | null) {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPublishedAtRef = useRef<number>(0);
+
+  const markRead = useCallback(
+    (eventId: string) => {
+      if (!channelId) return;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        const now = Date.now();
+        if (now - lastPublishedAtRef.current < GUARD_MS) return;
+        lastPublishedAtRef.current = now;
+        try {
+          const event = await signRelayEvent({
+            kind: 30078,
+            content: JSON.stringify({ last_read_event_id: eventId, last_read_at: now }),
+            tags: [["d", `read:${channelId}`]],
+          });
+          await relayClient.publishEvent(event, "Timed out publishing read receipt.", "Failed to publish read receipt.");
+        } catch {
+          // non-critical
+        }
+      }, DEBOUNCE_MS);
+    },
+    [channelId],
+  );
+
+  return { markRead };
+}
 ```
 
-- [ ] **Step 5: Commit**
-
-```bash
-git add desktop/src/features/messages/read-receipts/
-git commit -m "feat(desktop): add useReadReceipts hook and types"
-```
-
----
-
-### Task 5: Desktop — ReadAvatarStack component
-
-**Files:**
-- Create: `desktop/src/features/messages/read-receipts/ReadAvatarStack.tsx`
-
-**Interfaces:**
-- Produces: `<ReadAvatarStack receipts={ReadReceipt[]} maxVisible={3} />`
-- Uses shadcn/ui `Avatar`, `AvatarImage`, `AvatarFallback` components
-
-- [ ] **Step 1: Find Avatar and useProfile patterns in desktop**
-
-```bash
-grep -rn "Avatar\|AvatarImage\|AvatarFallback" desktop/src/features/messages/ui/ --include="*.tsx" | head -10
-grep -rn "useProfile\|displayName\|picture" desktop/src/features/profiles/ --include="*.ts" | head -5
-```
-
-- [ ] **Step 2: Write ReadAvatarStack.tsx using shadcn Avatar**
+- [ ] **Step 3: Create `ReadAvatarStack.tsx`**
 
 ```tsx
+// desktop/src/features/messages/readReceipts/ReadAvatarStack.tsx
+import { useProfileQuery } from "@/features/profiles/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
-import { useProfile } from "@/features/profiles/hooks/useProfile";
-import { ReadReceipt } from "./types";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
-interface Props {
-  receipts: ReadReceipt[];
-  maxVisible?: number;
-}
+const MAX_VISIBLE = 3;
 
-function AvatarPip({ pubkey }: { pubkey: string }) {
-  const profile = useProfile(pubkey);
-  const name = profile?.displayName ?? profile?.name ?? pubkey.slice(0, 8);
+function AvatarItem({ pubkey }: { pubkey: string }) {
+  const { data: profile } = useProfileQuery(pubkey);
+  const name = profile?.name || truncatePubkey(pubkey);
   return (
-    <Avatar className="w-5 h-5 -ml-1 first:ml-0 border border-background">
-      <AvatarImage src={profile?.picture} alt={name} />
-      <AvatarFallback className="text-[9px]">{name[0]?.toUpperCase()}</AvatarFallback>
-    </Avatar>
+    <div title={name} className="-ml-1.5 first:ml-0">
+      <Avatar className="h-4 w-4 ring-1 ring-background">
+        <AvatarImage src={profile?.picture} />
+        <AvatarFallback className="text-[8px]">{name[0]?.toUpperCase()}</AvatarFallback>
+      </Avatar>
+    </div>
   );
 }
 
-export function ReadAvatarStack({ receipts, maxVisible = 3 }: Props) {
-  if (receipts.length === 0) return null;
-  const visible = receipts.slice(0, maxVisible);
-  const overflow = receipts.length - visible.length;
+interface Props {
+  pubkeys: string[];
+}
+
+export function ReadAvatarStack({ pubkeys }: Props) {
+  if (pubkeys.length === 0) return null;
+  const visible = pubkeys.slice(0, MAX_VISIBLE);
+  const overflow = pubkeys.length - visible.length;
+
   return (
-    <div className="flex items-center">
-      {visible.map((r) => (
-        <AvatarPip key={r.pubkey} pubkey={r.pubkey} />
+    <div className="flex items-center" aria-label={`Read by ${pubkeys.length}`}>
+      {visible.map((pk) => (
+        <AvatarItem key={pk} pubkey={pk} />
       ))}
       {overflow > 0 && (
-        <div className="w-5 h-5 rounded-full border border-background bg-muted -ml-1 flex items-center justify-center text-[9px] font-medium">
+        <span className="-ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground">
           +{overflow}
-        </div>
+        </span>
       )}
     </div>
   );
 }
 ```
 
-Adjust Avatar import path based on findings from Step 1.
+- [ ] **Step 4: Add `ReadAvatarStack` to desktop `MessageRow`**
 
-- [ ] **Step 3: Type-check**
+Add to desktop `MessageRow` props:
+
+```typescript
+  readReceipts?: Map<string, ReadReceipt>;
+```
+
+Compute `readByPubkeys` (same logic as web Task 5 Step 4) and render `<ReadAvatarStack>` at bottom-right of the row.
+
+- [ ] **Step 5: Wire `useReadReceipts` + `usePublishReadReceipt` in channel view**
+
+In the desktop channel view, add:
+
+```typescript
+import { useReadReceipts } from "@/features/messages/readReceipts/useReadReceipts";
+import { usePublishReadReceipt } from "@/features/messages/readReceipts/usePublishReadReceipt";
+
+// Needs members — find existing rawMembers usage or add its own useMembers query
+const { markRead } = usePublishReadReceipt(channelId);
+const readReceipts = useReadReceipts(channelId, rawMembers);
+```
+
+Hook into `useAnchoredScroll`'s `isAtBottom` to trigger `markRead`. Find where `isAtBottom` is read from `useAnchoredScroll` and add:
+
+```typescript
+useEffect(() => {
+  if (!isAtBottom) return;
+  const last = messages[messages.length - 1];
+  if (last) markRead(last.id);
+}, [isAtBottom, messages, markRead]);
+```
+
+Pass `readReceipts` down to the message list component.
+
+- [ ] **Step 6: Type-check**
 
 ```bash
 cd desktop && pnpm tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add desktop/src/features/messages/read-receipts/ReadAvatarStack.tsx
-git commit -m "feat(desktop): add ReadAvatarStack component"
-```
-
----
-
-### Task 6: Desktop — wire read receipts into channel view + MessageRow
-
-**Files:**
-- Modify: desktop channel view (discover via grep)
-- Modify: `desktop/src/features/messages/ui/MessageRow.tsx`
-- Modify: `desktop/src/features/messages/ui/MessageTimeline.tsx`
-- Modify: `desktop/src/features/messages/ui/TimelineMessageList.tsx`
-
-**Interfaces:**
-- Consumes: `useReadReceipts` from `../read-receipts/useReadReceipts`
-- Consumes: `ReadAvatarStack` from `../read-receipts/ReadAvatarStack`
-- Consumes: `ReadReceipt` from `../read-receipts/types`
-- Publish receipt: `signRelayEvent` + `relayClient.publishEvent`
-
-- [ ] **Step 1: Discover desktop channel view and isAtBottom pattern**
-
-```bash
-grep -rn "isAtBottom\|useAnchoredScroll\|MessageTimeline" desktop/src/features/channels/ --include="*.tsx" | head -15
-grep -rn "publishEvent\|signRelayEvent" desktop/src/features/messages/pinning/usePinMessage.ts | head -10
-```
-
-- [ ] **Step 2: Wire useReadReceipts in desktop channel view**
-
-Add `useReadReceipts(channelId)` call. Add a `useEffect` that watches `isAtBottom` — when true and `lastMessage` exists, call debounced publish:
-
-```typescript
-const publishReadReceipt = useCallback(
-  debounce(async (latestEventId: string, latestAt: number) => {
-    const content = JSON.stringify({
-      last_read_event_id: latestEventId,
-      last_read_at: latestAt,
-    });
-    const event = await signRelayEvent({
-      kind: 30078,
-      content,
-      tags: [["d", `read:${channelId}`]],
-      created_at: Math.floor(Date.now() / 1000),
-    });
-    relayClient.publishEvent(event, "publishing read receipt", "failed to publish read receipt");
-  }, 2000),
-  [channelId, relayClient]
-);
-```
-
-Call when `isAtBottom` and messages available.
-
-Pass `readReceipts` to `<MessageTimeline>`.
-
-- [ ] **Step 3: Add readReceipts prop to desktop MessageRow**
-
-Find the existing Props interface (it already has `isAdmin?`, `isPinned?`, `onPin?`, `onUnpin?` from Plan 2 Task 7). Add:
-```typescript
-readReceipts?: Map<string, ReadReceipt>;
-```
-
-At right edge of row JSX, add ReadAvatarStack rendering (same logic as web: filter by `last_read_event_id === msg.id || last_read_at >= msg.created_at`).
-
-- [ ] **Step 4: Forward through MessageTimeline and TimelineMessageList**
-
-Same chain as Plan 2: add `readReceipts` prop to MessageTimeline → TimelineMessageList → MessageRow. Check memo comparator in MessageRow also compares readReceipts (by reference is fine).
-
-- [ ] **Step 5: Type-check**
-
-```bash
-cd desktop && pnpm tsc --noEmit 2>&1 | head -30
-```
-
-Fix any errors.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add desktop/src/features/channels/ui/ desktop/src/features/messages/ui/MessageRow.tsx desktop/src/features/messages/ui/MessageTimeline.tsx desktop/src/features/messages/ui/TimelineMessageList.tsx
-git commit -m "feat(desktop): wire read receipts into channel view and MessageRow"
+git add desktop/src/features/messages/readReceipts/
+git commit -m "feat(desktop): wire read receipts — hooks, ReadAvatarStack, MessageRow, channel view"
 ```
