@@ -164,11 +164,12 @@ export async function load(url, context, nextLoad) {
     };
   }
 
-  if (url.endsWith(".tsx")) {
+  if (url.endsWith(".tsx") || url.endsWith(".ts")) {
     const source = fs.readFileSync(fileURLToPath(url), "utf8");
     const transpiled = ts.transpileModule(source, {
       compilerOptions: {
-        jsx: ts.JsxEmit.ReactJSX,
+        // Use ReactJSX for .tsx; None for plain .ts (no JSX syntax to emit).
+        jsx: url.endsWith(".tsx") ? ts.JsxEmit.ReactJSX : ts.JsxEmit.None,
         module: ts.ModuleKind.ESNext,
         target: ts.ScriptTarget.ES2020,
       },
