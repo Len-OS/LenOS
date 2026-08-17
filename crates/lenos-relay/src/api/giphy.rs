@@ -9,8 +9,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::state::AppState;
 use super::{api_error, internal_error};
+use crate::state::AppState;
 
 #[derive(Deserialize)]
 pub struct GiphyQuery {
@@ -44,11 +44,7 @@ pub async fn search_gifs(
         .await
         .map_err(|_| api_error(StatusCode::NOT_FOUND, "relay: no community configured"))?;
 
-    let url = super::bridge::nip98_expected_url(
-        &state.config.relay_url,
-        &tenant,
-        "/api/giphy",
-    );
+    let url = super::bridge::nip98_expected_url(&state.config.relay_url, &tenant, "/api/giphy");
     let (_, event_id_bytes) = super::bridge::verify_bridge_auth(
         &headers,
         "GET",

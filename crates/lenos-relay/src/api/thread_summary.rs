@@ -9,8 +9,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::state::AppState;
 use super::{api_error, internal_error};
+use crate::state::AppState;
 
 #[derive(Deserialize, Serialize)]
 pub struct ThreadMessage {
@@ -44,11 +44,8 @@ pub async fn summarize_thread(
         .await
         .map_err(|_| api_error(StatusCode::NOT_FOUND, "relay: no community configured"))?;
 
-    let url = super::bridge::nip98_expected_url(
-        &state.config.relay_url,
-        &tenant,
-        "/api/thread-summary",
-    );
+    let url =
+        super::bridge::nip98_expected_url(&state.config.relay_url, &tenant, "/api/thread-summary");
     let (_, event_id_bytes) = super::bridge::verify_bridge_auth(
         &headers,
         "POST",
@@ -59,14 +56,18 @@ pub async fn summarize_thread(
     super::bridge::check_nip98_replay(&state, &tenant, event_id_bytes).await?;
 
     // Require LENGROWTH_API_URL
-    let base_url = state
-        .config
-        .lengrowth_api_url
-        .as_deref()
-        .ok_or_else(|| api_error(StatusCode::SERVICE_UNAVAILABLE, "AI summarization not configured"))?;
+    let base_url = state.config.lengrowth_api_url.as_deref().ok_or_else(|| {
+        api_error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "AI summarization not configured",
+        )
+    })?;
 
     if body.messages.is_empty() {
-        return Err(api_error(StatusCode::BAD_REQUEST, "messages array is empty"));
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "messages array is empty",
+        ));
     }
 
     // Forward to LenGrowth
@@ -83,7 +84,12 @@ pub async fn summarize_thread(
         .json(&upstream_body)
         .send()
         .await
-        .map_err(|e| api_error(StatusCode::BAD_GATEWAY, &format!("LenGrowth unreachable: {e}")))?;
+        .map_err(|e| {
+            api_error(
+                StatusCode::BAD_GATEWAY,
+                &format!("LenGrowth unreachable: {e}"),
+            )
+        })?;
 
     if !resp.status().is_success() {
         return Err(api_error(
@@ -92,10 +98,12 @@ pub async fn summarize_thread(
         ));
     }
 
-    let result: SummarizeResponse = resp
-        .json()
-        .await
-        .map_err(|e| api_error(StatusCode::BAD_GATEWAY, &format!("invalid LenGrowth response: {e}")))?;
+    let result: SummarizeResponse = resp.json().await.map_err(|e| {
+        api_error(
+            StatusCode::BAD_GATEWAY,
+            &format!("invalid LenGrowth response: {e}"),
+        )
+    })?;
 
     Ok(Json(result))
 }

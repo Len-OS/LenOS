@@ -20,8 +20,8 @@ use axum::{
 
 use crate::state::AppState;
 
-use super::{api_error, internal_error};
 use super::bridge::{check_nip98_replay, nip98_expected_url, verify_bridge_auth};
+use super::{api_error, internal_error};
 
 const MAX_EXPORT_ROWS: i64 = 100_000;
 
@@ -91,7 +91,10 @@ pub async fn export_user_data(
             let bytes = hex::decode(hex_pk)
                 .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid pubkey hex"))?;
             if bytes.len() != 32 {
-                return Err(api_error(StatusCode::BAD_REQUEST, "pubkey must be 32 bytes"));
+                return Err(api_error(
+                    StatusCode::BAD_REQUEST,
+                    "pubkey must be 32 bytes",
+                ));
             }
             bytes
         }
@@ -167,7 +170,9 @@ pub async fn export_user_data(
         [
             (
                 axum::http::header::CONTENT_TYPE,
-                "application/json".parse::<axum::http::HeaderValue>().unwrap(),
+                "application/json"
+                    .parse::<axum::http::HeaderValue>()
+                    .unwrap(),
             ),
             (
                 axum::http::header::CONTENT_DISPOSITION,

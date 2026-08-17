@@ -25,8 +25,8 @@ use nostr::Event;
 
 use crate::state::AppState;
 
-use super::{api_error, internal_error};
 use super::bridge::{check_nip98_replay, nip98_expected_url, verify_bridge_auth};
+use super::{api_error, internal_error};
 
 // ── Row types ──────────────────────────────────────────────────────────────────
 
@@ -105,10 +105,14 @@ pub async fn list_webhooks(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let (tenant, pubkey_bytes) =
-        auth_prelude(&state, &headers, "GET", "/api/webhooks").await?;
+    let (tenant, pubkey_bytes) = auth_prelude(&state, &headers, "GET", "/api/webhooks").await?;
 
-    require_admin(state.db.pool(), *tenant.community().as_uuid(), &pubkey_bytes).await?;
+    require_admin(
+        state.db.pool(),
+        *tenant.community().as_uuid(),
+        &pubkey_bytes,
+    )
+    .await?;
 
     let rows: Vec<OutgoingWebhook> = sqlx::query_as(
         "SELECT id, community_id, url, event_filter, secret, created_at \
@@ -119,7 +123,9 @@ pub async fn list_webhooks(
     .await
     .map_err(|e| internal_error(&format!("db error listing webhooks: {e}")))?;
 
-    Ok(Json(serde_json::to_value(rows).unwrap_or(serde_json::json!([]))))
+    Ok(Json(
+        serde_json::to_value(rows).unwrap_or(serde_json::json!([])),
+    ))
 }
 
 /// `POST /api/webhooks` — create a webhook (admin only).
@@ -128,10 +134,14 @@ pub async fn create_webhook(
     headers: HeaderMap,
     body: axum::body::Bytes,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let (tenant, pubkey_bytes) =
-        auth_prelude(&state, &headers, "POST", "/api/webhooks").await?;
+    let (tenant, pubkey_bytes) = auth_prelude(&state, &headers, "POST", "/api/webhooks").await?;
 
-    require_admin(state.db.pool(), *tenant.community().as_uuid(), &pubkey_bytes).await?;
+    require_admin(
+        state.db.pool(),
+        *tenant.community().as_uuid(),
+        &pubkey_bytes,
+    )
+    .await?;
 
     let req: CreateWebhookRequest = serde_json::from_slice(&body)
         .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("invalid JSON: {e}")))?;
@@ -179,10 +189,14 @@ pub async fn delete_webhook(
         .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid webhook UUID"))?;
 
     let path = format!("/api/webhooks/{id_str}");
-    let (tenant, pubkey_bytes) =
-        auth_prelude(&state, &headers, "DELETE", &path).await?;
+    let (tenant, pubkey_bytes) = auth_prelude(&state, &headers, "DELETE", &path).await?;
 
-    require_admin(state.db.pool(), *tenant.community().as_uuid(), &pubkey_bytes).await?;
+    require_admin(
+        state.db.pool(),
+        *tenant.community().as_uuid(),
+        &pubkey_bytes,
+    )
+    .await?;
 
     let deleted = sqlx::query_scalar::<_, bool>(
         "WITH del AS (DELETE FROM outgoing_webhooks WHERE id = $1 AND community_id = $2 RETURNING id) \
@@ -210,7 +224,11 @@ pub async fn delete_webhook(
 /// - `{"kinds": [40002, 7]}` — matches only the listed kinds
 /// - `{"channel_ids": ["uuid1"]}` — matches only events in those channels
 /// - Both keys may be combined; both must match.
-fn event_matches_filter(filter: &serde_json::Value, event: &Event, channel_id: Option<uuid::Uuid>) -> bool {
+fn event_matches_filter(
+    filter: &serde_json::Value,
+    event: &Event,
+    channel_id: Option<uuid::Uuid>,
+) -> bool {
     if let Some(kinds) = filter.get("kinds").and_then(|v| v.as_array()) {
         let event_kind = event.kind.as_u16() as u64;
         let kind_match = kinds.iter().any(|k| k.as_u64() == Some(event_kind));
@@ -236,8 +254,8 @@ fn event_matches_filter(filter: &serde_json::Value, event: &Event, channel_id: O
 
 /// Compute HMAC-SHA256 of `body` using `secret` and return the hex digest.
 fn hmac_sha256_hex(secret: &str, body: &[u8]) -> String {
-    let mut mac = <Hmac<Sha256>>::new_from_slice(secret.as_bytes())
-        .expect("HMAC accepts any key length");
+    let mut mac =
+        <Hmac<Sha256>>::new_from_slice(secret.as_bytes()).expect("HMAC accepts any key length");
     mac.update(body);
     hex::encode(mac.finalize().into_bytes())
 }

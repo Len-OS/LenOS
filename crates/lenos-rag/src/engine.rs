@@ -17,7 +17,12 @@ pub struct RagEngine {
     pub openai_api_key: String,
     /// S3 put closure: (key, bytes, content_type) → Result<(), String>
     pub s3_put: std::sync::Arc<
-        dyn Fn(String, Vec<u8>, String) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+        dyn Fn(
+                String,
+                Vec<u8>,
+                String,
+            )
+                -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
             + Send
             + Sync,
     >,
@@ -73,12 +78,7 @@ impl RagEngine {
             Err(e) => {
                 let _ = self
                     .db
-                    .update_document_status(
-                        community_id,
-                        doc_id,
-                        "failed",
-                        Some(&e.to_string()),
-                    )
+                    .update_document_status(community_id, doc_id, "failed", Some(&e.to_string()))
                     .await;
                 return Err(e);
             }

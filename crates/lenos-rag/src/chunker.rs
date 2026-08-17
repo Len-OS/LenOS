@@ -67,7 +67,11 @@ fn split_recursive(text: &str, separators: &[&str], out: &mut Vec<String>) {
 
         // Merge adjacent parts greedily until we'd exceed MAX_TOKENS, then
         // recurse on anything still too large with remaining separators.
-        let remaining_seps = if i + 1 < separators.len() { &separators[i + 1..] } else { separators };
+        let remaining_seps = if i + 1 < separators.len() {
+            &separators[i + 1..]
+        } else {
+            separators
+        };
         let mut current = String::new();
         for part in parts {
             let candidate = if current.is_empty() {

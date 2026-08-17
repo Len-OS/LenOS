@@ -226,9 +226,7 @@ impl WorkflowEngine {
                 let trace_json = serde_json::Value::Array(full_trace);
                 let step_count = result.step_index as i32;
 
-                if let (Some(token), Some(ctx)) =
-                    (result.approval_token, result.approval_context)
-                {
+                if let (Some(token), Some(ctx)) = (result.approval_token, result.approval_context) {
                     tracing::info!(
                         run_id = %run_id,
                         step_index = result.step_index,

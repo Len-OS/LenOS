@@ -739,8 +739,7 @@ pub async fn dispatch_action(
 
             let token = generate_approval_token(run_id, step_id);
             let timeout_secs = parse_duration_secs(timeout_str).unwrap_or(86_400);
-            let expires_at = chrono::Utc::now()
-                + chrono::Duration::seconds(timeout_secs as i64);
+            let expires_at = chrono::Utc::now() + chrono::Duration::seconds(timeout_secs as i64);
 
             Ok(StepResult::Suspended {
                 approval_token: token,

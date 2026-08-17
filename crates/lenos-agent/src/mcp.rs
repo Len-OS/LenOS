@@ -15,7 +15,9 @@ use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
 
 use crate::config::{Config, HookServers};
-use crate::types::{clamp, AgentError, McpHttpServerConfig, McpServerStdio, ToolDef, ToolResult, ToolResultContent};
+use crate::types::{
+    clamp, AgentError, McpHttpServerConfig, McpServerStdio, ToolDef, ToolResult, ToolResultContent,
+};
 
 const SEP: &str = "__";
 const MAX_NAME_LEN: usize = 128;
@@ -753,18 +755,12 @@ impl McpRegistry {
 
         let restart_result: Result<(Arc<Client>, Option<u32>, Vec<String>), AgentError> =
             match &server.kind {
-                ServerKind::Stdio(spec) => {
-                    spawn_one(spec, self.init_timeout).await.map(
-                        |(client, pgid, tool_names, _raw_tools)| {
-                            (Arc::new(client), pgid, tool_names)
-                        },
-                    )
-                }
-                ServerKind::Http(spec) => {
-                    connect_http(spec, self.init_timeout).await.map(
-                        |(client, tool_names, _raw_tools)| (Arc::new(client), None, tool_names),
-                    )
-                }
+                ServerKind::Stdio(spec) => spawn_one(spec, self.init_timeout).await.map(
+                    |(client, pgid, tool_names, _raw_tools)| (Arc::new(client), pgid, tool_names),
+                ),
+                ServerKind::Http(spec) => connect_http(spec, self.init_timeout)
+                    .await
+                    .map(|(client, tool_names, _raw_tools)| (Arc::new(client), None, tool_names)),
             };
 
         match restart_result {
@@ -822,7 +818,11 @@ async fn connect_http(
             return Err(AgentError::Mcp(format!("http init {}: {e}", spec.name)));
         }
         Err(_) => {
-            return Err(AgentError::Mcp(timeout_msg("http init", &spec.name, timeout)));
+            return Err(AgentError::Mcp(timeout_msg(
+                "http init",
+                &spec.name,
+                timeout,
+            )));
         }
     };
     let tools = match tokio::time::timeout(timeout, client.peer().list_all_tools()).await {

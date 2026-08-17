@@ -53,8 +53,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     let document_router = Router::new()
         .route("/api/documents", get(api::documents::list_documents))
-        .route("/api/documents/search", get(api::documents::search_documents))
-        .route("/api/documents/{id}", axum::routing::delete(api::documents::delete_document))
+        .route(
+            "/api/documents/search",
+            get(api::documents::search_documents),
+        )
+        .route(
+            "/api/documents/{id}",
+            axum::routing::delete(api::documents::delete_document),
+        )
         .with_state(state.clone());
 
     let git_router = api::git::git_router(state.clone());
@@ -148,7 +154,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         // Data export / GDPR (NIP-98 auth, admin or self)
         .route("/api/export", get(api::export::export_user_data))
         // AI thread summarization — NIP-98 auth, proxies to LenGrowth
-        .route("/api/thread-summary", post(api::thread_summary::summarize_thread))
+        .route(
+            "/api/thread-summary",
+            post(api::thread_summary::summarize_thread),
+        )
         // Giphy GIF search proxy — NIP-98 auth
         .route("/api/giphy", get(api::giphy::search_gifs))
         // Webhook trigger (secret-authenticated, no NIP-98)
