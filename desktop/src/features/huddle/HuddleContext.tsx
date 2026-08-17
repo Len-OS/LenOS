@@ -123,6 +123,10 @@ interface HuddleContextValue {
   /** Leave the current huddle — stops worklet, stops mic, calls Rust leave_huddle.
    *  Returns true if backend cleanup succeeded, false if it failed (caller may retry). */
   leaveHuddle: () => Promise<boolean>;
+  /** Whether the local mic is muted */
+  isMuted: boolean;
+  /** Toggle local mic mute */
+  toggleMute: () => void;
   /** Whether the huddle is currently popped out into a PiP window */
   isPoppedOut: boolean;
   /** Re-initialize audio with new quality settings — only acts when mic is connected */
@@ -174,6 +178,7 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
   const [localVideoStream, setLocalVideoStream] =
     React.useState<MediaStream | null>(null);
   const [isPoppedOut, setIsPoppedOut] = React.useState(false);
+  const [isMuted, setIsMuted] = React.useState(false);
   const huddleVideoRef = React.useRef<HuddleVideoWs | null>(null);
   const {
     audioDevices,
@@ -422,6 +427,14 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
     setLocalVideoStream(null);
   }, []);
 
+  const toggleMute = React.useCallback(() => {
+    const track = audioTrackRef.current;
+    if (track) {
+      track.enabled = !track.enabled;
+      setIsMuted(!track.enabled);
+    }
+  }, []);
+
   const reinitAudio = React.useCallback(
     async (settings: HuddleAudioSettings) => {
       localStorage.setItem(
@@ -504,6 +517,7 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
     audioTrackRef.current?.stop();
     setLocalAudioTrack(null);
     setMicConnected(false);
+    setIsMuted(false);
     setEphemeralChannelId(null);
     setHuddleParentChannelId(null);
     setActiveSpeakers([]);
@@ -958,6 +972,8 @@ export function HuddleProvider({ children }: { children: React.ReactNode }) {
         startCameraShare,
         stopCameraShare,
         isPoppedOut,
+        isMuted,
+        toggleMute,
         reinitAudio,
       }}
     >
