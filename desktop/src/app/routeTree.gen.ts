@@ -7,9 +7,13 @@
 import { Route as rootRouteImport } from "./routes/root";
 import { Route as workflowsRouteImport } from "./routes/workflows";
 import { Route as settingsRouteImport } from "./routes/settings";
+import { Route as scheduledRouteImport } from "./routes/scheduled";
+import { Route as savedRouteImport } from "./routes/saved";
 import { Route as remindersRouteImport } from "./routes/reminders";
 import { Route as pulseRouteImport } from "./routes/pulse";
 import { Route as projectsRouteImport } from "./routes/projects";
+import { Route as peopleRouteImport } from "./routes/people";
+import { Route as huddlePipRouteImport } from "./routes/huddle-pip";
 import { Route as documentsRouteImport } from "./routes/documents";
 import { Route as agentsRouteImport } from "./routes/agents";
 import { Route as indexRouteImport } from "./routes/index";
@@ -29,6 +33,16 @@ const settingsRoute = settingsRouteImport.update({
   path: "/settings",
   getParentRoute: () => rootRouteImport,
 } as any);
+const scheduledRoute = scheduledRouteImport.update({
+  id: "/scheduled",
+  path: "/scheduled",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const savedRoute = savedRouteImport.update({
+  id: "/saved",
+  path: "/saved",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const remindersRoute = remindersRouteImport.update({
   id: "/reminders",
   path: "/reminders",
@@ -42,6 +56,16 @@ const pulseRoute = pulseRouteImport.update({
 const projectsRoute = projectsRouteImport.update({
   id: "/projects",
   path: "/projects",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const peopleRoute = peopleRouteImport.update({
+  id: "/people",
+  path: "/people",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const huddlePipRoute = huddlePipRouteImport.update({
+  id: "/huddle-pip",
+  path: "/huddle-pip",
   getParentRoute: () => rootRouteImport,
 } as any);
 const documentsRoute = documentsRouteImport.update({
@@ -90,9 +114,13 @@ export interface FileRoutesByFullPath {
   "/": typeof indexRoute;
   "/agents": typeof agentsRoute;
   "/documents": typeof documentsRoute;
+  "/huddle-pip": typeof huddlePipRoute;
+  "/people": typeof peopleRoute;
   "/projects": typeof projectsRoute;
   "/pulse": typeof pulseRoute;
   "/reminders": typeof remindersRoute;
+  "/saved": typeof savedRoute;
+  "/scheduled": typeof scheduledRoute;
   "/settings": typeof settingsRoute;
   "/workflows": typeof workflowsRoute;
   "/channels/$channelId": typeof channelsDotchannelIdRoute;
@@ -105,9 +133,13 @@ export interface FileRoutesByTo {
   "/": typeof indexRoute;
   "/agents": typeof agentsRoute;
   "/documents": typeof documentsRoute;
+  "/huddle-pip": typeof huddlePipRoute;
+  "/people": typeof peopleRoute;
   "/projects": typeof projectsRoute;
   "/pulse": typeof pulseRoute;
   "/reminders": typeof remindersRoute;
+  "/saved": typeof savedRoute;
+  "/scheduled": typeof scheduledRoute;
   "/settings": typeof settingsRoute;
   "/workflows": typeof workflowsRoute;
   "/channels/$channelId": typeof channelsDotchannelIdRoute;
@@ -121,9 +153,13 @@ export interface FileRoutesById {
   "/": typeof indexRoute;
   "/agents": typeof agentsRoute;
   "/documents": typeof documentsRoute;
+  "/huddle-pip": typeof huddlePipRoute;
+  "/people": typeof peopleRoute;
   "/projects": typeof projectsRoute;
   "/pulse": typeof pulseRoute;
   "/reminders": typeof remindersRoute;
+  "/saved": typeof savedRoute;
+  "/scheduled": typeof scheduledRoute;
   "/settings": typeof settingsRoute;
   "/workflows": typeof workflowsRoute;
   "/channels/$channelId": typeof channelsDotchannelIdRoute;
@@ -138,9 +174,13 @@ export interface FileRouteTypes {
     | "/"
     | "/agents"
     | "/documents"
+    | "/huddle-pip"
+    | "/people"
     | "/projects"
     | "/pulse"
     | "/reminders"
+    | "/saved"
+    | "/scheduled"
     | "/settings"
     | "/workflows"
     | "/channels/$channelId"
@@ -153,9 +193,13 @@ export interface FileRouteTypes {
     | "/"
     | "/agents"
     | "/documents"
+    | "/huddle-pip"
+    | "/people"
     | "/projects"
     | "/pulse"
     | "/reminders"
+    | "/saved"
+    | "/scheduled"
     | "/settings"
     | "/workflows"
     | "/channels/$channelId"
@@ -168,9 +212,13 @@ export interface FileRouteTypes {
     | "/"
     | "/agents"
     | "/documents"
+    | "/huddle-pip"
+    | "/people"
     | "/projects"
     | "/pulse"
     | "/reminders"
+    | "/saved"
+    | "/scheduled"
     | "/settings"
     | "/workflows"
     | "/channels/$channelId"
@@ -184,9 +232,13 @@ export interface RootRouteChildren {
   indexRoute: typeof indexRoute;
   agentsRoute: typeof agentsRoute;
   documentsRoute: typeof documentsRoute;
+  huddlePipRoute: typeof huddlePipRoute;
+  peopleRoute: typeof peopleRoute;
   projectsRoute: typeof projectsRoute;
   pulseRoute: typeof pulseRoute;
   remindersRoute: typeof remindersRoute;
+  savedRoute: typeof savedRoute;
+  scheduledRoute: typeof scheduledRoute;
   settingsRoute: typeof settingsRoute;
   workflowsRoute: typeof workflowsRoute;
   channelsDotchannelIdRoute: typeof channelsDotchannelIdRoute;
@@ -212,6 +264,20 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof settingsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/scheduled": {
+      id: "/scheduled";
+      path: "/scheduled";
+      fullPath: "/scheduled";
+      preLoaderRoute: typeof scheduledRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/saved": {
+      id: "/saved";
+      path: "/saved";
+      fullPath: "/saved";
+      preLoaderRoute: typeof savedRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     "/reminders": {
       id: "/reminders";
       path: "/reminders";
@@ -233,11 +299,18 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof projectsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
-    "/agents": {
-      id: "/agents";
-      path: "/agents";
-      fullPath: "/agents";
-      preLoaderRoute: typeof agentsRouteImport;
+    "/people": {
+      id: "/people";
+      path: "/people";
+      fullPath: "/people";
+      preLoaderRoute: typeof peopleRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/huddle-pip": {
+      id: "/huddle-pip";
+      path: "/huddle-pip";
+      fullPath: "/huddle-pip";
+      preLoaderRoute: typeof huddlePipRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/documents": {
@@ -245,6 +318,13 @@ declare module "@tanstack/react-router" {
       path: "/documents";
       fullPath: "/documents";
       preLoaderRoute: typeof documentsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/agents": {
+      id: "/agents";
+      path: "/agents";
+      fullPath: "/agents";
+      preLoaderRoute: typeof agentsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/": {
@@ -296,9 +376,13 @@ const rootRouteChildren: RootRouteChildren = {
   indexRoute: indexRoute,
   agentsRoute: agentsRoute,
   documentsRoute: documentsRoute,
+  huddlePipRoute: huddlePipRoute,
+  peopleRoute: peopleRoute,
   projectsRoute: projectsRoute,
   pulseRoute: pulseRoute,
   remindersRoute: remindersRoute,
+  savedRoute: savedRoute,
+  scheduledRoute: scheduledRoute,
   settingsRoute: settingsRoute,
   workflowsRoute: workflowsRoute,
   channelsDotchannelIdRoute: channelsDotchannelIdRoute,

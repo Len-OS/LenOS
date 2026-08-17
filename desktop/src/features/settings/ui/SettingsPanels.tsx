@@ -847,8 +847,8 @@ export function renderSettingsSection(
             onSetAllSlotAlertsEnabled={props.onSetAllSlotAlertsEnabled}
             onSetSoundForSlot={props.onSetSoundForSlot}
           />
-          <DndSettingsCard currentPubkey={props.currentPubkey} />
-          <KeywordRulesCard currentPubkey={props.currentPubkey} />
+          <DndSettingsCard currentPubkey={props.currentPubkey ?? null} />
+          <KeywordRulesCard currentPubkey={props.currentPubkey ?? null} />
         </div>
       );
     case "voice":
