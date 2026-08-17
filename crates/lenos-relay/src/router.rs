@@ -185,8 +185,11 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         )
         .route(
             "/api/agent-credentials/{agent_d_tag}",
-            get(api::agent_credentials::get_creds)
-                .delete(api::agent_credentials::delete_creds),
+            get(api::agent_credentials::get_creds).delete(api::agent_credentials::delete_creds),
+        )
+        .route(
+            "/api/agent-credentials/{agent_d_tag}/resolve",
+            get(api::agent_credentials::resolve_creds),
         )
         // Reject request bodies larger than 1 MB to prevent resource exhaustion.
         .layer(RequestBodyLimitLayer::new(1024 * 1024))

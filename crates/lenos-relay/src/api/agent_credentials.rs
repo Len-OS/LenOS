@@ -1,10 +1,11 @@
 //! Encrypted agent credential HTTP API.
 //!
 //! Routes:
-//!   GET  /api/relay/pubkey                  — no auth; returns relay hex pubkey
-//!   PUT  /api/agent-credentials             — NIP-98; upserts NIP-44 ciphertext
-//!   GET  /api/agent-credentials/{d_tag}     — NIP-98; returns caller's ciphertext
-//!   DELETE /api/agent-credentials/{d_tag}   — NIP-98; deletes caller's record
+//!   GET  /api/relay/pubkey                          — no auth; returns relay hex pubkey
+//!   PUT  /api/agent-credentials                     — NIP-98; upserts NIP-44 ciphertext
+//!   GET  /api/agent-credentials/{d_tag}             — NIP-98; returns caller's ciphertext
+//!   GET  /api/agent-credentials/{d_tag}/resolve     — NIP-98; decrypts and returns plaintext env vars
+//!   DELETE /api/agent-credentials/{d_tag}           — NIP-98; deletes caller's record
 
 use std::sync::Arc;
 
@@ -47,10 +48,7 @@ pub async fn upsert(
     let req: UpsertBody = serde_json::from_slice(&body)
         .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("invalid JSON: {e}")))?;
 
-    if req.agent_d_tag.is_empty()
-        || req.agent_d_tag.len() > 255
-        || req.agent_d_tag.contains('\0')
-    {
+    if req.agent_d_tag.is_empty() || req.agent_d_tag.len() > 255 || req.agent_d_tag.contains('\0') {
         return Err(api_error(
             StatusCode::BAD_REQUEST,
             "agent_d_tag must be 1-255 chars with no null bytes",
@@ -89,8 +87,7 @@ pub async fn get_creds(
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = format!("/api/agent-credentials/{agent_d_tag}");
-    let (tenant, pubkey) =
-        authenticate_method(&state, &headers, "GET", &path, &[]).await?;
+    let (tenant, pubkey) = authenticate_method(&state, &headers, "GET", &path, &[]).await?;
 
     let owner_pubkey = pubkey.to_hex();
     let record = state
@@ -113,6 +110,63 @@ pub async fn get_creds(
     })))
 }
 
+/// `GET /api/agent-credentials/{agent_d_tag}/resolve` — NIP-98 auth.
+///
+/// Decrypts the stored NIP-44 ciphertext using the relay's private key and
+/// returns the plaintext env-var map. Used by agent runners (e.g. lenos-acp)
+/// at spawn time to inject provider credentials into the agent process.
+///
+/// The decrypted payload is never written to any log.
+pub async fn resolve_creds(
+    State(state): State<Arc<AppState>>,
+    Path(agent_d_tag): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let path = format!("/api/agent-credentials/{agent_d_tag}/resolve");
+    let (tenant, pubkey) = authenticate_method(&state, &headers, "GET", &path, &[]).await?;
+
+    let owner_pubkey = pubkey.to_hex();
+    let record = state
+        .db
+        .get_agent_credentials(tenant.community(), &owner_pubkey, &agent_d_tag)
+        .await
+        .map_err(|e| internal_error(&format!("get agent credentials: {e}")))?
+        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "credential not found"))?;
+
+    if record.owner_pubkey != owner_pubkey {
+        return Err(api_error(StatusCode::FORBIDDEN, "forbidden"));
+    }
+
+    let owner_pk = nostr::PublicKey::from_hex(&record.owner_pubkey)
+        .map_err(|_| internal_error("invalid owner_pubkey in DB record"))?;
+
+    let plaintext = nostr::nips::nip44::decrypt(
+        state.relay_keypair.secret_key(),
+        &owner_pk,
+        &record.ciphertext,
+    )
+    .map_err(|_| {
+        tracing::warn!(
+            agent_d_tag = %agent_d_tag,
+            "resolve_creds: NIP-44 decrypt failed — ciphertext may be corrupt or re-keyed"
+        );
+        api_error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "credential decryption failed",
+        )
+    })?;
+
+    let env_vars: serde_json::Map<String, Value> =
+        serde_json::from_str(&plaintext).map_err(|_| {
+            api_error(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "credential payload is not valid JSON",
+            )
+        })?;
+
+    Ok(Json(json!({ "env": env_vars })))
+}
+
 /// `DELETE /api/agent-credentials/{agent_d_tag}` — NIP-98 auth.
 pub async fn delete_creds(
     State(state): State<Arc<AppState>>,
@@ -120,8 +174,7 @@ pub async fn delete_creds(
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = format!("/api/agent-credentials/{agent_d_tag}");
-    let (tenant, pubkey) =
-        authenticate_method(&state, &headers, "DELETE", &path, &[]).await?;
+    let (tenant, pubkey) = authenticate_method(&state, &headers, "DELETE", &path, &[]).await?;
 
     let owner_pubkey = pubkey.to_hex();
     state

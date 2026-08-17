@@ -9,10 +9,10 @@
 //! - No FK references to partitioned tables.
 //! - Uses `sqlx::query()` (runtime) not `sqlx::query!()` (compile-time).
 
-/// Encrypted agent credential storage (NIP-44 v2 ciphertext per owner/agent).
-pub mod agent_credentials;
 /// Explicit deployment-global admin report reads.
 pub mod admin_moderation;
+/// Encrypted agent credential storage (NIP-44 v2 ciphertext per owner/agent).
+pub mod agent_credentials;
 /// API token storage and lookup.
 pub mod api_token;
 /// Relay-scoped archived identity persistence (NIP-IA).
