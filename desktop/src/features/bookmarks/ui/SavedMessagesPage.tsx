@@ -131,7 +131,7 @@ export function SavedMessagesPage() {
               const profileKey = message.pubkey.toLowerCase();
               const profile = profiles?.[profileKey];
               const authorLabel =
-                profile?.displayName ?? message.pubkey.slice(0, 8) + "...";
+                profile?.displayName ?? `${message.pubkey.slice(0, 8)}...`;
               const avatarUrl = profile?.avatarUrl ?? null;
               return (
                 <SavedMessageRow

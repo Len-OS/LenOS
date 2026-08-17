@@ -299,7 +299,7 @@ export class HuddleVideoWs {
           const wire = new Uint8Array(VIDEO_HDR_V2 + slice.length);
           wire.set(header, 0);
           wire.set(slice, VIDEO_HDR_V2);
-          this.ws!.send(wire.buffer);
+          this.ws?.send(wire.buffer);
           this.seq = (this.seq + 1) & 0xffff;
           offset = end;
         }
@@ -331,7 +331,7 @@ export class HuddleVideoWs {
         this.frameCount % KEYFRAME_INTERVAL === 0 ? "key" : "delta";
       try {
         const frame = new VideoFrame(video, { timestamp: pts_us });
-        this.encoder!.encode(frame, { keyFrame: keyFrameType === "key" });
+        this.encoder?.encode(frame, { keyFrame: keyFrameType === "key" });
         frame.close();
       } catch {
         // frame may be invalid before video starts
@@ -376,9 +376,10 @@ export class HuddleVideoWs {
     if (!this.fragmentBuffers.has(senderPubkey)) {
       this.fragmentBuffers.set(senderPubkey, new Map());
     }
-    const buf = this.fragmentBuffers.get(senderPubkey)!;
+    const buf =
+      this.fragmentBuffers.get(senderPubkey) ?? new Map<number, Uint8Array[]>();
     if (!buf.has(seq)) buf.set(seq, []);
-    buf.get(seq)!.push(new Uint8Array(payload));
+    buf.get(seq)?.push(new Uint8Array(payload));
 
     if ((flags & FLAG_LAST_FRAGMENT) !== 0) {
       const fragments = buf.get(seq) ?? [];
@@ -402,7 +403,9 @@ export class HuddleVideoWs {
     } catch {
       /* already closed */
     }
-    this.stream?.getTracks().forEach((t) => t.stop());
+    this.stream?.getTracks().forEach((t) => {
+      t.stop();
+    });
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.close();
     this.onStop();
   }

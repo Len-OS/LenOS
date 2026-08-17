@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { relayClient } from "@/shared/api/relayClient";
 import { useRelayMembersQuery } from "@/features/community-members/hooks";
 import type { ReadReceipt } from "./types";
@@ -8,7 +8,10 @@ export function useReadReceipts(
 ): Map<string, ReadReceipt> {
   const [receipts, setReceipts] = useState<Map<string, ReadReceipt>>(new Map());
   const { data: members } = useRelayMembersQuery();
-  const memberPubkeys = (members ?? []).map((m) => m.pubkey);
+  const memberPubkeys = useMemo(
+    () => (members ?? []).map((m) => m.pubkey),
+    [members],
+  );
 
   useEffect(() => {
     if (!channelId || memberPubkeys.length === 0) return;
@@ -58,7 +61,7 @@ export function useReadReceipts(
       dispose?.();
       setReceipts(new Map());
     };
-  }, [channelId, memberPubkeys.join(",")]);
+  }, [channelId, memberPubkeys]);
 
   return receipts;
 }

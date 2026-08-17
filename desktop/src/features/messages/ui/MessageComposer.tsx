@@ -134,6 +134,7 @@ function MessageComposerImpl({
   // Ref to the editor-clear action — assigned after richText is initialized below.
   const scheduleResetEditorRef = React.useRef<() => void>(() => {});
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: contentRef is a stable React ref
   const handleSchedule = React.useCallback(async () => {
     const text = contentRef.current.trim();
     if (!text) {
@@ -758,7 +759,6 @@ function MessageComposerImpl({
     richText.clearContent,
     richText.setContent,
     setComposerContent,
-    setComposerText,
     spoileredAttachmentUrls,
     syncComposerContentFromEditor,
     onCaptureSendContext,

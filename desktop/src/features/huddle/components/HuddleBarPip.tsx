@@ -37,6 +37,7 @@ export function HuddleBarPip() {
 
   return (
     <div
+      role="toolbar"
       style={{
         ...dragRegion,
         width: "280px",
@@ -55,6 +56,7 @@ export function HuddleBarPip() {
         Huddle active
       </span>
       <button
+        type="button"
         style={noDragRegion}
         onClick={toggleMute}
         title={isMuted ? "Unmute" : "Mute"}
@@ -62,6 +64,7 @@ export function HuddleBarPip() {
         {isMuted ? "🔇" : "🔊"}
       </button>
       <button
+        type="button"
         style={noDragRegion}
         onClick={() => void handleExpand()}
         title="Expand"
@@ -69,6 +72,7 @@ export function HuddleBarPip() {
         ⬆
       </button>
       <button
+        type="button"
         style={noDragRegion}
         onClick={() => void handleLeave()}
         title="Leave"
