@@ -1,5 +1,6 @@
 import { Settings2 } from "lucide-react";
 import type { Agent } from "../useAgents";
+import { AgentReadinessBadge } from "./AgentReadinessBadge";
 
 interface Props {
   agent: Agent;
@@ -71,6 +72,7 @@ export function AgentCard({ agent, onClick, onConfigure }: Props) {
           Remote LenGrowth agent
         </span>
       )}
+      <AgentReadinessBadge agentDTag={agent.id} onConfigure={onConfigure} />
       {agent.description && (
         <p className="line-clamp-2 text-sm text-black/60 dark:text-white/60">
           {agent.description}
