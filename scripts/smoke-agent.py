@@ -274,6 +274,14 @@ def main():
                 ], PRIV_HEX)
                 _ws_send(sock, json.dumps(["AUTH", auth_evt]))
                 auth_done = True
+                # Re-subscribe — the relay rejected the earlier REQ with
+                # auth-required, so we must reopen the subscription now that
+                # we have authenticated.
+                _ws_send(sock, json.dumps(["REQ", sub_id, {
+                    "kinds": [KIND_AGENT_FRAME],
+                    "since": int(time.time()) - 60,
+                    "limit": 1,
+                }]))
                 # Re-publish test event after auth.
                 _ws_send(sock, json.dumps(["EVENT", evt]))
                 _log(f"re-published test event after auth")

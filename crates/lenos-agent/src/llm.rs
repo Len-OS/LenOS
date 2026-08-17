@@ -2,6 +2,9 @@ use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use hmac::{digest::KeyInit, Hmac, Mac};
+type HmacSha256 = Hmac<sha2::Sha256>;
+
 use reqwest::Client;
 use serde_json::{json, Map, Value};
 use tokio::sync::Mutex;
@@ -83,6 +86,61 @@ enum DatabricksV2Route {
     OpenAiResponses,
     AnthropicMessages,
     MlflowChatCompletions,
+}
+
+/// Build AWS SigV4 authorization headers for a Bedrock Mantle request.
+///
+/// Returns `(header-name, header-value)` pairs: Content-Type, x-amz-date,
+/// Authorization. The caller must forward all three verbatim; other headers
+/// (Host, Transfer-Encoding) are handled by reqwest.
+fn bedrock_sigv4_headers(
+    method: &str,
+    path: &str,
+    body: &[u8],
+    access_key_id: &str,
+    secret_key: &str,
+    region: &str,
+) -> [(&'static str, String); 3] {
+    use sha2::Digest;
+
+    fn hmac256(key: &[u8], data: &[u8]) -> Vec<u8> {
+        let mut mac = HmacSha256::new_from_slice(key).expect("hmac accepts any key length");
+        mac.update(data);
+        mac.finalize().into_bytes().to_vec()
+    }
+
+    let host = format!("bedrock-mantle.{region}.api.aws");
+    let now = chrono::Utc::now();
+    let date_time = now.format("%Y%m%dT%H%M%SZ").to_string();
+    let date = &date_time[..8];
+    let body_hash = hex::encode(sha2::Sha256::digest(body));
+    let service = "bedrock";
+
+    let canonical_headers =
+        format!("content-type:application/json\nhost:{host}\nx-amz-date:{date_time}\n");
+    let signed_headers = "content-type;host;x-amz-date";
+    let canonical_request =
+        format!("{method}\n{path}\n\n{canonical_headers}\n{signed_headers}\n{body_hash}");
+
+    let scope = format!("{date}/{region}/{service}/aws4_request");
+    let canon_hash = hex::encode(sha2::Sha256::digest(canonical_request.as_bytes()));
+    let string_to_sign = format!("AWS4-HMAC-SHA256\n{date_time}\n{scope}\n{canon_hash}");
+
+    let k_date = hmac256(format!("AWS4{secret_key}").as_bytes(), date.as_bytes());
+    let k_region = hmac256(&k_date, region.as_bytes());
+    let k_service = hmac256(&k_region, service.as_bytes());
+    let k_signing = hmac256(&k_service, b"aws4_request");
+    let signature = hex::encode(hmac256(&k_signing, string_to_sign.as_bytes()));
+
+    let auth = format!(
+        "AWS4-HMAC-SHA256 Credential={access_key_id}/{scope},SignedHeaders={signed_headers},Signature={signature}"
+    );
+
+    [
+        ("Content-Type", "application/json".to_string()),
+        ("x-amz-date", date_time),
+        ("Authorization", auth),
+    ]
 }
 
 pub struct Llm {
@@ -223,6 +281,11 @@ impl Llm {
                 })
                 .await
             }
+            Provider::Bedrock => {
+                let body = openai_body(cfg, system_prompt, history, tools, effective_model, None);
+                let v = self.post_bedrock(cfg, &body).await?;
+                parse_openai(v)
+            }
         };
         // Stamp the effective model into Llm errors so log lines carry
         // `llm: (model-name) 404 Not Found: …` instead of the bare status.
@@ -346,6 +409,19 @@ impl Llm {
                     .await?;
                 Ok(r.text)
             }
+            Provider::Bedrock => {
+                let body = json!({
+                    "model": effective_model,
+                    "stream": false,
+                    "max_completion_tokens": max_output_tokens,
+                    "messages": [
+                        { "role": "system", "content": system_prompt },
+                        { "role": "user", "content": user_prompt },
+                    ],
+                });
+                let v = self.post_bedrock(cfg, &body).await?;
+                Ok(parse_openai(v)?.text)
+            }
         }
     }
 
@@ -357,6 +433,46 @@ impl Llm {
         })
         .await
         .map_err(PostError::into_agent)
+    }
+
+    async fn post_bedrock(&self, cfg: &Config, body: &Value) -> Result<Value, AgentError> {
+        let path = "/v1/chat/completions";
+        let url = format!("{}{path}", cfg.base_url.trim_end_matches('/'));
+        let body_bytes = serde_json::to_vec(body)
+            .map_err(|e| AgentError::Llm(format!("bedrock serialize: {e}")))?;
+        let access_key_id = cfg.aws_access_key_id.as_deref().unwrap_or("");
+        let region = cfg.aws_region.as_deref().unwrap_or("us-east-1");
+        let headers = bedrock_sigv4_headers(
+            "POST",
+            path,
+            &body_bytes,
+            access_key_id,
+            &cfg.api_key,
+            region,
+        );
+
+        let res = self
+            .http
+            .post(&url)
+            .header(headers[0].0, &headers[0].1)
+            .header(headers[1].0, &headers[1].1)
+            .header(headers[2].0, &headers[2].1)
+            .body(body_bytes)
+            .timeout(cfg.llm_timeout)
+            .send()
+            .await
+            .map_err(|e| AgentError::Llm(format!("bedrock http: {e}")))?;
+
+        let status = res.status();
+        let text = res
+            .text()
+            .await
+            .map_err(|e| AgentError::Llm(format!("bedrock read: {e}")))?;
+        if !status.is_success() {
+            return Err(AgentError::Llm(format!("bedrock {status}: {text}")));
+        }
+        serde_json::from_str(&text)
+            .map_err(|e| AgentError::Llm(format!("bedrock parse: {e}: {text}")))
     }
 
     /// OpenAI dispatch with LenOS's relay-mesh `auto` policy layered over the
@@ -1922,7 +2038,7 @@ where
 ///   flow; subsequent requests use the cache + refresh transparently.
 pub(crate) fn build_token_source(cfg: &Config) -> Result<Arc<dyn TokenSource>, AgentError> {
     match cfg.provider {
-        Provider::Anthropic | Provider::OpenAi | Provider::OpenRouter => {
+        Provider::Anthropic | Provider::OpenAi | Provider::OpenRouter | Provider::Bedrock => {
             Ok(Arc::new(StaticTokenSource::new(cfg.api_key.clone())))
         }
         Provider::Databricks | Provider::DatabricksV2 => {
@@ -2358,6 +2474,8 @@ mod tests {
             require_reply: false,
             hook_servers: HookServers::None,
             api_key: "key".into(),
+            aws_access_key_id: None,
+            aws_region: None,
             model: "model".into(),
             base_url: "http://example.invalid".into(),
             anthropic_api_version: "2023-06-01".into(),
@@ -2366,6 +2484,9 @@ mod tests {
             hints_enabled: true,
             thinking_effort: None,
             prompt_caching: true,
+            relay_http_url: None,
+            relay_nostr_secret_key: None,
+            mcp_http_servers: Vec::new(),
         }
     }
 

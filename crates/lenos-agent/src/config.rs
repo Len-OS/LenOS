@@ -673,6 +673,9 @@ pub enum Provider {
     DatabricksV2,
     /// OpenRouter multi-provider gateway. Routes to `{base_url}/chat/completions` with bearer auth. Wire format is OpenAI-chat-compatible.
     OpenRouter,
+    /// AWS Bedrock via the OpenAI-compatible Mantle endpoint (`bedrock-mantle.{region}.api.aws/v1`).
+    /// Requests are signed with AWS SigV4 (service "bedrock") — no bearer token.
+    Bedrock,
 }
 
 /// Which OpenAI-family HTTP API to call. Set via `OPENAI_COMPAT_API`
@@ -735,6 +738,10 @@ pub struct Config {
     /// operator explicitly opts in.
     pub hook_servers: HookServers,
     pub api_key: String,
+    /// AWS Access Key ID — only populated when `provider = Bedrock`.
+    pub aws_access_key_id: Option<String>,
+    /// AWS region — only populated when `provider = Bedrock`.
+    pub aws_region: Option<String>,
     pub model: String,
     pub base_url: String,
     pub anthropic_api_version: String,
@@ -831,6 +838,19 @@ impl Config {
                 env_or("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
                 OpenAiApi::Chat, // OpenRouter uses Chat Completions only
             ),
+            Provider::Bedrock => {
+                let region = env("AWS_REGION")
+                    .or_else(|| env("BEDROCK_REGION"))
+                    .unwrap_or_else(|| "us-east-1".to_string());
+                let secret_key = req("AWS_SECRET_ACCESS_KEY")?;
+                let model = resolve_model(
+                    lenos_agent_model.as_deref(),
+                    env("BEDROCK_MODEL").as_deref(),
+                )
+                .ok_or_else(|| "config: BEDROCK_MODEL required".to_string())?;
+                let base_url = format!("https://bedrock-mantle.{region}.api.aws/v1");
+                (secret_key, model, base_url, OpenAiApi::Chat)
+            }
         };
         let system_prompt = match (env("LENOS_AGENT_SYSTEM_PROMPT"), env("LENOS_AGENT_SYSTEM_PROMPT_FILE")) {
             (Some(_), Some(_)) => return Err(
@@ -843,6 +863,20 @@ impl Config {
             provider,
             system_prompt,
             api_key,
+            aws_access_key_id: if provider == Provider::Bedrock {
+                env("AWS_ACCESS_KEY_ID")
+            } else {
+                None
+            },
+            aws_region: if provider == Provider::Bedrock {
+                Some(
+                    env("AWS_REGION")
+                        .or_else(|| env("BEDROCK_REGION"))
+                        .unwrap_or_else(|| "us-east-1".to_string()),
+                )
+            } else {
+                None
+            },
             model,
             base_url,
             anthropic_api_version: env_or("ANTHROPIC_API_VERSION", "2023-06-01"),
@@ -910,6 +944,8 @@ impl Config {
         Self {
             provider,
             api_key,
+            aws_access_key_id: None,
+            aws_region: None,
             base_url,
             model: String::new(),
             system_prompt: String::new(),
@@ -1078,13 +1114,20 @@ fn resolve_provider(
                 "databricks_v2" | "databricks-v2" => Ok(Provider::DatabricksV2),
                 "openrouter" if present_nonempty(openrouter_key) => Ok(Provider::OpenRouter),
                 "openrouter" => Err("config: OPENROUTER_API_KEY required".into()),
+                "bedrock" if present_nonempty(std::env::var("AWS_ACCESS_KEY_ID").ok().as_deref())
+                    && present_nonempty(std::env::var("AWS_SECRET_ACCESS_KEY").ok().as_deref()) => {
+                    Ok(Provider::Bedrock)
+                }
+                "bedrock" => Err(
+                    "config: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY required for bedrock".into(),
+                ),
                 _ => Err(format!(
                     "config: LENOS_AGENT_PROVIDER={raw} not supported"
                 )),
             }
         }
         None => Err(
-            "config: LENOS_AGENT_PROVIDER is required — set it to your provider (e.g. anthropic, openai, databricks)".into(),
+            "config: LENOS_AGENT_PROVIDER is required — set it to your provider (e.g. anthropic, openai, databricks, bedrock)".into(),
         ),
     }
 }
