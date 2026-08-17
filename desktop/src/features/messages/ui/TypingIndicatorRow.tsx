@@ -64,7 +64,7 @@ function TyperAvatar({
   label: string;
   isActivityVariant: boolean;
 }) {
-  const name = profile?.displayName ?? label ?? pubkey.slice(0, 8);
+  const name = profile?.displayName ?? label ?? truncatePubkey(pubkey);
   return (
     <Avatar
       className={cn(

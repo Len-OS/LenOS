@@ -3,6 +3,7 @@ import { Avatar } from "@/shared/ui/Avatar";
 import { StatusPicker } from "@/features/profile/ui/StatusPicker";
 import { useProfile } from "@/features/profiles/use-profile";
 import { useUserStatus } from "@/features/profile/useUserStatus";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 interface Props {
   pubkey: string;
@@ -25,7 +26,7 @@ export function SidebarProfileCard({
 }: Props) {
   const profile = useProfile(pubkey);
   const status = useUserStatus(pubkey);
-  const displayName = profile?.name || pubkey.slice(0, 8);
+  const displayName = profile?.name || truncatePubkey(pubkey);
 
   return (
     <div className="relative shrink-0 border-t border-black/10 px-3 py-2 dark:border-white/10">

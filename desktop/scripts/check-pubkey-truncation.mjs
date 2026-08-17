@@ -26,6 +26,7 @@ const overrides = new Set([
   "src/features/channels/readState/readStateManager.ts:338",
   // Array windows (first N pubkeys), not string truncation.
   "src/features/messages/lib/threadPanel.ts:395",
+  "src/features/messages/ui/TypingIndicatorRow.tsx:108",
   "src/features/projects/ui/ProjectsView.tsx:166",
   "src/features/projects/ui/ProjectsOverviewPanel.tsx:209",
 ]);

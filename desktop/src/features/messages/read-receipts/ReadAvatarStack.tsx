@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { useUserProfileQuery } from "@/features/profile/hooks";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 import type { ReadReceipt } from "./types";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 
 function AvatarPip({ pubkey }: { pubkey: string }) {
   const { data: profile } = useUserProfileQuery(pubkey);
-  const name = profile?.displayName ?? pubkey.slice(0, 8);
+  const name = profile?.displayName ?? truncatePubkey(pubkey);
   return (
     <Avatar className="w-5 h-5 -ml-1 first:ml-0 border border-background">
       <AvatarImage src={profile?.avatarUrl ?? undefined} alt={name ?? ""} />

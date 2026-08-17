@@ -5,6 +5,7 @@ import type { InboxItem } from "../useHomeInbox";
 import type { Channel } from "@/features/channels/use-channels";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 import { useProfilePanel } from "@/features/profiles/profile-panel-context";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
@@ -67,7 +68,7 @@ function ContextMessageRow({
   highlight: boolean;
 }) {
   const profile = useProfile(msg.pubkey);
-  const name = profile?.name || msg.pubkey.slice(0, 8);
+  const name = profile?.name || truncatePubkey(msg.pubkey);
   const { openProfile } = useProfilePanel();
 
   return (

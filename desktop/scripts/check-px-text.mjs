@@ -28,6 +28,9 @@ const overrides = new Set([
   "src/features/onboarding/ui/AvatarStep.tsx:text-[6rem]",
   "src/features/agents/ui/AgentCreationPreview.tsx:text-[4rem]",
   "src/features/agents/ui/AgentCreationPreview.tsx:text-[6rem]",
+  // Avatar fallback initials inside 20px avatar pip — chrome, not readable text
+  "src/features/messages/read-receipts/ReadAvatarStack.tsx:text-[9px]",
+  "src/features/messages/ui/TypingIndicatorRow.tsx:text-[9px]",
 ]);
 
 await runPxTextCheck({

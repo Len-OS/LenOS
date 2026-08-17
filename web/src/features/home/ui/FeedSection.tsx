@@ -6,6 +6,7 @@ import { useCommunityId } from "@/shared/lib/workspace-context";
 import { KIND_STREAM_MESSAGE_V2 } from "@/shared/constants/kinds";
 import { useProfile } from "@/features/profiles/use-profile";
 import { useChannels } from "@/features/channels/use-channels";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 interface FeedEvent {
   id: string;
@@ -23,7 +24,7 @@ function FeedRow({
   channels: ReturnType<typeof useChannels>;
 }) {
   const profile = useProfile(event.pubkey);
-  const name = profile?.name ?? `${event.pubkey.slice(0, 8)}…`;
+  const name = profile?.name ?? truncatePubkey(event.pubkey);
   const channel = channels.find((c) => c.id === event.channelId);
 
   const diffSec = Math.floor(Date.now() / 1000) - event.createdAt;

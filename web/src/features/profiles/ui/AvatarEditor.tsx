@@ -5,6 +5,7 @@ import { Avatar } from "@/shared/ui/Avatar";
 import { WebAnimatedAvatarCapture } from "@/features/profile/ui/WebAnimatedAvatarCapture";
 import { useProfile } from "@/features/profiles/use-profile";
 import { getCurrentPubkey, signNostrEvent } from "@/shared/lib/nostr-signer";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 
@@ -22,7 +23,7 @@ export function AvatarEditor({ pubkey, onClose }: Props) {
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const displayName = profile?.name || pubkey.slice(0, 8);
+  const displayName = profile?.name || truncatePubkey(pubkey);
   const currentPicture = previewUrl ?? pictureUrl;
 
   const handleFile = useCallback((files: FileList | null) => {

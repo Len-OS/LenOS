@@ -7,7 +7,7 @@ interface Props {
 
 function TyperAvatar({ pubkey }: { pubkey: string }) {
   const profile = useProfile(pubkey);
-  const name = profile?.name ?? pubkey.slice(0, 8);
+  const name = profile?.name ?? truncatePubkey(pubkey);
   return (
     <div
       className="w-5 h-5 rounded-full border border-background overflow-hidden bg-muted flex-shrink-0"

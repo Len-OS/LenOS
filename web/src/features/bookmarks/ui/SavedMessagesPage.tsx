@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bookmark, BookmarkX } from "lucide-react";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import { useProfile } from "@/features/profiles/use-profile";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 import {
   useBookmarks,
   type SavedMessage,
@@ -27,7 +28,7 @@ function SavedMessageRow({
   isRemoving: boolean;
 }) {
   const profile = useProfile(message.pubkey);
-  const displayName = profile?.name || `${message.pubkey.slice(0, 8)}...`;
+  const displayName = profile?.name || truncatePubkey(message.pubkey);
 
   return (
     <div className="flex items-start gap-3 rounded-lg border border-black/10 p-3 dark:border-white/10">

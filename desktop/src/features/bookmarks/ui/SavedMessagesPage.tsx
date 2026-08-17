@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Bookmark, BookmarkX } from "lucide-react";
 import { useIdentityQuery } from "@/shared/api/hooks";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 import { useUsersBatchQuery } from "@/features/profile/hooks";
 import { TopChromeInsetHeader } from "@/shared/layout/TopChromeInsetHeader";
 import { Button } from "@/shared/ui/button";
@@ -131,7 +132,7 @@ export function SavedMessagesPage() {
               const profileKey = message.pubkey.toLowerCase();
               const profile = profiles?.[profileKey];
               const authorLabel =
-                profile?.displayName ?? `${message.pubkey.slice(0, 8)}...`;
+                profile?.displayName ?? truncatePubkey(message.pubkey);
               const avatarUrl = profile?.avatarUrl ?? null;
               return (
                 <SavedMessageRow

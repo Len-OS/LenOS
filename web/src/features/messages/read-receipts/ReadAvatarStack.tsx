@@ -1,5 +1,6 @@
 import { useProfile } from "@/features/profiles/use-profile";
 import type { ReadReceipt } from "./types";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 interface Props {
   receipts: ReadReceipt[];
@@ -8,7 +9,7 @@ interface Props {
 
 function AvatarPip({ pubkey }: { pubkey: string }) {
   const profile = useProfile(pubkey);
-  const name = profile?.name ?? pubkey.slice(0, 8);
+  const name = profile?.name ?? truncatePubkey(pubkey);
   const src = profile?.picture;
   return (
     <div

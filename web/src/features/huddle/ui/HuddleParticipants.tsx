@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { useHuddle } from "../HuddleContext";
 import { useProfile } from "@/features/profiles/use-profile";
 import { Avatar } from "@/shared/ui/Avatar";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 function ParticipantRow({
   peerIndex,
@@ -12,7 +13,7 @@ function ParticipantRow({
 }) {
   const { activeSpeakerIndexes } = useHuddle();
   const profile = useProfile(pubkey);
-  const name = profile?.name ?? pubkey.slice(0, 8);
+  const name = profile?.name ?? truncatePubkey(pubkey);
   const speaking = activeSpeakerIndexes.includes(peerIndex);
   return (
     <div

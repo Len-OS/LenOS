@@ -14,6 +14,7 @@ import {
 } from "@/features/profile/useUserStatus";
 import { Avatar } from "@/shared/ui/Avatar";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 interface Props {
   pubkey: string;
@@ -51,7 +52,7 @@ export function ProfilePopover({
 
   if (!open) return null;
 
-  const displayName = profile?.name || pubkey.slice(0, 8);
+  const displayName = profile?.name || truncatePubkey(pubkey);
   const npub = (() => {
     try {
       return nip19.npubEncode(pubkey);

@@ -112,7 +112,7 @@ export function ScheduledMessagesPanel() {
                   <p className="line-clamp-3 whitespace-pre-wrap text-sm text-foreground/70">
                     {msg.content}
                   </p>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground/60">
+                  <p className="mt-1.5 text-2xs text-muted-foreground/60">
                     Sends {formatScheduledTime(msg.notBefore)}
                   </p>
                 </div>

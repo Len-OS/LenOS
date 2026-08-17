@@ -503,9 +503,8 @@ const workspaceDotdraftsRouteChildren: workspaceDotdraftsRouteChildren = {
   workspaceDotdraftsScheduledRoute: workspaceDotdraftsScheduledRoute,
 };
 
-const workspaceDotdraftsRouteWithChildren = workspaceDotdraftsRoute._addFileChildren(
-  workspaceDotdraftsRouteChildren,
-);
+const workspaceDotdraftsRouteWithChildren =
+  workspaceDotdraftsRoute._addFileChildren(workspaceDotdraftsRouteChildren);
 
 interface workspaceRouteChildren {
   workspaceDotagentsRoute: typeof workspaceDotagentsRoute;

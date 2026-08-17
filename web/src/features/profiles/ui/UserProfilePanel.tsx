@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs";
 import { Separator } from "@/shared/ui/separator";
 import { Button } from "@/shared/ui/button";
 import { hasNip07Provider } from "@/shared/lib/nostr-signer";
+import { truncatePubkey } from "@/shared/lib/pubkey";
 
 interface Props {
   pubkey: string;
@@ -44,7 +45,7 @@ export function UserProfilePanel({
 
   if (!open) return null;
 
-  const displayName = profile?.name || pubkey.slice(0, 8);
+  const displayName = profile?.name || truncatePubkey(pubkey);
   const npub = (() => {
     try {
       return nip19.npubEncode(pubkey);
