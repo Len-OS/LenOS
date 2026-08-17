@@ -12,6 +12,8 @@ import { Button } from "@/shared/ui/button";
 import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
 import type { Agent } from "../useAgents";
 import { AgentMemorySection } from "./AgentMemorySection";
+import { AgentCredentialEditor } from "./AgentCredentialEditor";
+import { PROVIDER_OPTIONS } from "../lib/providerCredentialConfig";
 
 interface Props {
   agent: Agent;
@@ -55,6 +57,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 export function AgentConfigDialog({ agent, open, onClose }: Props) {
   const [tab, setTab] = useState("overview");
   const [currentPubkey, setCurrentPubkey] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentPubkey()
@@ -134,9 +137,29 @@ export function AgentConfigDialog({ agent, open, onClose }: Props) {
               <CopyField label="Pubkey" value={agent.pubkey} />
               <CopyField label="Agent Type" value={agent.agentType} />
               <Separator />
-              <p className="text-xs text-black/30 dark:text-white/30">
-                Full configuration editing available in desktop app.
-              </p>
+              <div>
+                <label className="text-[11px] font-medium uppercase tracking-wider text-black/40 dark:text-white/40">
+                  LLM Provider
+                </label>
+                <select
+                  value={selectedProvider ?? ""}
+                  onChange={(e) =>
+                    setSelectedProvider(e.target.value || null)
+                  }
+                  className="mt-1 w-full rounded-md border border-black/10 bg-transparent px-2 py-1.5 text-xs text-black/70 dark:border-white/10 dark:text-white/70"
+                >
+                  <option value="">Select provider…</option>
+                  {PROVIDER_OPTIONS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <AgentCredentialEditor
+                agentDTag={agent.id}
+                currentProvider={selectedProvider}
+              />
             </div>
           </TabsContent>
 
