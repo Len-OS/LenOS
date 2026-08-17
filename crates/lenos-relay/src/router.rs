@@ -174,6 +174,20 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/huddle/{channel_id}/video",
             get(crate::audio::video_handler::ws_video_handler),
         )
+        // Relay pubkey (no auth) + encrypted agent credential store (NIP-98 auth)
+        .route(
+            "/api/relay/pubkey",
+            get(api::agent_credentials::relay_pubkey),
+        )
+        .route(
+            "/api/agent-credentials",
+            put(api::agent_credentials::upsert),
+        )
+        .route(
+            "/api/agent-credentials/{agent_d_tag}",
+            get(api::agent_credentials::get_creds)
+                .delete(api::agent_credentials::delete_creds),
+        )
         // Reject request bodies larger than 1 MB to prevent resource exhaustion.
         .layer(RequestBodyLimitLayer::new(1024 * 1024))
         .with_state(state.clone());
