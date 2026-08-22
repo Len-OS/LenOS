@@ -51,6 +51,7 @@ on:
       - "Cargo.lock"
       - "rust-toolchain.toml"
       - "crates/**"
+      - "migrations/**"
       - "web/**"
       - "package.json"
       - "pnpm-lock.yaml"
