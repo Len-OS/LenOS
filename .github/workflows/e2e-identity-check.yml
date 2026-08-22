@@ -1,0 +1,45 @@
+name: Daily E2E identity check
+
+# Verifies durable E2E test identities (managed Nostr) for the fern2gue+32 and
+# fern2gue+33 accounts can connect to the production relay, authenticate, and
+# send + receive kind:9 messages through the lenos-e2e32 community.
+#
+# Runs daily at 07:00 UTC and can be triggered manually.  Failures page the
+# team via GitHub Actions notification to catch relay or identity rot before
+# a Playwright run burns on it.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  e2e-identity-smoke:
+    name: E2E identity smoke (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: e2e-32
+            privkey_secret: E2E_32_PRIVKEY
+          - label: e2e-33
+            privkey_secret: E2E_33_PRIVKEY
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run identity smoke test (${{ matrix.label }})
+        run: bash scripts/smoke-agent.sh
+        env:
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+          RELAY_GATEWAY_URL: ${{ secrets.RELAY_GATEWAY_URL }}
+          SMOKE_CHANNEL_ID: ${{ secrets.SMOKE_CHANNEL_ID }}
+          TEST_PRIVKEY_HEX: ${{ secrets[matrix.privkey_secret] }}
+          TIMEOUT: "45"

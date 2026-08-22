@@ -11,7 +11,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE documents (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     community_id    UUID NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
-    channel_id      UUID REFERENCES channels(id) ON DELETE SET NULL,
+    -- channel_id is community-scoped: channels PK is (community_id, id), so a
+    -- bare FK to channels(id) is not valid. Referential integrity is enforced
+    -- at the application layer; the idx_documents_channel index covers joins.
+    channel_id      UUID,
     uploaded_by     BYTEA NOT NULL,
     filename        TEXT NOT NULL,
     mime_type       TEXT NOT NULL,
