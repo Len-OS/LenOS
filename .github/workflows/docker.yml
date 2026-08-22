@@ -358,10 +358,15 @@ jobs:
       - name: Run relay + agent smoke test
         run: bash scripts/smoke-agent.sh
         env:
-          # Set RELAY_URL in repository secrets: wss://relay.lengrowth.com
+          # RELAY_URL: tenant WebSocket URL (e.g. wss://lenos-e2e32.lengrowth.com).
+          # Used in NIP-42 challenge responses and subscription filters.
           RELAY_URL: ${{ secrets.RELAY_URL }}
-          # Set SMOKE_CHANNEL_ID in repository secrets: hex event-id of the
-          # smoke-test channel on the production relay.
+          # RELAY_GATEWAY_URL: connect via this URL with Host: <RELAY_URL host>.
+          # Required when the tenant subdomain is behind Cloudflare Bot Fight Mode
+          # and CI IPs are blocked. Set to wss://relay.lengrowth.com (DNS-only).
+          RELAY_GATEWAY_URL: ${{ secrets.RELAY_GATEWAY_URL }}
+          # SMOKE_CHANNEL_ID: UUID of an open-visibility channel in lenos-e2e32.
+          # Run scripts/provision-smoke-channel.py to create/retrieve it.
           SMOKE_CHANNEL_ID: ${{ secrets.SMOKE_CHANNEL_ID }}
           TIMEOUT: "30"
 
