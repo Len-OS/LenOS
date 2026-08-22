@@ -247,13 +247,19 @@ def main():
 
     # Subscribe to recent kind:9 from the adapter — so we catch replies that
     # arrive before we finish publishing the trigger event.
+    # Include #h filter when channel is set: the adapter reply includes an h-tag
+    # making it channel-scoped; the relay only delivers channel-scoped events to
+    # subscriptions that have a matching #h filter (fan_out_scoped in subscription.rs).
     sub_id = f"smoke-{int(time.time())}"
-    _ws_send(sock, json.dumps(["REQ", sub_id, {
+    sub_filter = {
         "kinds": [KIND_CHAT],
         "authors": [ADAPTER_PK],
         "since": int(time.time()) - 60,
         "limit": 5,
-    }]))
+    }
+    if CHANNEL_ID:
+        sub_filter["#h"] = [CHANNEL_ID]
+    _ws_send(sock, json.dumps(["REQ", sub_id, sub_filter]))
 
     # Publish "@lengrowth get tasks" as an unscoped kind:9.
     # kind:9 does not require an h tag; omitting it avoids the channel-membership
@@ -301,12 +307,7 @@ def main():
                 _ws_send(sock, json.dumps(["AUTH", auth_evt]))
                 auth_done = True
                 # Re-subscribe and re-publish after successful auth.
-                _ws_send(sock, json.dumps(["REQ", sub_id, {
-                    "kinds": [KIND_CHAT],
-                    "authors": [ADAPTER_PK],
-                    "since": int(time.time()) - 60,
-                    "limit": 5,
-                }]))
+                _ws_send(sock, json.dumps(["REQ", sub_id, sub_filter]))
                 if not published:
                     _ws_send(sock, json.dumps(["EVENT", evt]))
                     _log(f"re-published @lengrowth get tasks after auth")
