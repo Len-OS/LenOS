@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Query, RawQuery, State},
+    extract::{Path, Query, RawQuery, State},
     http::{HeaderMap, StatusCode},
     response::Json,
 };
@@ -529,6 +529,175 @@ pub async fn transfer_community(
         internal_error("operator transfer response serialization failed")
     })?))
 }
+/// Create a channel inside an operator-owned community.
+///
+/// `POST /operator/communities/{community_id}/channels`, NIP-98 signed by a
+/// pubkey in `RELAY_OPERATOR_PUBKEYS`. The operator pubkey becomes the channel
+/// creator and initial owner.
+///
+/// Body: `{"name":"...", "description":"...", "visibility":"open"|"private"}`
+///
+/// Returns `{"channel_id":"<uuid>", "created": true|false}` — `created` is
+/// false when a channel with the same name already exists (idempotent).
+pub async fn create_community_channel(
+    State(state): State<Arc<AppState>>,
+    Path(community_id): Path<String>,
+    headers: HeaderMap,
+    body: axum::body::Bytes,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let path = format!("/operator/communities/{community_id}/channels");
+    let operator_pk = authorize_operator_request(&state, &headers, "POST", &path, None, Some(&body)).await?;
+
+    let community_uuid: Uuid = community_id
+        .parse()
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid community_id UUID"))?;
+    let community = CommunityId::from_uuid(community_uuid);
+
+    #[derive(serde::Deserialize)]
+    struct Req {
+        name: String,
+        #[serde(default)]
+        description: Option<String>,
+        #[serde(default = "default_visibility")]
+        visibility: String,
+        #[serde(default)]
+        channel_type: Option<String>,
+    }
+    fn default_visibility() -> String { "open".to_string() }
+
+    let req: Req = serde_json::from_slice(&body)
+        .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("invalid JSON: {e}")))?;
+
+    let visibility = match req.visibility.as_str() {
+        "open" => lenos_db::channel::ChannelVisibility::Open,
+        "private" => lenos_db::channel::ChannelVisibility::Private,
+        other => return Err(api_error(StatusCode::BAD_REQUEST, &format!("unknown visibility: {other}"))),
+    };
+    let channel_type = match req.channel_type.as_deref().unwrap_or("stream") {
+        "stream" => lenos_db::channel::ChannelType::Stream,
+        "forum" => lenos_db::channel::ChannelType::Forum,
+        "dm" => lenos_db::channel::ChannelType::Dm,
+        other => return Err(api_error(StatusCode::BAD_REQUEST, &format!("unknown channel_type: {other}"))),
+    };
+
+    let creator_bytes = operator_pk.to_bytes().to_vec();
+
+    // Check if a channel with this name already exists (idempotent).
+    let existing = state
+        .db
+        .list_channels(community, None)
+        .await
+        .map_err(|e| internal_error(&format!("list channels: {e}")))?;
+    let canonical = lenos_core::channel::canonical_channel_name(&req.name);
+    if let Some(ch) = existing.iter().find(|c| lenos_core::channel::canonical_channel_name(&c.name) == canonical) {
+        return Ok(Json(serde_json::json!({
+            "channel_id": ch.id.to_string(),
+            "created": false,
+        })));
+    }
+
+    let record = state
+        .db
+        .create_channel(
+            community,
+            &req.name,
+            channel_type,
+            visibility,
+            req.description.as_deref(),
+            &creator_bytes,
+            None,
+        )
+        .await
+        .map_err(|e| internal_error(&format!("create channel: {e}")))?;
+
+    Ok(Json(serde_json::json!({
+        "channel_id": record.id.to_string(),
+        "created": true,
+    })))
+}
+
+/// Add a member to a channel inside an operator-owned community.
+///
+/// `POST /operator/communities/{community_id}/channels/{channel_id}/members`,
+/// NIP-98 signed by an operator pubkey. The operator bypasses the normal
+/// inviter-must-be-member check so it can seed initial memberships.
+///
+/// Body: `{"pubkey":"<hex>", "role":"member"|"owner"|"admin"|"guest"|"bot"}`
+///
+/// Returns `{"channel_id":"...", "pubkey":"...", "role":"...", "added": true|false}`.
+pub async fn add_channel_member(
+    State(state): State<Arc<AppState>>,
+    Path((community_id, channel_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    body: axum::body::Bytes,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let path = format!("/operator/communities/{community_id}/channels/{channel_id}/members");
+    let _operator_pk = authorize_operator_request(&state, &headers, "POST", &path, None, Some(&body)).await?;
+
+    let community_uuid: Uuid = community_id
+        .parse()
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid community_id UUID"))?;
+    let channel_uuid: Uuid = channel_id
+        .parse()
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid channel_id UUID"))?;
+    let community = CommunityId::from_uuid(community_uuid);
+
+    #[derive(serde::Deserialize)]
+    struct Req {
+        pubkey: String,
+        #[serde(default = "default_role")]
+        role: String,
+    }
+    fn default_role() -> String { "member".to_string() }
+
+    let req: Req = serde_json::from_slice(&body)
+        .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("invalid JSON: {e}")))?;
+
+    let pubkey_hex = validate_pubkey_hex(&req.pubkey)
+        .ok_or_else(|| api_error(StatusCode::BAD_REQUEST, "invalid pubkey: expected 64-char hex"))?;
+    let pubkey_bytes = hex::decode(&pubkey_hex)
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "pubkey hex decode failed"))?;
+    let role: lenos_db::channel::MemberRole = req
+        .role
+        .parse()
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, &format!("unknown role: {}", req.role)))?;
+
+    // Operator-privileged add: use the target pubkey as its own inviter so the
+    // creator-bootstrap path in add_member is satisfied for open channels.
+    // For private channels the DB still requires an active member as inviter;
+    // we pass the pubkey itself which succeeds for the self-join bootstrap case,
+    // and falls back to a direct UPSERT if the inviter check would fail.
+    let result = state
+        .db
+        .add_member(community, channel_uuid, &pubkey_bytes, role.clone(), Some(&pubkey_bytes))
+        .await;
+
+    match result {
+        Ok(record) => Ok(Json(serde_json::json!({
+            "channel_id": channel_id,
+            "pubkey": req.pubkey,
+            "role": record.role,
+            "added": true,
+        }))),
+        Err(lenos_db::DbError::AccessDenied(_)) => {
+            // Bootstrap path failed (not the creator). Fall back to a direct
+            // privileged insert that bypasses the inviter membership check.
+            state
+                .db
+                .add_member_operator(community, channel_uuid, &pubkey_bytes, role)
+                .await
+                .map_err(|e| internal_error(&format!("add_member_operator: {e}")))?;
+            Ok(Json(serde_json::json!({
+                "channel_id": channel_id,
+                "pubkey": req.pubkey,
+                "role": req.role,
+                "added": true,
+            })))
+        }
+        Err(e) => Err(internal_error(&format!("add_member: {e}"))),
+    }
+}
+
 /// Check whether a community host is available, returning the relay-canonical
 /// normalized authority used by create.
 pub async fn community_availability(

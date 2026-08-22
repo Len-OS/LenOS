@@ -1,19 +1,27 @@
 #!/usr/bin/env bash
-# Relay + agent smoke test.
+# LenGrowth adapter smoke test.
 #
-# Verifies that the relay WebSocket is reachable and that a connected agent
-# responds within TIMEOUT seconds.
+# Publishes a kind:9 "@lengrowth get tasks" command to the relay and waits
+# for the LenGrowth nostr_adapter to reply with a kind:9 response.
+# Exits 0 on success, 1 on timeout/failure, 2 on missing required env var.
 #
-# Usage:
-#   RELAY_URL=wss://relay.example.com SMOKE_CHANNEL_ID=<hex-id> ./scripts/smoke-agent.sh
+# Required:
+#   RELAY_URL         WebSocket URL of the workspace relay to test.
+#                     e.g. wss://lenos-e2e32.lengrowth.com
 #
-# Optional env vars:
-#   TIMEOUT           Seconds to wait for an agent response (default: 30).
-#   TEST_PRIVKEY_HEX  64-char hex private key (safe deterministic default used
-#                     if not set).
-#   AGENT_PUBKEY      Hex pubkey of the agent to @-mention in the test event.
-#   SMOKE_CHANNEL_ID  Hex event-id of the channel to post into (required when
-#                     the relay enforces h-tag scoping on kind-40002 events).
+# Optional:
+#   SMOKE_CHANNEL_ID  Channel UUID for the h-tag on the command event.
+#                     When omitted the command is published unscoped, which
+#                     still triggers the adapter but skips channel-membership
+#                     enforcement.
+#   RELAY_GATEWAY_URL Connect via this URL with Host: <RELAY_URL host>.
+#                     Set to wss://relay.lengrowth.com when the tenant
+#                     subdomain is behind Cloudflare Bot Fight Mode.
+#   ADAPTER_PUBKEY    Hex pubkey of the LenGrowth adapter (defaults to prod).
+#   TIMEOUT           Seconds to wait for adapter response (default: 45).
+#   TEST_PRIVKEY_HEX  64-char hex private key. Default key is pre-seeded as
+#                     a member of lenos-e2e32. Rotate only after re-running
+#                     the invite-claim bootstrap.
 
 set -euo pipefail
 

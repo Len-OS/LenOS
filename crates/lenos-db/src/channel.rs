@@ -534,6 +534,42 @@ pub async fn add_member(
     Ok(record)
 }
 
+/// Operator-privileged member add — bypasses the inviter membership check entirely.
+///
+/// Only for deployment-operator APIs. Has no caller authorization — the caller
+/// is responsible for authenticating the operator before invoking this.
+pub async fn add_member_operator(
+    pool: &PgPool,
+    community_id: CommunityId,
+    channel_id: Uuid,
+    pubkey: &[u8],
+    role: MemberRole,
+) -> Result<()> {
+    if pubkey.len() != 32 {
+        return Err(DbError::InvalidData(format!(
+            "pubkey must be 32 bytes, got {}",
+            pubkey.len()
+        )));
+    }
+    sqlx::query(
+        r#"
+        INSERT INTO channel_members (community_id, channel_id, pubkey, role, invited_by)
+        VALUES ($1, $2, $3, $4::member_role, NULL)
+        ON CONFLICT (community_id, channel_id, pubkey) DO UPDATE SET
+            removed_at = NULL,
+            removed_by = NULL,
+            role = EXCLUDED.role
+        "#,
+    )
+    .bind(community_id.as_uuid())
+    .bind(channel_id)
+    .bind(pubkey)
+    .bind(role.as_str())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// Remove a member from a channel (soft delete).
 ///
 /// `actor_pubkey` must be an active owner/admin, the agent's owner, or the member

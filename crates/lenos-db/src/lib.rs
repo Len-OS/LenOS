@@ -2326,6 +2326,20 @@ impl Db {
         .await
     }
 
+    /// Operator-privileged member add — bypasses the inviter membership check.
+    ///
+    /// For use only from operator-authenticated HTTP routes. Callers are
+    /// responsible for authenticating the operator before calling this.
+    pub async fn add_member_operator(
+        &self,
+        community_id: CommunityId,
+        channel_id: Uuid,
+        pubkey: &[u8],
+        role: channel::MemberRole,
+    ) -> Result<()> {
+        channel::add_member_operator(&self.pool, community_id, channel_id, pubkey, role).await
+    }
+
     /// Removes a member from a channel.
     pub async fn remove_member(
         &self,
