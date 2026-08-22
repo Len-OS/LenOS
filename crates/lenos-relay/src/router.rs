@@ -114,11 +114,11 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(api::operator::transfer_community),
         )
         .route(
-            "/operator/communities/:community_id/channels",
+            "/operator/communities/{community_id}/channels",
             post(api::operator::create_community_channel),
         )
         .route(
-            "/operator/communities/:community_id/channels/:channel_id/members",
+            "/operator/communities/{community_id}/channels/{channel_id}/members",
             post(api::operator::add_channel_member),
         )
         // Relay invites: mint (owner/admin) + claim (membership-gate exempt)
