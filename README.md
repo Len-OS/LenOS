@@ -233,10 +233,21 @@ A Rust workspace of focused crates. Single source of truth: the relay. See [ARCH
 
 ## Going further
 
-- **[VISION.md](VISION.md)** · **[VISION_SOVEREIGN.md](VISION_SOVEREIGN.md)** · **[VISION_PROJECTS.md](VISION_PROJECTS.md)** · **[VISION_AGENT.md](VISION_AGENT.md)** — the four vision docs
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — system design, kind ranges, subsystem boundaries
-- **[TESTING.md](TESTING.md)** — multi-agent E2E test suite
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** · **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** · **[SECURITY.md](SECURITY.md)** · **[GOVERNANCE.md](GOVERNANCE.md)**
+### Key Docs
+
+| Doc | Purpose |
+|-----|---------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, kind ranges, subsystem boundaries, known limitations |
+| [VISION.md](VISION.md) | The four vision docs: core, sovereign, projects, agents |
+| [TESTING.md](TESTING.md) | Multi-agent E2E test suite |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community code of conduct |
+| [SECURITY.md](SECURITY.md) | Security policy and reporting |
+| [GOVERNANCE.md](GOVERNANCE.md) | Project governance |
+| [docs/AGENT-GUIDE.md](docs/AGENT-GUIDE.md) | What agents can do — web vs desktop, 20 task examples |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | User-facing setup guide for web, desktop, mobile |
+| [docs/ON-CALL.md](docs/ON-CALL.md) | Ownership, incident response, escalation, privacy |
+| [docs/OPS-CHECKLIST.md](docs/OPS-CHECKLIST.md) | Human-action pre-launch ops items with exact commands |
 
 <details>
 <summary><strong>Configuration</strong> (env vars, defaults work for local dev)</summary>
