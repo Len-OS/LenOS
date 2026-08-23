@@ -3,11 +3,8 @@ import { Bot, X } from "lucide-react";
 import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
-
-const AGENT_TYPES = [
-  { value: "remote", label: "Remote (LenGrowth managed)" },
-  { value: "local", label: "Local (runs in this browser)" },
-];
+import { isDesktopApp } from "@/shared/lib/platform";
+import { DesktopRequiredCard } from "@/shared/ui/DesktopRequiredCard";
 
 export function CreateAgentDialog({
   open,
@@ -20,7 +17,6 @@ export function CreateAgentDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [agentType, setAgentType] = useState("remote");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,15 +39,15 @@ export function CreateAgentDialog({
         content: JSON.stringify({
           name: name.trim(),
           description: description.trim(),
-          agent_type: agentType,
+          agent_type: "remote",
           status: "online",
-          remote: agentType !== "local",
+          remote: true,
         }),
         tags: [
           ["d", agentId],
           ["name", name.trim()],
           ["about", description.trim()],
-          ["agent_type", agentType],
+          ["agent_type", "remote"],
           ["status", "online"],
         ],
       });
@@ -124,26 +120,12 @@ export function CreateAgentDialog({
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="agent-type"
-              className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
-            >
-              Type
-            </label>
-            <select
-              id="agent-type"
-              value={agentType}
-              onChange={(e) => setAgentType(e.target.value)}
-              className="w-full rounded-lg border border-black/10 bg-black/5 px-3 py-2 text-sm text-black outline-none focus:ring-2 focus:ring-black/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:ring-white/20"
-            >
-              {AGENT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isDesktopApp() && (
+            <DesktopRequiredCard
+              feature="Local agent execution"
+              description="Local agents run on your machine and can access your files, shell, and dev tools. Remote agents run through LenGrowth and are available from any browser."
+            />
+          )}
 
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
