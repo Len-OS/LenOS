@@ -815,13 +815,13 @@ fenced to its `community_id`.
 
 ## 9. Known Limitations
 
-These are verified gaps in the current implementation — not design aspirations.
+These are verified gaps — not design aspirations.
 
 | # | Limitation | Detail |
 |---|-----------|--------|
-| 1 | **No sqlx offline query cache** | Uses `sqlx::query()` (runtime) not `sqlx::query!()` (compile-time). No `.sqlx/` directory. Queries are not validated at compile time. |
-| 2 | **No rate limiting implementation** | `RateLimiter` trait exists in `lenos-auth`. Only implementation is `AlwaysAllowRateLimiter` (test stub, gated behind `#[cfg(any(test, feature = "test-utils"))]`). `RateLimitConfig` defines 4 tiers (human, agent-standard, agent-elevated, agent-platform) but none are enforced. |
-| 3 | **No dedicated typing REST endpoint** | Typing indicators (kind 20002) are delivered via both local fan-out and Redis pub/sub (cross-node). There is no REST endpoint to query current typers — `/api/presence` returns online/away status only, not typing state. |
-| 4 | **Huddle recording/tracks not built** | Voice, room lifecycle, and join/leave/end events are wired (see Huddle Audio above). Recording and per-track publishing have reserved kinds but no producer yet. |
-| 5 | **Approval gates not wired end-to-end** | The executor returns `StepResult::Suspended` and the relay has grant/deny API endpoints with DB CRUD, but the engine intercepts before creating `WaitingApproval` rows — runs that hit an approval gate are marked as Failed (🚧 WF-08). |
-| 6 | **Workflow actions partially stubbed** | The `send_dm` and `set_channel_topic` workflow actions are in the schema but return `NotImplemented` — a run that reaches one fails at execution (🚧 WF-07). |
+| 1 | **No sqlx compile-time query validation** | All queries use runtime `sqlx::query()`. No `.sqlx/` offline cache. Integration tests hit a real DB and catch schema drift at test time — sufficient for now. Revisit when actively changing schema. |
+| 2 | **Webhook secret compared directly, not as HMAC** | Workflow webhook secrets use constant-time XOR comparison of the stored UUID, not HMAC over the request body. Protects against timing attacks but does not authenticate the payload body. |
+| 3 | **Presence fan-out is local-only** | kind:20001 presence events skip Redis PUBLISH and use local-only fan-out. Multi-node presence requires Redis pub/sub wiring — documented as future work. |
+| 4 | **Per-track huddle recording not built** | Recording captures mixed room audio (LENOSOPU format → S3 → kind:48104). Per-participant track publishing: kind range reserved, no producer. |
+| 5 | **Initiative persistence blocked** | Execution platform roadmap (InitiativeRun, outbound connectors, campaigns) is aspirational. Blocked explicitly in `LenGrowth/backend/services/orchestration/types.py:406,1029,1055`. |
+| 6 | **SSO / SAML not implemented** | Nostr keys only. No enterprise identity federation. P3 roadmap item. |
