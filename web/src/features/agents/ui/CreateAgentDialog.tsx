@@ -35,42 +35,32 @@ export function CreateAgentDialog({
       return;
     }
 
-    if (!window.nostr) {
-      setError(
-        "No NIP-07 extension found. Install a Nostr signer (e.g. Alby, nos2x) to create agents.",
-      );
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const agentPubkey = crypto.randomUUID();
-      const event = await signNostrEvent(
-        {
-          kind: 30177,
-          content: JSON.stringify({
-            name: name.trim(),
-            description: description.trim(),
-            agent_type: agentType,
-            status: "online",
-            remote: agentType !== "local",
-          }),
-          tags: [
-            ["d", agentPubkey],
-            ["name", name.trim()],
-            ["about", description.trim()],
-            ["agent_type", agentType],
-            ["status", "online"],
-          ],
-        },
-        { requireNip07: true },
-      );
+      const agentId = crypto.randomUUID();
+      const event = await signNostrEvent({
+        kind: 30177,
+        content: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          agent_type: agentType,
+          status: "online",
+          remote: agentType !== "local",
+        }),
+        tags: [
+          ["d", agentId],
+          ["name", name.trim()],
+          ["about", description.trim()],
+          ["agent_type", agentType],
+          ["status", "online"],
+        ],
+      });
 
       await getRelayClient(relayWsUrl()).publishAndWait(
         event as Record<string, unknown>,
       );
 
-      onCreated({ name: name.trim(), pubkey: agentPubkey });
+      onCreated({ name: name.trim(), pubkey: agentId });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create agent.");
