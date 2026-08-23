@@ -87,11 +87,12 @@ export function IdentityStep({ onComplete, onImportKey }: Props) {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <span className="text-sm font-semibold text-black dark:text-white">
-              Connect with LenGrowth
+              Create a new identity
             </span>
           </div>
           <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-            Your key stays encrypted on LenGrowth servers. No setup required.
+            Generate a key now and back it up with a password. No extension
+            needed.
           </p>
         </button>
 
