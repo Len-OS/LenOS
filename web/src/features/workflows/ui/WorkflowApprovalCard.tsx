@@ -38,7 +38,7 @@ export function WorkflowApprovalCard({ approval, onResolved }: Props) {
             ["decision", decision],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

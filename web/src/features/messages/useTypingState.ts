@@ -59,7 +59,7 @@ export function useTypingState(
           content: "",
           tags: [["h", channelId]],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       )
         .then((signed) => {
           getRelayClient(relayWsUrl()).publish(

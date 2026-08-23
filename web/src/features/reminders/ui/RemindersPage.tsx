@@ -35,7 +35,7 @@ export function RemindersPage() {
     try {
       const event = await signNostrEvent(
         { kind: 5, content: "", tags: [["e", reminderId]] },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       const client = getRelayClient(relayWsUrl());
       client.publish(event);

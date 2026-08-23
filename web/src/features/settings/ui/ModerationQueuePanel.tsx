@@ -59,7 +59,7 @@ function ReportRow({
 
       const signed = await signNostrEvent(
         { kind, content: "", tags },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

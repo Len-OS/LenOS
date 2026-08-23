@@ -38,7 +38,7 @@ export function ForumComposer({
       const kind = isReply ? KIND_FORUM_COMMENT : KIND_FORUM_POST;
       const signed = await signNostrEvent(
         { kind, content: body.trim(), tags },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       getRelayClient(relayWsUrl()).publish(signed as Record<string, unknown>);
       onClose();

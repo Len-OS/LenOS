@@ -71,7 +71,7 @@ export function GrowthSuggestionCard({
             ["signal_type", payload.signal_type],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,
@@ -92,7 +92,7 @@ export function GrowthSuggestionCard({
           content: "",
           tags: [["e", msg.id]],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         deletion as Record<string, unknown>,
@@ -114,7 +114,7 @@ export function GrowthSuggestionCard({
             ["signal_type", payload.signal_type],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         feedback as Record<string, unknown>,

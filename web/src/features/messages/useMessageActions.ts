@@ -13,7 +13,7 @@ export function useMessageActions() {
           ["h", channelId],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,
@@ -34,7 +34,7 @@ export function useMessageActions() {
           ["e", originalId, "", "edit"],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,

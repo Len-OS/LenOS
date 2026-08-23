@@ -60,7 +60,7 @@ export function WorkflowFormBuilder({ communityId, onClose }: Props) {
 
       const signed = await signNostrEvent(
         { kind: KIND_WORKFLOW, content: "", tags },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

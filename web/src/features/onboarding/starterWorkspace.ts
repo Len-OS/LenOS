@@ -92,7 +92,7 @@ export async function provisionStarterWorkspace(
           ["about", channel.description],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     try {
       await client.publishAndWait(event as Record<string, unknown>);
@@ -127,7 +127,7 @@ export async function provisionStarterWorkspace(
           ["status", "online"],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await client.publishAndWait(event as Record<string, unknown>);
   }
@@ -144,7 +144,7 @@ export async function publishLenGrowthCommand(
       content: `@lengrowth ${command}`,
       tags: [["h", channelId]],
     },
-    { requireNip07: true },
+    { requireDurableSigner: true },
   );
   await getRelayClient(relayWsUrl()).publishAndWait(
     event as Record<string, unknown>,

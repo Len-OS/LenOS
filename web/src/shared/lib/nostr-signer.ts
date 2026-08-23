@@ -29,12 +29,14 @@ declare global {
   }
 }
 
-export class Nip07UnavailableError extends Error {
+export class DurableSignerRequiredError extends Error {
   constructor() {
-    super("A durable LenOS signer is required for this action.");
-    this.name = "Nip07UnavailableError";
+    super("Sign in to LenGrowth or import a key to perform this action.");
+    this.name = "DurableSignerRequiredError";
   }
 }
+/** @deprecated Use DurableSignerRequiredError */
+export const Nip07UnavailableError = DurableSignerRequiredError;
 
 export const IDENTITY_STATE_CHANGE_EVENT = "lenos-identity-state-change";
 const MANAGED_SIGNER_TOKEN_KEY = "lenos_managed_signer_token";
@@ -168,14 +170,14 @@ function sameUnsignedEvent(
  * Sign with NIP-07 when available, otherwise use a page-lifetime key.
  *
  * The ephemeral fallback preserves anonymous browsing on open relays. Flows
- * that create durable membership must set `requireNip07` so a reload cannot
- * orphan a relay-membership row.
+ * that create durable membership must set `requireDurableSigner` so a reload
+ * cannot orphan a relay-membership row.
  */
 export async function signNostrEvent(
   template: Omit<UnsignedNostrEvent, "created_at"> & {
     created_at?: number;
   },
-  options?: { requireNip07?: boolean },
+  options?: { requireDurableSigner?: boolean; requireNip07?: boolean },
 ): Promise<SignedNostrEvent> {
   const unsigned: UnsignedNostrEvent = {
     ...template,
@@ -242,8 +244,8 @@ export async function signNostrEvent(
     return signed;
   }
 
-  if (options?.requireNip07) {
-    throw new Nip07UnavailableError();
+  if (options?.requireDurableSigner || options?.requireNip07) {
+    throw new DurableSignerRequiredError();
   }
 
   const secretKey = getEphemeralSecretKey();

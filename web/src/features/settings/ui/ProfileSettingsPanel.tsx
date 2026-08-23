@@ -47,7 +47,7 @@ export function ProfileSettingsPanel() {
     try {
       const signed = await signNostrEvent(
         { kind: 0, content: JSON.stringify(form), tags: [] },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,
