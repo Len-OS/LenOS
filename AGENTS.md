@@ -1,34 +1,30 @@
-# AGENTS.md — AI Agent Contributor Guide
+# AGENTS.md — Developer and AI Agent Guide
 
-This guide is for AI agents contributing to the LenOS codebase. It covers
-agent-specific context and conventions. For general contributor info (setup,
-code style, PR process, architecture), see [CONTRIBUTING.md](CONTRIBUTING.md).
+This guide covers codebase context, conventions, and patterns for internal devs and AI agents working on LenOS.
 
 ---
 
 ## Ecosystem
 
-LenOS spans five repos. This one (`Len-OS/LenOS`) is the OSS source for the relay, desktop, mobile, and CLI. The others handle internal builds and deployment:
+LenOS spans five repos. This one is the main source — relay, desktop, mobile, and CLI. The others handle internal builds and deployment:
 
 | Repo | Purpose |
 |------|---------|
-| [Len-OS/LenOS](https://github.com/Len-OS/LenOS) | OSS source — relay, desktop app, mobile app, CLI, agent harness |
-| [Len-OS/LenOS](https://github.com/Len-OS/LenOS) | Buildkite pipeline producing Block-signed macOS + iOS builds with `-block` version suffix |
-| [Len-OS/LenOS](https://github.com/Len-OS/LenOS) | CI pipeline building the relay Docker image and pushing to internal ECR |
-| [Len-OS/LenOS](https://github.com/Len-OS/LenOS) | Terraform + ArgoCD deploying the relay to the staging Kubernetes cluster |
-| [Len-OS/LenOS](https://github.com/Len-OS/LenOS) | Desktop backend provider script connecting Blox workstation agents to the relay |
+| LenOS (this repo) | Source — relay, desktop app, mobile app, CLI, agent harness |
+| sprout-releases | Buildkite pipeline producing signed macOS + iOS builds |
+| sprout-oss | CI pipeline building the relay Docker image and pushing to internal ECR |
+| block-coder-tf-stacks | Terraform + ArgoCD deploying the relay to the staging Kubernetes cluster |
+| sprout-backend-blox | Desktop backend provider connecting Blox workstation agents to the relay |
 
 ```
-Len-OS/LenOS (source)
+LenOS (source)
   ├─► sprout-releases    (desktop + mobile builds → Artifactory, GitHub, Mobile Releases)
   ├─► sprout-oss         (relay Docker image → ECR)
   │     └─► block-coder-tf-stacks  (Helm chart → ArgoCD → staging cluster)
   └─── sprout-backend-blox         (Blox compute provider for Desktop agent launch)
 ```
 
-See [RELEASING.md](RELEASING.md) for the desktop release flow and
-[CONTRIBUTING.md § Ecosystem](CONTRIBUTING.md#ecosystem) for contributor
-access information.
+See [RELEASING.md](RELEASING.md) for the release flow.
 
 ---
 
@@ -37,11 +33,11 @@ access information.
 ```
 crates/
   # Relay + core
-  lenos-relay          # WebSocket relay server — main entry point; also hosts git + huddle audio
+  lenos-relay          # WebSocket relay server — main entry point; also hosts git, huddle audio, and huddle recording
   lenos-core           # Core types, event verification, filter matching, kind registry
   lenos-db             # Postgres event store and data access layer
   lenos-auth           # Authentication and authorization
-  lenos-pubsub         # Redis pub/sub fan-out, presence, typing indicators
+  lenos-pubsub         # Redis pub/sub fan-out, presence, typing indicators (SET EX 8 + REST endpoint)
   lenos-search         # Postgres FTS full-text search
   lenos-audit          # Hash-chain audit log
   lenos-media          # Blossom/S3 media storage
@@ -84,7 +80,7 @@ just relay                # start relay at ws://localhost:3000
 just ci                   # run before any PR
 ```
 
-See CONTRIBUTING.md for full setup details and dependency requirements.
+See README.md for full setup details and dependency requirements.
 
 ---
 
@@ -108,7 +104,7 @@ re-install hooks after env changes. Before agents run Git or hooks, activate the
 repo's Hermit environment (`. ./bin/activate-hermit`); do not rewrite hook
 commands to compensate for an unconfigured shell `PATH`.
 
-**Commit with `git commit -s`.** The required **DCO Check** fails any PR with a commit missing a `Signed-off-by` trailer, and `just hooks` installs a `commit-msg` hook that adds it to commits you create locally (`git rebase` and `git cherry-pick` still need `--signoff`) — if you build commit commands programmatically, include `-s` every time. To repair a branch that already has unsigned commits: `git rebase --signoff main`, then force-push.
+Use [Conventional Commits](https://www.conventionalcommits.org/) format: `feat(scope): description`. Type prefix (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`) is required; scope optional.
 
 Additional rules:
 - No `unsafe` code
@@ -589,9 +585,47 @@ usage.
 
 ---
 
+## How to Add a New Event Kind
+
+1. **Define the kind constant** in `lenos-core/src/kind.rs`:
+   ```rust
+   /// My new event kind — what it represents.
+   pub const KIND_MY_FEATURE: u32 = 4XXXX;
+   ```
+   Pick a number in the appropriate sub-range. Check `ALL_KINDS` for collisions.
+
+2. **Define the payload type** in `lenos-core/src/` if content is structured JSON.
+
+3. **Register the required scope** in `crates/lenos-relay/src/handlers/ingest.rs` → `required_scope_for_kind()`:
+   ```rust
+   KIND_MY_FEATURE => Ok(Scope::MessagesWrite),
+   ```
+
+4. **Handle post-storage side effects** in `crates/lenos-relay/src/handlers/side_effects.rs` → `handle_side_effects()`.
+
+5. **Persist** — if the event needs to be queryable, add queries in `lenos-db/src/`.
+
+6. **Search exclusion** — if privacy-sensitive, add the kind to the `CASE WHEN kind IN (...)` exclusion in the `search_tsv` definition.
+
+7. **Tests** — unit test in `lenos-core`, integration test in `lenos-test-client`.
+
+---
+
+## How to Add a New API Endpoint
+
+Prefer a signed Nostr event over a new HTTP endpoint. If HTTP is genuinely needed:
+
+1. Define the handler in `crates/lenos-relay/src/api/`. Resolve tenant before auth or data lookup.
+2. Register the route in `crates/lenos-relay/src/router.rs`.
+3. Add DB queries in `lenos-db/src/` only when the event query path can't express it.
+4. Return `(StatusCode, Json<Value>)` using the `api_error()`, `internal_error()`, and `not_found()` helpers in `lenos-relay/src/api/mod.rs`.
+5. Write tests in `crates/lenos-test-client/tests/` covering auth, community scoping, and the success path.
+6. Document the endpoint in `ARCHITECTURE.md`.
+
+---
+
 ## See Also
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — setup, code style, PR process, how to add event kinds / CLI subcommands / HTTP endpoints
 - [TESTING.md](TESTING.md) — multi-agent E2E test guide
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system design and component relationships
 - [RELEASING.md](RELEASING.md) — release process: `release-desktop`, `release-relay`, `scripts/mobile-release.sh`, candidate tags, internal builds

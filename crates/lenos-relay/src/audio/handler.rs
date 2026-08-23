@@ -829,7 +829,7 @@ async fn handle_active_audio_connection(
     )
     .await;
 
-    let room_emptied;
+    let removed_room;
     if should_auto_end {
         info!(channel_id = %channel_id, "audio room empty — auto-ending huddle");
 
@@ -841,10 +841,10 @@ async fn handle_active_audio_connection(
             Err(e) => {
                 warn!(channel_id = %channel_id, "auto-archive failed, huddle stays alive: {e}");
                 room.clear_ended();
-                room_emptied = false;
+                removed_room = None;
             }
             Ok(()) => {
-                room_emptied = state
+                removed_room = state
                     .audio_rooms
                     .cleanup_if_empty(tenant.community(), channel_id);
 
@@ -860,9 +860,25 @@ async fn handle_active_audio_connection(
             }
         }
     } else {
-        room_emptied = state
+        removed_room = state
             .audio_rooms
             .cleanup_if_empty(tenant.community(), channel_id);
+    }
+
+    let room_emptied = removed_room.is_some();
+
+    // Spawn S3 upload + Nostr event for the recording, if one was active.
+    if let Some(ref r) = removed_room {
+        if let Some(rec) = r.recording_handle() {
+            spawn_recording_upload(
+                Arc::clone(&state),
+                tenant.clone(),
+                channel_id,
+                parent_id_for_event,
+                rec.path.clone(),
+                Arc::clone(&rec.closed),
+            );
+        }
     }
 
     // Owner path: release this room's lease when the room empties, so a new
@@ -1333,6 +1349,92 @@ async fn emit_participant_event(
             "audio: failed to publish lifecycle event: {e}"
         );
     }
+}
+
+fn spawn_recording_upload(
+    state: Arc<AppState>,
+    tenant: TenantContext,
+    channel_id: Uuid,
+    parent_channel_id: Uuid,
+    path: std::path::PathBuf,
+    closed: Arc<tokio::sync::Notify>,
+) {
+    tokio::spawn(async move {
+        closed.notified().await;
+
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("recording.lenosopu")
+            .to_owned();
+        let s3_key = format!(
+            "huddles/{}/{}/{}",
+            tenant.community(),
+            channel_id,
+            filename
+        );
+
+        if let Err(e) = state
+            .media_storage
+            .put_file(&s3_key, &path, "application/octet-stream")
+            .await
+        {
+            warn!(s3_key = %s3_key, "huddle recording S3 upload failed: {e}");
+            return;
+        }
+        info!(s3_key = %s3_key, "huddle recording uploaded");
+
+        let relay_http = state
+            .config
+            .relay_url
+            .replace("wss://", "https://")
+            .replace("ws://", "http://");
+        let url = format!(
+            "{}/api/huddle/{}/recordings/{}",
+            relay_http.trim_end_matches('/'),
+            channel_id,
+            filename
+        );
+
+        let content = serde_json::json!({"url": url, "s3_key": s3_key}).to_string();
+        let h_tag = match Tag::parse(["h", &parent_channel_id.to_string()]) {
+            Ok(t) => t,
+            Err(e) => {
+                warn!(channel_id = %channel_id, "recording: build h tag: {e}");
+                return;
+            }
+        };
+        let event = match EventBuilder::new(
+            Kind::Custom(lenos_core::kind::KIND_HUDDLE_RECORDING as u16),
+            content,
+        )
+        .tags(vec![h_tag])
+        .sign_with_keys(&state.relay_keypair)
+        {
+            Ok(e) => e,
+            Err(e) => {
+                warn!(channel_id = %channel_id, "recording: sign event: {e}");
+                return;
+            }
+        };
+
+        match state
+            .db
+            .insert_event(tenant.community(), &event, Some(parent_channel_id))
+            .await
+        {
+            Ok((stored, true)) => {
+                let _ = state
+                    .pubsub
+                    .publish_event(&tenant, EventTopic::Channel(parent_channel_id), &stored.event)
+                    .await;
+            }
+            Ok((_, false)) => {}
+            Err(e) => {
+                warn!(channel_id = %channel_id, "recording: db insert: {e}");
+            }
+        }
+    });
 }
 
 #[cfg(test)]

@@ -134,14 +134,22 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
                 <button
                   type="button"
                   onClick={() => toggleCollapse(section.id)}
+                  aria-expanded={!isCollapsed}
+                  aria-label={`${section.label} — ${isCollapsed ? "expand" : "collapse"}`}
                   className="flex flex-1 items-center gap-1 rounded px-1 py-0.5 text-xs font-semibold uppercase tracking-wider text-black/40 hover:text-black/60 dark:text-white/40 dark:hover:text-white/60"
                 >
                   {isCollapsed ? (
-                    <ChevronRight className="h-3 w-3 shrink-0" />
+                    <ChevronRight
+                      className="h-3 w-3 shrink-0"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <ChevronDown className="h-3 w-3 shrink-0" />
+                    <ChevronDown
+                      className="h-3 w-3 shrink-0"
+                      aria-hidden="true"
+                    />
                   )}
-                  {section.label}
+                  <span>{section.label}</span>
                 </button>
                 {section.id === "channels" && (
                   <button
@@ -183,7 +191,9 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
                           <Hash className="h-3.5 w-3.5 shrink-0 opacity-50" />
                           <span className="truncate">{ch.name}</span>
                           {unread && !isActive && (
-                            <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                            <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-500">
+                              <span className="sr-only">unread messages</span>
+                            </span>
                           )}
                         </button>
                         <ChannelContextMenu

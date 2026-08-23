@@ -4,11 +4,6 @@ import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
 
-const AGENT_TYPES = [
-  { value: "remote", label: "Remote (LenGrowth managed)" },
-  { value: "local", label: "Local (runs in this browser)" },
-];
-
 export function CreateAgentDialog({
   open,
   onClose,
@@ -20,7 +15,6 @@ export function CreateAgentDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [agentType, setAgentType] = useState("remote");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,15 +45,15 @@ export function CreateAgentDialog({
           content: JSON.stringify({
             name: name.trim(),
             description: description.trim(),
-            agent_type: agentType,
+            agent_type: "remote",
             status: "online",
-            remote: agentType !== "local",
+            remote: true,
           }),
           tags: [
             ["d", agentPubkey],
             ["name", name.trim()],
             ["about", description.trim()],
-            ["agent_type", agentType],
+            ["agent_type", "remote"],
             ["status", "online"],
           ],
         },
@@ -134,25 +128,18 @@ export function CreateAgentDialog({
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="agent-type"
-              className="mb-1 block text-xs font-medium text-black/60 dark:text-white/60"
-            >
-              Type
-            </label>
-            <select
-              id="agent-type"
-              value={agentType}
-              onChange={(e) => setAgentType(e.target.value)}
-              className="w-full rounded-lg border border-black/10 bg-black/5 px-3 py-2 text-sm text-black outline-none focus:ring-2 focus:ring-black/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:ring-white/20"
-            >
-              {AGENT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+          <div className="rounded-lg border border-black/10 bg-black/[0.03] px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]">
+            <p className="text-xs text-black/60 dark:text-white/60">
+              <span className="font-medium text-black/80 dark:text-white/80">
+                Remote (LenGrowth managed)
+              </span>{" "}
+              — agents run through LenGrowth and are accessible from any
+              browser.
+            </p>
+            <p className="mt-1 text-xs text-black/40 dark:text-white/40">
+              Local agents that run on your machine require the LenOS desktop
+              app.
+            </p>
           </div>
 
           {error && (

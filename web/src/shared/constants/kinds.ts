@@ -45,6 +45,7 @@ export const KIND_HUDDLE_STARTED = 48100;
 export const KIND_HUDDLE_PARTICIPANT_JOINED = 48101;
 export const KIND_HUDDLE_PARTICIPANT_LEFT = 48102;
 export const KIND_HUDDLE_ENDED = 48103;
+export const KIND_HUDDLE_RECORDING = 48104;
 // NIP-78 application-specific data. All use kind 30078; the relay
 // differentiates them by d-tag ("read-state:<slotId>", "channel-sections", "channel-mutes", "channel-stars", "channel-sort").
 export const KIND_READ_STATE = 30078;
@@ -85,6 +86,10 @@ export const KIND_PINNED_MESSAGES = 30078;
 export const KIND_GROWTH_REPORT = 30079;
 export const KIND_GROWTH_SUGGESTION = 30080;
 
+// NIP-AE agent engrams (parameterized replaceable, agent-authored, NIP-44 encrypted to owner).
+// Addressed by (agent_pubkey, kind, d_tag). Owner reads via authors=[agent] + #p=[owner].
+export const KIND_AGENT_ENGRAM = 30174;
+
 // Human-visible "new content" message kinds. Used as the unread trigger set
 // (sidebar badges, catch-up queries) and as the Home-feed mention query.
 // Reactions, edits, diffs, deletions, and system messages are deliberately
@@ -113,6 +118,7 @@ export const CHANNEL_EVENT_KINDS = [
   KIND_HUDDLE_PARTICIPANT_JOINED, // 48101 — huddle lifecycle overlay
   KIND_HUDDLE_PARTICIPANT_LEFT, // 48102 — huddle lifecycle overlay
   KIND_HUDDLE_ENDED, // 48103 — huddle lifecycle overlay
+  KIND_HUDDLE_RECORDING, // 48104 — recording available card
 ] as const;
 
 // Auxiliary (non-row) timeline kinds: events that overlay onto or hide an
@@ -149,6 +155,7 @@ export const CHANNEL_TIMELINE_CONTENT_KINDS = [
   KIND_JOB_CANCEL, // 43005
   KIND_JOB_ERROR, // 43006
   KIND_HUDDLE_STARTED, // 48100 — huddle session card
+  KIND_HUDDLE_RECORDING, // 48104 — recording available card
   KIND_GROWTH_REPORT, // 30079 — weekly/monthly growth report card
   KIND_GROWTH_SUGGESTION, // 30080 — signal suggestion card
 ] as const;
@@ -170,6 +177,7 @@ const NON_CONVERSATIONAL_UNREAD_KINDS: ReadonlySet<number> = new Set([
   KIND_HUDDLE_PARTICIPANT_JOINED, // 48101
   KIND_HUDDLE_PARTICIPANT_LEFT, // 48102
   KIND_HUDDLE_ENDED, // 48103
+  KIND_HUDDLE_RECORDING, // 48104
   KIND_GROWTH_REPORT, // 30079 — not conversational, no unread badge
   KIND_GROWTH_SUGGESTION, // 30080 — not conversational, no unread badge
 ]);

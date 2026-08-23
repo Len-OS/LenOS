@@ -8,7 +8,7 @@ use tracing::{debug, error, info, warn};
 use lenos_core::event::StoredEvent;
 use lenos_core::kind::{
     event_kind_u32, is_ephemeral, is_unshared_gated_event, AUTHOR_ONLY_KINDS,
-    KIND_AGENT_OBSERVER_FRAME, KIND_GIFT_WRAP, KIND_PRESENCE_UPDATE,
+    KIND_AGENT_OBSERVER_FRAME, KIND_GIFT_WRAP, KIND_PRESENCE_UPDATE, KIND_TYPING_INDICATOR,
 };
 use lenos_core::observer::{
     content_looks_like_nip44, OBSERVER_AGENT_TAG, OBSERVER_FRAME_CONTROL, OBSERVER_FRAME_TAG,
@@ -828,6 +828,18 @@ async fn handle_ephemeral_event(
         // Presence is a channel-less ephemeral event. After updating Redis
         // presence state, let it fall through to the shared global ephemeral
         // publish/fan-out path below so other relay nodes receive the live delta.
+    }
+
+    // Typing indicator (kind:20002) — update Redis key, then fall through to
+    // the shared channel-scoped ephemeral publish/fan-out path.
+    if event_kind_u32(&event) == KIND_TYPING_INDICATOR {
+        if let Some(channel_id) = super::ingest::extract_channel_id(&event) {
+            let _ = state
+                .pubsub
+                .set_typing(&conn.tenant, channel_id, &auth_pubkey)
+                .await;
+        }
+        // Fall through — channel membership check and fan-out run below.
     }
 
     // Check channel membership before publishing other ephemeral events.

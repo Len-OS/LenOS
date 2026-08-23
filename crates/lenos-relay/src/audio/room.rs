@@ -11,9 +11,11 @@
 use bytes::Bytes;
 use dashmap::DashMap;
 use lenos_core::CommunityId;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tokio::sync::{broadcast, mpsc};
 use uuid::Uuid;
+
+use super::recorder::{RecordedFrame, RecordingHandle};
 
 /// A connected audio peer.
 pub struct AudioPeer {
@@ -170,6 +172,10 @@ pub struct Room {
     /// Ordered authoritative roster mutations. Lag is recoverable from
     /// [`Self::roster_snapshot`], so the owner never blocks admission.
     roster_tx: broadcast::Sender<RosterDelta>,
+    /// Optional recording sink. Set once via [`Self::attach_recorder`];
+    /// absent when recording is disabled. `try_send` so the audio hot path
+    /// is never blocked by a slow disk.
+    recording: OnceLock<RecordingHandle>,
 }
 
 impl Room {
@@ -182,7 +188,19 @@ impl Room {
             peers: DashMap::new(),
             guard: std::sync::Mutex::new(AdmissionGuard::new()),
             roster_tx,
+            recording: OnceLock::new(),
         }
+    }
+
+    /// Attach a recording sink to this room. Must be called before the first
+    /// peer joins. Silently ignored if a sink is already attached (OnceLock).
+    pub fn attach_recorder(&self, handle: RecordingHandle) {
+        let _ = self.recording.set(handle);
+    }
+
+    /// Returns the active recording handle, if one is attached.
+    pub fn recording_handle(&self) -> Option<&RecordingHandle> {
+        self.recording.get()
     }
 
     /// Mark the room as ended. After this returns, no new `add_peer` can
@@ -408,6 +426,19 @@ impl Room {
             }
             let _ = entry.audio_tx.try_send(prefixed.clone());
         }
+
+        // Recording tap — runs after fan-out so it never delays peers.
+        if let Some(rec) = self.recording.get() {
+            let ts = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64;
+            let _ = rec.tx.try_send(RecordedFrame {
+                peer_index: sender_index,
+                timestamp_ms: ts,
+                data: frame,
+            });
+        }
     }
 
     /// Deliver an already-`[peer_index]`-prefixed frame that arrived over the
@@ -425,6 +456,22 @@ impl Room {
                 continue;
             }
             let _ = entry.audio_tx.try_send(prefixed.clone());
+        }
+
+        // Recording tap for cross-pod frames. Strip the 1-byte peer_index
+        // prefix before storing (consistent with broadcast_frame's raw Opus).
+        if let Some(rec) = self.recording.get() {
+            if prefixed.len() > 1 {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64;
+                let _ = rec.tx.try_send(RecordedFrame {
+                    peer_index: author_index,
+                    timestamp_ms: ts,
+                    data: prefixed.slice(1..),
+                });
+            }
         }
     }
 
@@ -492,13 +539,27 @@ impl Room {
 /// Global registry of active audio rooms.
 pub struct AudioRoomManager {
     rooms: DashMap<(CommunityId, Uuid), Arc<Room>>,
+    /// Directory for recording files. When `Some`, every new room's frames are
+    /// written to `<dir>/<community_id>/<channel_id>/<timestamp>.lenosopu`.
+    recording_dir: Option<std::path::PathBuf>,
 }
 
 impl AudioRoomManager {
-    /// Create an empty room manager.
+    /// Create an empty room manager without recording.
     pub fn new() -> Self {
         Self {
             rooms: DashMap::new(),
+            recording_dir: None,
+        }
+    }
+
+    /// Create a room manager that records every huddle to `dir`.
+    ///
+    /// Set via the `HUDDLE_RECORDING_DIR` environment variable in production.
+    pub fn with_recording(dir: std::path::PathBuf) -> Self {
+        Self {
+            rooms: DashMap::new(),
+            recording_dir: Some(dir),
         }
     }
 
@@ -507,11 +568,45 @@ impl AudioRoomManager {
     /// Channel UUIDs are only unique inside a community. The room key must
     /// carry both labels so two tenants that legitimately reuse the same UUID
     /// never share peer lists, protocol pins, or audio frames.
+    ///
+    /// When a recording directory is configured, new rooms are automatically
+    /// wired to a recording sink. Errors opening the file are logged but do
+    /// not prevent the room from being created.
     pub fn get_or_create(&self, community_id: CommunityId, channel_id: Uuid) -> Arc<Room> {
-        self.rooms
+        let room = self
+            .rooms
             .entry((community_id, channel_id))
             .or_insert_with(|| Arc::new(Room::new(community_id, channel_id)))
-            .clone()
+            .clone();
+
+        // Attach a recorder if configured and not yet attached (OnceLock
+        // guarantees idempotency across concurrent get_or_create calls).
+        if room.recording.get().is_none() {
+            if let Some(ref dir) = self.recording_dir {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let path = dir
+                    .join(community_id.to_string())
+                    .join(channel_id.to_string())
+                    .join(format!("{ts}.lenosopu"));
+                let room_clone = Arc::clone(&room);
+                tokio::spawn(async move {
+                    match crate::audio::recorder::RecordingHandle::spawn(path.clone()).await {
+                        Ok(handle) => {
+                            room_clone.attach_recorder(handle);
+                            tracing::info!(path = %path.display(), "huddle recording started");
+                        }
+                        Err(e) => {
+                            tracing::warn!(path = %path.display(), error = %e, "huddle recording failed to start");
+                        }
+                    }
+                });
+            }
+        }
+
+        room
     }
 
     /// Look up an existing community-local room without creating one.
@@ -540,11 +635,19 @@ impl AudioRoomManager {
         Some(room)
     }
 
-    /// Remove the room if it has no peers. Returns `true` if the room was removed.
-    pub fn cleanup_if_empty(&self, community_id: CommunityId, channel_id: Uuid) -> bool {
+    /// Remove the room if it has no peers.
+    ///
+    /// Returns the removed `Arc<Room>` if the room was removed, or `None` if
+    /// the room was non-empty or did not exist. Callers that only need a boolean
+    /// can call `.is_some()` on the result.
+    pub fn cleanup_if_empty(
+        &self,
+        community_id: CommunityId,
+        channel_id: Uuid,
+    ) -> Option<Arc<Room>> {
         self.rooms
             .remove_if(&(community_id, channel_id), |_, room| room.is_empty())
-            .is_some()
+            .map(|(_, room)| room)
     }
 }
 
@@ -682,7 +785,7 @@ mod tests {
             .remove_peer_and_check_ended(peer_id)
             .expect("peer existed");
         assert!(ended, "single-peer room should end on its last departure");
-        assert!(manager.cleanup_if_empty(community_id, channel_id));
+        assert!(manager.cleanup_if_empty(community_id, channel_id).is_some());
 
         // Next joiner with a different version on the same channel id gets a
         // brand-new room (no v=2 pin carried over from the prior generation).

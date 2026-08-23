@@ -267,6 +267,26 @@ impl MediaStorage {
             is_truncated: result.is_truncated,
         })
     }
+
+    /// List all keys under a prefix (up to `max_keys`).
+    /// Returns key strings only; size is omitted.
+    pub async fn list_prefix(
+        &self,
+        prefix: &str,
+        max_keys: usize,
+    ) -> Result<Vec<String>, MediaError> {
+        let (result, _status) = self
+            .bucket
+            .list_page(
+                prefix.to_owned(),
+                None,
+                None,
+                None,
+                Some(max_keys),
+            )
+            .await?;
+        Ok(result.contents.into_iter().map(|obj| obj.key).collect())
+    }
 }
 
 #[cfg(test)]

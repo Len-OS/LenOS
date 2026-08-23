@@ -14,6 +14,8 @@ pub mod mesh_demo;
 pub mod nip05;
 pub mod operator;
 pub(crate) mod thread_summary;
+pub mod recordings;
+pub mod typers;
 pub mod webhooks;
 pub mod workspace;
 

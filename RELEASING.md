@@ -1,10 +1,12 @@
 # Releasing LenOS
 
-LenOS has three independent release lanes. Desktop and relay use release PRs.
-Mobile uses immutable release-candidate tags cut directly from remote `main`:
+LenOS has four independent release lanes. Desktop and relay use release PRs.
+Mobile uses immutable release-candidate tags cut directly from remote `main`.
+Web deploys automatically on every push to `main` via Cloudflare Pages.
 
 | Lane | Entry point | Artifact |
 |------|-------------|----------|
+| **Web** | Push to `main` (automatic) | Cloudflare Pages deploy at `{slug}.lengrowth.com` |
 | Desktop | `just release-desktop <version>` | Packaged desktop app (signed macOS when Apple credentials are available, unsigned Windows/macOS fallback, and Linux) |
 | Relay | `just release-relay` | `ghcr.io/len-os/lenos` container image |
 | Mobile | `scripts/mobile-release.sh candidate X.Y.Z` | Exact `mobile-vX.Y.Z-rc.N` source identity |
@@ -27,6 +29,9 @@ request. Candidate branch creation uses the operator's GitHub permissions; the
 release App is intentionally limited to creating protected release tags.
 
 ```sh
+# Web — no manual step; push to main triggers Cloudflare Pages deploy automatically.
+# To trigger manually: use the Cloudflare dashboard or re-push the branch.
+
 # Relay release
 just release-relay
 just release-relay 0.4.0

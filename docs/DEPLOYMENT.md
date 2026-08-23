@@ -66,7 +66,7 @@ Future updates: edit `infra/terraform/main.tf` and re-register via AWS CLI, or i
 
 ⚠️ **CRITICAL RISK:** State is local only (`infra/terraform/terraform.tfstate`). No S3 remote backend. This file is the sole source of truth for all production AWS resources (RDS, ECS, ALB). **Do not delete it. Back it up before any Terraform operation.** If lost, you must import resources manually. Migrate to S3 remote backend before adding team members or automating deploys.
 
-### Key env vars set on ECS task (task def rev 8)
+### Key env vars set on ECS task (task def rev 9)
 
 ```
 RELAY_URL                 = wss://relay.lengrowth.com
@@ -80,7 +80,10 @@ LENOS_S3_SECRET_KEY       = (empty — uses ECS task IAM role)
 LENOS_S3_ADDRESSING_STYLE = virtual
 LENOS_MEDIA_BASE_URL      = https://relay.lengrowth.com/media
 LENOS_AUTO_MIGRATE        = true
+HUDDLE_RECORDING_DIR      = /tmp/huddle-recordings   ← enables per-huddle LENOSOPU recording + S3 upload
 ```
+
+IAM role `lenos-ecs-task` has `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListBucket` on `lenos-media-288947333598/*`. Recordings land under `huddles/{community_id}/{channel_id}/` prefix in the same bucket as Blossom media.
 
 ### Verify relay health
 

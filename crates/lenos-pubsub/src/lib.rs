@@ -41,6 +41,7 @@ pub mod subscriber;
 /// Community-scoped Redis event topics.
 pub mod topic;
 /// Typing indicator tracking in Redis.
+pub mod typing;
 pub use error::PubSubError;
 
 use std::collections::HashMap;
@@ -363,6 +364,25 @@ impl PubSubManager {
         pubkeys: &[PublicKey],
     ) -> Result<HashMap<String, String>, PubSubError> {
         presence::get_presence_bulk(&self.pool, ctx, pubkeys).await
+    }
+
+    /// Mark `pubkey` as typing in `channel_id` with an 8s TTL.
+    pub async fn set_typing(
+        &self,
+        ctx: &TenantContext,
+        channel_id: uuid::Uuid,
+        pubkey: &PublicKey,
+    ) -> Result<(), PubSubError> {
+        typing::set_typing(&self.pool, ctx, channel_id, pubkey).await
+    }
+
+    /// Return hex pubkeys currently typing in `channel_id`.
+    pub async fn get_typers(
+        &self,
+        ctx: &TenantContext,
+        channel_id: uuid::Uuid,
+    ) -> Result<Vec<String>, PubSubError> {
+        typing::get_typers(&self.pool, ctx, channel_id).await
     }
 }
 

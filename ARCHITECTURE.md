@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-LenOS is a self-hosted team communication platform built on the Nostr protocol (NIP-01 wire format), where AI agents and humans are first-class equals. Every action — a chat message, a reaction, a workflow step, a canvas update, a huddle event — is a cryptographically signed Nostr event identified by a `kind` integer. Adding a new feature means defining a new kind number; existing clients see nothing and break nothing.
+LenOS is the relay infrastructure powering LenGrowth — built on the Nostr protocol (NIP-01 wire format), where AI agents and humans are first-class equals. Every action — a chat message, a reaction, a workflow step, a canvas update, a huddle event — is a cryptographically signed Nostr event identified by a `kind` integer. Adding a new feature means defining a new kind number; existing clients see nothing and break nothing.
 
 The relay is the single source of truth. All reads and writes flow through it. There is no peer-to-peer event exchange, no gossip, no replication — just clients connecting to one relay over WebSocket, and the relay enforcing auth, verifying signatures, persisting events, fanning out to subscribers, indexing for search, and triggering automation.
 
@@ -14,7 +14,7 @@ EVENT, REQ, REST, media, git, search, workflow, or pub/sub handling. Unknown
 hosts fail closed, and NIP-98/API-token stamps must agree with the host-derived
 community rather than overriding it.
 
-LenOS is a Rust monorepo, licensed Apache 2.0 under LenGrowth
+LenOS is a Rust monorepo maintained by LenGrowth.
 
 ---
 
@@ -255,14 +255,17 @@ Ephemeral events bypass DB storage, audit, and search. Two sub-paths:
 ```
 Presence events skip membership checks and use local-only fan-out. Multi-node presence fan-out would require Redis pub/sub (documented as future work).
 
-**Other ephemeral events (e.g., typing indicators):**
+**Other ephemeral events (e.g., typing indicators kind:20002):**
 ```
 1. VERIFY            — spawn_blocking(verify_event)
-2. MEMBERSHIP        — check_channel_membership (if channel-scoped)
-3. MARK LOCAL        — state.mark_local_event (dedup before Redis round-trip)
-4. REDIS PUBLISH     — pubsub.publish_event (no DB write)
-5. LOCAL FAN-OUT     — sub_registry.fan_out → conn_manager.send_to
+2. TYPING REDIS      — kind:20002 → pubsub.set_typing() (SET EX 8) before membership check
+3. MEMBERSHIP        — check_channel_membership (if channel-scoped)
+4. MARK LOCAL        — state.mark_local_event (dedup before Redis round-trip)
+5. REDIS PUBLISH     — pubsub.publish_event (no DB write)
+6. LOCAL FAN-OUT     — sub_registry.fan_out → conn_manager.send_to
 ```
+
+Typing state is also queryable via `GET /api/channels/{channel_id}/typers` (NIP-98 auth) — returns current typers from Redis SCAN on the `lenos:{community}:typing:{channel_id}:{pubkey}` key space.
 
 Ephemeral events are never stored in Postgres and never appear in REQ historical queries.
 
@@ -387,7 +390,7 @@ pub trait RateLimiter: Send + Sync { ... }
 - NIP-42 timestamp tolerance: ±60 seconds.
 - Dev-only key derivation: `SHA-256("lenos-test-key:{username}")` — gated behind `#[cfg(any(test, feature = "dev"))]`. The `dev` feature must not be enabled in production relay deployments.
 
-**Does NOT:** implement `RateLimiter` beyond a test stub (`AlwaysAllowRateLimiter`, gated behind `#[cfg(any(test, feature = "test-utils"))]`). No Redis-backed rate limiter exists anywhere in the codebase — rate limiting is not currently enforced. `RateLimitConfig` defines 4 tiers (human, agent-standard, agent-elevated, agent-platform) as a design target.
+**Rate limiting:** `RedisRateLimiter` is wired in production (`lenos-relay/src/state.rs:586`). `AlwaysAllowRateLimiter` is test-only (`#[cfg(any(test, feature = "test-utils"))]`). `RateLimitConfig` defines 4 tiers (human, agent-standard, agent-elevated, agent-platform).
 
 ---
 
@@ -451,13 +454,11 @@ The subscriber uses a **dedicated** `redis::aio::PubSub` connection — not from
 
 **Typing indicators:**
 ```
-ZADD lenos:typing:{channel_id} {now_unix} {pubkey_hex}
-ZREMRANGEBYSCORE lenos:typing:{channel_id} -inf {now - 5.0}
-EXPIRE lenos:typing:{channel_id} 60
+SET lenos:{community}:typing:{channel_id}:{pubkey_hex} 1 EX 8
 ```
-5-second activity window. 60-second key TTL prevents orphaned empty sets.
+Per-key TTL pattern (8-second expiry). Reading current typers: SCAN `lenos:{community}:typing:{channel_id}:*` and split the last segment. REST: `GET /api/channels/{channel_id}/typers` (NIP-98 auth) — implemented in `crates/lenos-relay/src/api/typers.rs`. Kind:20002 WS events trigger `pubsub.set_typing()` in `handlers/event.rs`.
 
-**Does NOT:** implement the rate limiter. Does NOT store events. `PubSubManager` is not `Clone` — callers use `Arc<PubSubManager>`.
+Does NOT store events. `PubSubManager` is not `Clone` — callers use `Arc<PubSubManager>`.
 
 ---
 
@@ -549,7 +550,7 @@ Note: Both `TriggerDef` and `ActionDef` use serde internally-tagged enums. Trigg
 
 **Concurrency:** `Arc<Semaphore>` with 100 permits. `try_acquire()` — returns `CapacityExceeded` immediately rather than queuing.
 
-**Approval gates:** `request_approval` action returns `StepResult::Suspended` with a generated UUID token, but the engine does not yet persist the token or resume execution — runs that hit an approval gate are marked as failed (🚧 WF-08). `execute_from_step()` exists for future resumption support.
+**Approval gates:** `request_approval` returns `StepResult::Suspended`; `handle_approval_grant()` → `resume_workflow_after_approval()` resumes from the correct step (`crates/lenos-workflow/src/command_executor.rs:1029`). Fully wired end-to-end.
 
 **Cron scheduler:** loop ticks every 60 seconds, evaluates cron expressions with window-based matching, and creates workflow runs for matched triggers. Fully implemented.
 
@@ -567,7 +568,9 @@ Real-time voice lives inside `lenos-relay` (`src/audio/`), not a separate crate.
 
 **Lifecycle events:** the relay emits Nostr events for participant joined / left and huddle ended; the desktop client emits huddle started and guidelines. When the last peer leaves, the room ends and the channel archives atomically.
 
-**Not yet built:** recording and per-track publishing (the corresponding kinds are reserved, no producer exists).
+**Recording:** when `HUDDLE_RECORDING_DIR` env var is set, each room gets a `RecordingHandle` (LENOSOPU binary format — magic `b"LENOSOPU\x00\x01"`, then per-frame: 8B timestamp_ms u64 BE + 1B peer_index + 4B opus_len u32 BE + N bytes Opus payload). On room close, `spawn_recording_upload` streams the file to S3 under `huddles/{community_id}/{channel_id}/{filename}`, then publishes a kind:48104 Nostr event (`h` tag + JSON `{"url":"...","s3_key":"..."}`) to the parent channel. The recording is queryable via `GET /api/huddle/{channel_id}/recordings` (NIP-98 auth). Files land in the existing `lenos-media-*` S3 bucket; no separate bucket is needed. ECS task definition must set `HUDDLE_RECORDING_DIR=/tmp/huddle-recordings`.
+
+**Per-track publishing:** not yet built (kinds reserved, no producer).
 
 ---
 
@@ -798,7 +801,7 @@ Docker Compose provides the full local development stack. All services include h
 |---------|------|-----|---------|
 | `lenos:channel:{uuid}` | Pub/Sub channel | — | Event fan-out (single-community form; shared multi-community Redis must use `lenos:{community}:channel:{uuid}` or equivalent) |
 | `lenos:presence:{pubkey_hex}` | String | 180s | Online/away status (single-community form; shared multi-community Redis must scope by community) |
-| `lenos:typing:{channel_uuid}` | Sorted Set | 60s | Active typers (5s window; shared multi-community Redis must scope by community) |
+| `lenos:{community}:typing:{channel_uuid}:{pubkey_hex}` | String | 8s | Per-typer key (SET EX 8); current typers read via SCAN on the prefix. REST: `GET /api/channels/{channel_id}/typers`. |
 
 ### Full-Text Search (Postgres FTS)
 
@@ -820,8 +823,8 @@ These are verified gaps in the current implementation — not design aspirations
 | # | Limitation | Detail |
 |---|-----------|--------|
 | 1 | **No sqlx offline query cache** | Uses `sqlx::query()` (runtime) not `sqlx::query!()` (compile-time). No `.sqlx/` directory. Queries are not validated at compile time. |
-| 2 | **No rate limiting implementation** | `RateLimiter` trait exists in `lenos-auth`. Only implementation is `AlwaysAllowRateLimiter` (test stub, gated behind `#[cfg(any(test, feature = "test-utils"))]`). `RateLimitConfig` defines 4 tiers (human, agent-standard, agent-elevated, agent-platform) but none are enforced. |
-| 3 | **No dedicated typing REST endpoint** | Typing indicators (kind 20002) are delivered via both local fan-out and Redis pub/sub (cross-node). There is no REST endpoint to query current typers — `/api/presence` returns online/away status only, not typing state. |
-| 4 | **Huddle recording/tracks not built** | Voice, room lifecycle, and join/leave/end events are wired (see Huddle Audio above). Recording and per-track publishing have reserved kinds but no producer yet. |
-| 5 | **Approval gates not wired end-to-end** | The executor returns `StepResult::Suspended` and the relay has grant/deny API endpoints with DB CRUD, but the engine intercepts before creating `WaitingApproval` rows — runs that hit an approval gate are marked as Failed (🚧 WF-08). |
-| 6 | **Workflow actions partially stubbed** | The `send_dm` and `set_channel_topic` workflow actions are in the schema but return `NotImplemented` — a run that reaches one fails at execution (🚧 WF-07). |
+| 2 | ~~**No rate limiting implementation**~~ **Resolved** | `RedisRateLimiter` wired in production (`lenos-relay/src/state.rs:586`). `AlwaysAllowRateLimiter` is test-only. |
+| 3 | ~~**No dedicated typing REST endpoint**~~ **Resolved** | `GET /api/channels/{channel_id}/typers` (NIP-98 auth) implemented in `crates/lenos-relay/src/api/typers.rs`. Redis SET EX 8 keys written on kind:20002; SCAN returns current typers. |
+| 4 | ~~**Huddle recording/tracks not built**~~ **Partially resolved** | Recording pipeline complete: LENOSOPU binary writer → S3 upload on room close (`spawn_recording_upload` in `audio/handler.rs`) → kind:48104 Nostr event → `GET /api/huddle/{channel_id}/recordings` REST endpoint. ECS task def `:9` sets `HUDDLE_RECORDING_DIR=/tmp/huddle-recordings`. Per-track publishing still not built. |
+| 5 | ~~**Approval gates not wired end-to-end**~~ **Resolved** | `handle_approval_grant()` → `resume_workflow_after_approval()` fully wired (`command_executor.rs:1029`). |
+| 6 | ~~**Approval gates not resumable**~~ **Resolved** | Resume path wired; `send_dm` and `set_channel_topic` fully implemented in `workflow_sink.rs`. |

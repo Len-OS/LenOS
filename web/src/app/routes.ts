@@ -26,6 +26,7 @@ export const routes = rootRoute("root.tsx", [
     ]),
     route("/saved", "_workspace.saved.tsx"),
     route("/people", "_workspace.people.tsx"),
+    route("/documents", "_workspace.documents.tsx"),
     route("/lenos/$", "_workspace.lenos.$.tsx"),
   ]),
   route("/invite/$code", "invite.$code.tsx"),

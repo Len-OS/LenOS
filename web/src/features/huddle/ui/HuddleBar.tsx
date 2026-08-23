@@ -129,15 +129,23 @@ export function HuddleBar() {
       )}
 
       <div className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-t border-black/10 bg-white px-4 shadow-xl dark:border-white/10 dark:bg-[#111]">
-        <div className="w-48 truncate text-xs text-black/40 dark:text-white/40">
-          {phase === "connecting" ? (
-            "Connecting..."
-          ) : isPtt && muted ? (
-            <span className="font-medium text-black/60 dark:text-white/60">
-              Hold Space to talk
+        <div className="flex w-48 min-w-0 items-center gap-2 truncate text-xs text-black/40 dark:text-white/40">
+          <span className="truncate">
+            {phase === "connecting" ? (
+              "Connecting..."
+            ) : isPtt && muted ? (
+              <span className="font-medium text-black/60 dark:text-white/60">
+                Hold Space to talk
+              </span>
+            ) : (
+              "In huddle"
+            )}
+          </span>
+          {phase === "active" && (
+            <span className="flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-bold text-red-500">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+              REC
             </span>
-          ) : (
-            "In huddle"
           )}
         </div>
 

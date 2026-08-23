@@ -1,7 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { getRelayClient } from "@/shared/lib/relay-live-client";
+import { getConversationKey, decrypt } from "nostr-tools/nip44";
+import { queryEvents } from "@/shared/lib/nostr-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
-import { KIND_MANAGED_AGENT } from "@/shared/constants/kinds";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { getEncryptionKey } from "./lib/credentialApi";
+import { KIND_AGENT_ENGRAM } from "@/shared/constants/kinds";
+
+const OUTGOING_REF_RE = /\[\[([^\]]+)\]\]/g;
 
 export interface MemoryEntry {
   slug: string;
@@ -12,57 +17,90 @@ export interface MemoryEntry {
 export function useAgentMemory(agentPubkey: string): {
   entries: MemoryEntry[];
   isLoading: boolean;
+  error: string | null;
   refetch: () => void;
 } {
   const [entries, setEntries] = useState<MemoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!agentPubkey) return;
-    setIsLoading(true);
-    setEntries([]);
-    const client = getRelayClient(relayWsUrl());
-    const timer = setTimeout(() => setIsLoading(false), 3000);
 
-    const unsub = client.subscribe({
-      id: `agent-memory-${agentPubkey}-${fetchKey}`,
-      filter: {
-        kinds: [KIND_MANAGED_AGENT],
-        authors: [agentPubkey],
-        limit: 1,
-      },
-      onEvent: (raw) => {
-        setIsLoading(false);
-        try {
-          const parsed = JSON.parse((raw.content as string) ?? "") as {
-            memory?: Array<{ slug?: string; body?: string; links?: string[] }>;
-          };
-          if (Array.isArray(parsed.memory)) {
-            const valid: MemoryEntry[] = parsed.memory
-              .filter(
-                (m) => typeof m.slug === "string" && typeof m.body === "string",
-              )
-              .map((m) => ({
-                slug: m.slug as string,
-                body: m.body as string,
-                links: Array.isArray(m.links) ? (m.links as string[]) : [],
-              }));
-            setEntries(valid);
+    const seckey = getEncryptionKey();
+    if (!seckey) {
+      setError(
+        "Memory requires a local Nostr key. Set one up in Settings → Identity.",
+      );
+      setEntries([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    setEntries([]);
+
+    void (async () => {
+      try {
+        const viewerPubkey = await getCurrentPubkey();
+        if (!viewerPubkey || cancelled) return;
+
+        // NIP-44 conversation key: symmetric between (ownerSeckey, agentPubkey)
+        // and (agentSeckey, ownerPubkey) — owner uses their own seckey here.
+        const ck = getConversationKey(seckey, agentPubkey);
+
+        const events = await queryEvents(relayWsUrl(), {
+          kinds: [KIND_AGENT_ENGRAM],
+          authors: [agentPubkey],
+          "#p": [viewerPubkey],
+          limit: 5000,
+        });
+
+        if (cancelled) return;
+
+        const parsed: MemoryEntry[] = [];
+        for (const ev of events) {
+          const slug = (ev.tags as string[][]).find((t) => t[0] === "d")?.[1];
+          if (!slug) continue;
+          try {
+            const body = decrypt(ev.content as string, ck);
+            const links: string[] = [];
+            for (const m of body.matchAll(OUTGOING_REF_RE)) {
+              if (m[1]) links.push(m[1]);
+            }
+            parsed.push({ slug, body, links });
+          } catch {
+            // event failed NIP-44 decrypt — not addressed to this viewer, skip
           }
-        } catch {
-          // content not JSON or no memory field — empty entries is correct
         }
-      },
-    });
+
+        // core first, then mem/* alphabetically
+        parsed.sort((a, b) => {
+          if (a.slug === "core") return -1;
+          if (b.slug === "core") return 1;
+          return a.slug.localeCompare(b.slug);
+        });
+
+        setEntries(parsed);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load memory.",
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
 
     return () => {
-      unsub();
-      clearTimeout(timer);
+      cancelled = true;
     };
   }, [agentPubkey, fetchKey]);
 
-  return { entries, isLoading, refetch };
+  return { entries, isLoading, error, refetch };
 }

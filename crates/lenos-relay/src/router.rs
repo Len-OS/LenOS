@@ -199,6 +199,16 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/api/agent-credentials/{agent_d_tag}/resolve",
             get(api::agent_credentials::resolve_creds),
         )
+        // Typing indicators — who is currently typing in a channel (NIP-98 auth)
+        .route(
+            "/api/channels/{channel_id}/typers",
+            get(api::typers::get_typers),
+        )
+        // Huddle recordings — list S3 recordings for a channel (NIP-98 auth)
+        .route(
+            "/api/huddle/{channel_id}/recordings",
+            get(api::recordings::list_recordings),
+        )
         // Reject request bodies larger than 1 MB to prevent resource exhaustion.
         .layer(RequestBodyLimitLayer::new(1024 * 1024))
         .with_state(state.clone());

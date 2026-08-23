@@ -82,12 +82,20 @@ interface Props {
 }
 
 export function AgentMemorySection({ agentPubkey, viewerIsOwner }: Props) {
-  const { entries, isLoading, refetch } = useAgentMemory(agentPubkey);
+  const { entries, isLoading, error, refetch } = useAgentMemory(agentPubkey);
 
   if (!viewerIsOwner) {
     return (
       <p className="text-sm text-black/40 dark:text-white/40">
         Memory is only visible to the agent owner.
+      </p>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="rounded-md border border-red-900/30 bg-red-950/20 px-3 py-2 text-xs text-red-400">
+        {error}
       </p>
     );
   }

@@ -772,7 +772,13 @@ impl AppState {
             )),
             git_store,
             git_pack_cache,
-            audio_rooms: Arc::new(AudioRoomManager::new()),
+            audio_rooms: Arc::new(
+                if let Ok(dir) = std::env::var("HUDDLE_RECORDING_DIR") {
+                    AudioRoomManager::with_recording(std::path::PathBuf::from(dir))
+                } else {
+                    AudioRoomManager::new()
+                },
+            ),
             video_rooms: Arc::new(crate::audio::VideoRoomManager::new()),
             shutting_down: Arc::new(AtomicBool::new(false)),
             started_at: Instant::now(),
