@@ -82,6 +82,10 @@ just web-dev    # web dev server only (terminal 2)
 | [RELEASING.md](RELEASING.md) | Release process: desktop, relay, mobile, web |
 | [TESTING.md](TESTING.md) | Multi-agent E2E test guide |
 | [SECURITY.md](SECURITY.md) | Security policy and reporting |
+| [docs/AGENT-GUIDE.md](docs/AGENT-GUIDE.md) | What agents can do — web vs desktop, 20 task examples |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | User-facing setup guide for web, desktop, mobile |
+| [docs/ON-CALL.md](docs/ON-CALL.md) | Ownership, incident response, escalation, privacy |
+| [docs/OPS-CHECKLIST.md](docs/OPS-CHECKLIST.md) | Human-action pre-launch ops items with exact commands |
 
 ---
 

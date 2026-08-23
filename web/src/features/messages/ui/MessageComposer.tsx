@@ -240,7 +240,7 @@ export function MessageComposer({
       publishEvent: async ({ kind, content, tags }) => {
         const signed = await signNostrEvent(
           { kind, content, tags },
-          { requireNip07: true },
+          { requireDurableSigner: true },
         );
         await getRelayClient(relayWsUrl()).publishAndWait(
           signed as Record<string, unknown>,
@@ -302,7 +302,7 @@ export function MessageComposer({
           content: trimmed,
           tags: [["h", channelId]],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

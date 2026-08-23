@@ -34,7 +34,7 @@ export function MessageReactions({
             ["h", channelId],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

@@ -30,7 +30,7 @@ export function useCreateInvite(communityId: string | null) {
             ["d", code],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       const client = getRelayClient(relayWsUrl());
       await client.publishAndWait(event as Record<string, unknown>);

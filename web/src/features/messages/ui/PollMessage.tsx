@@ -34,7 +34,7 @@ export function PollMessage({ pollId, channelMessageEventId }: Props) {
           content: String(optionIdx),
           tags: [["e", channelMessageEventId]],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

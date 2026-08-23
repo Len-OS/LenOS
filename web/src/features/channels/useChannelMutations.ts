@@ -26,7 +26,7 @@ export function useChannelMutations() {
           ["about", description],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,
@@ -48,7 +48,7 @@ export function useChannelMutations() {
           ["about", description],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,
@@ -62,7 +62,7 @@ export function useChannelMutations() {
         content: "",
         tags: [["h", channelId]],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,
@@ -82,7 +82,7 @@ export function useChannelMutations() {
           ["visibility", visibility],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,

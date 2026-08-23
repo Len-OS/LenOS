@@ -3,6 +3,8 @@ import { Bot, X } from "lucide-react";
 import { signNostrEvent } from "@/shared/lib/nostr-signer";
 import { getRelayClient } from "@/shared/lib/relay-live-client";
 import { relayWsUrl } from "@/shared/lib/relay-url";
+import { isDesktopApp } from "@/shared/lib/platform";
+import { DesktopRequiredCard } from "@/shared/ui/DesktopRequiredCard";
 
 export function CreateAgentDialog({
   open,
@@ -29,42 +31,32 @@ export function CreateAgentDialog({
       return;
     }
 
-    if (!window.nostr) {
-      setError(
-        "No NIP-07 extension found. Install a Nostr signer (e.g. Alby, nos2x) to create agents.",
-      );
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const agentPubkey = crypto.randomUUID();
-      const event = await signNostrEvent(
-        {
-          kind: 30177,
-          content: JSON.stringify({
-            name: name.trim(),
-            description: description.trim(),
-            agent_type: "remote",
-            status: "online",
-            remote: true,
-          }),
-          tags: [
-            ["d", agentPubkey],
-            ["name", name.trim()],
-            ["about", description.trim()],
-            ["agent_type", "remote"],
-            ["status", "online"],
-          ],
-        },
-        { requireNip07: true },
-      );
+      const agentId = crypto.randomUUID();
+      const event = await signNostrEvent({
+        kind: 30177,
+        content: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          agent_type: "remote",
+          status: "online",
+          remote: true,
+        }),
+        tags: [
+          ["d", agentId],
+          ["name", name.trim()],
+          ["about", description.trim()],
+          ["agent_type", "remote"],
+          ["status", "online"],
+        ],
+      }, { requireDurableSigner: true });
 
       await getRelayClient(relayWsUrl()).publishAndWait(
         event as Record<string, unknown>,
       );
 
-      onCreated({ name: name.trim(), pubkey: agentPubkey });
+      onCreated({ name: name.trim(), pubkey: agentId });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create agent.");
@@ -128,19 +120,12 @@ export function CreateAgentDialog({
             />
           </div>
 
-          <div className="rounded-lg border border-black/10 bg-black/[0.03] px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]">
-            <p className="text-xs text-black/60 dark:text-white/60">
-              <span className="font-medium text-black/80 dark:text-white/80">
-                Remote (LenGrowth managed)
-              </span>{" "}
-              — agents run through LenGrowth and are accessible from any
-              browser.
-            </p>
-            <p className="mt-1 text-xs text-black/40 dark:text-white/40">
-              Local agents that run on your machine require the LenOS desktop
-              app.
-            </p>
-          </div>
+          {!isDesktopApp() && (
+            <DesktopRequiredCard
+              feature="Local agent execution"
+              description="Local agents run on your machine and can access your files, shell, and dev tools. Remote agents run through LenGrowth and are available from any browser."
+            />
+          )}
 
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">

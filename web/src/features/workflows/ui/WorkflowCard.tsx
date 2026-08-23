@@ -29,7 +29,7 @@ export function WorkflowCard({ workflow, communityId, onSelect }: Props) {
             ["h", communityId],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         signed as Record<string, unknown>,

@@ -58,7 +58,7 @@ export function SetReminderPopover({
             ["expiration", String(expiry)],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       const client = getRelayClient(relayWsUrl());
       client.publish(event);

@@ -70,7 +70,7 @@ export function useDrafts() {
     if (draft.threadRootId) tags.push(["e", draft.threadRootId]);
     const signed = await signNostrEvent(
       { kind: KIND_STREAM_MESSAGE, content: draft.content, tags },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,

@@ -93,7 +93,7 @@ export function CommunitySettingsModal({
             ["color", accentColor],
           ],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         event as Record<string, unknown>,
@@ -118,7 +118,7 @@ export function CommunitySettingsModal({
           content: "Workspace deleted",
           tags: [["h", communityId]],
         },
-        { requireNip07: true },
+        { requireDurableSigner: true },
       );
       await getRelayClient(relayWsUrl()).publishAndWait(
         event as Record<string, unknown>,

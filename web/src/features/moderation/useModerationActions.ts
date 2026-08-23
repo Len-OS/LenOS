@@ -14,7 +14,7 @@ export function useModerationActions() {
           ["h", channelId],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,
@@ -31,7 +31,7 @@ export function useModerationActions() {
           ["h", channelId],
         ],
       },
-      { requireNip07: true },
+      { requireDurableSigner: true },
     );
     await getRelayClient(relayWsUrl()).publishAndWait(
       signed as Record<string, unknown>,

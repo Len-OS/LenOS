@@ -818,13 +818,13 @@ fenced to its `community_id`.
 
 ## 9. Known Limitations
 
-These are verified gaps in the current implementation — not design aspirations.
+These are verified gaps — not design aspirations.
 
 | # | Limitation | Detail |
 |---|-----------|--------|
-| 1 | **No sqlx offline query cache** | Uses `sqlx::query()` (runtime) not `sqlx::query!()` (compile-time). No `.sqlx/` directory. Queries are not validated at compile time. |
-| 2 | ~~**No rate limiting implementation**~~ **Resolved** | `RedisRateLimiter` wired in production (`lenos-relay/src/state.rs:586`). `AlwaysAllowRateLimiter` is test-only. |
-| 3 | ~~**No dedicated typing REST endpoint**~~ **Resolved** | `GET /api/channels/{channel_id}/typers` (NIP-98 auth) implemented in `crates/lenos-relay/src/api/typers.rs`. Redis SET EX 8 keys written on kind:20002; SCAN returns current typers. |
-| 4 | ~~**Huddle recording/tracks not built**~~ **Partially resolved** | Recording pipeline complete: LENOSOPU binary writer → S3 upload on room close (`spawn_recording_upload` in `audio/handler.rs`) → kind:48104 Nostr event → `GET /api/huddle/{channel_id}/recordings` REST endpoint. ECS task def `:9` sets `HUDDLE_RECORDING_DIR=/tmp/huddle-recordings`. Per-track publishing still not built. |
-| 5 | ~~**Approval gates not wired end-to-end**~~ **Resolved** | `handle_approval_grant()` → `resume_workflow_after_approval()` fully wired (`command_executor.rs:1029`). |
-| 6 | ~~**Approval gates not resumable**~~ **Resolved** | Resume path wired; `send_dm` and `set_channel_topic` fully implemented in `workflow_sink.rs`. |
+| 1 | **No sqlx compile-time query validation** | All queries use runtime `sqlx::query()`. No `.sqlx/` offline cache. Integration tests hit a real DB and catch schema drift at test time — sufficient for now. Revisit when actively changing schema. |
+| 2 | **Webhook secret compared directly, not as HMAC** | Workflow webhook secrets use constant-time XOR comparison of the stored UUID, not HMAC over the request body. Protects against timing attacks but does not authenticate the payload body. |
+| 3 | **Presence fan-out is local-only** | kind:20001 presence events skip Redis PUBLISH and use local-only fan-out. Multi-node presence requires Redis pub/sub wiring — documented as future work. |
+| 4 | **Per-track huddle recording not built** | Recording captures mixed room audio (LENOSOPU format → S3 → kind:48104). Per-participant track publishing: kind range reserved, no producer. |
+| 5 | **Initiative persistence blocked** | Execution platform roadmap (InitiativeRun, outbound connectors, campaigns) is aspirational. Blocked explicitly in `LenGrowth/backend/services/orchestration/types.py:406,1029,1055`. |
+| 6 | **SSO / SAML not implemented** | Nostr keys only. No enterprise identity federation. P3 roadmap item. |
