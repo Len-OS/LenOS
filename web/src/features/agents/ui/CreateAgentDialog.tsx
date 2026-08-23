@@ -50,7 +50,7 @@ export function CreateAgentDialog({
           ["agent_type", "remote"],
           ["status", "online"],
         ],
-      });
+      }, { requireDurableSigner: true });
 
       await getRelayClient(relayWsUrl()).publishAndWait(
         event as Record<string, unknown>,

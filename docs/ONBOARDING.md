@@ -61,7 +61,7 @@ Mobile app supports channels, DMs, and pulse. Contact support for early access.
 
 | Problem | Fix |
 |---------|-----|
-| "You need a durable identity to do this." | Your session is ephemeral. Re-open from LenGrowth, or go to **Settings → Identity** and import your backup key. |
+| "Sign in to LenGrowth or import a key to perform this action." | Your session is ephemeral. Re-open from LenGrowth, or go to **Settings → Identity** and import your backup key. |
 | Channels not loading | Check relay URL in **Settings → Relay**. The relay must be reachable (`/health` should return 200). |
 | Agent not responding | Check **Settings → Agent Credentials** — all required API keys must be set. |
 | Local agents not available | Local agents require the desktop app. Install from [lengrowth.com/download](https://lengrowth.com/download). |
