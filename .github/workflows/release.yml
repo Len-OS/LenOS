@@ -182,6 +182,17 @@ jobs:
           DMG_PATH: ${{ steps.unsigned.outputs.dmg }}
         run: desktop/scripts/set-dmg-finder-text-size.sh "$DMG_PATH" 14
 
+      - name: Sign updater archive (unsigned app fallback)
+        if: env.OSX_CODESIGN_ROLE == ''
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ARCHIVE=$(find desktop/src-tauri/target/release/bundle/macos -name '*.tar.gz' ! -name '*.sig' -type f | head -1)
+          [[ -n "$ARCHIVE" ]] || { echo "::error::Updater archive not found"; exit 1; }
+          (cd desktop && pnpm tauri signer sign "$(cd .. && pwd)/$ARCHIVE")
+
       - name: Codesign and Notarize
         id: codesign
         if: env.OSX_CODESIGN_ROLE != ''
@@ -369,6 +380,17 @@ jobs:
           DMG_PATH: ${{ steps.unsigned.outputs.dmg }}
         run: desktop/scripts/set-dmg-finder-text-size.sh "$DMG_PATH" 14
 
+      - name: Sign updater archive (unsigned app fallback)
+        if: env.OSX_CODESIGN_ROLE == ''
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ARCHIVE=$(find "desktop/src-tauri/target/${TARGET}/release/bundle/macos" -name '*.tar.gz' ! -name '*.sig' -type f | head -1)
+          [[ -n "$ARCHIVE" ]] || { echo "::error::Updater archive not found"; exit 1; }
+          (cd desktop && pnpm tauri signer sign "$(cd .. && pwd)/$ARCHIVE")
+
       - name: Stage signing entitlements (codesign path)
         if: env.OSX_CODESIGN_ROLE != ''
         run: cp desktop/src-tauri/Entitlements.plist "${RUNNER_TEMP}/entitlements.plist"
@@ -492,6 +514,7 @@ jobs:
             -o DPkg::Lock::Timeout=120 \
             build-essential \
             ca-certificates \
+            cmake \
             curl \
             desktop-file-utils \
             file \
