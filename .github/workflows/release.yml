@@ -1011,4 +1011,13 @@ jobs:
 
       - name: Upload latest.json to rolling release last
         if: ${{ !contains(needs.setup.outputs.version, '-') }}
-        run: gh release upload lenos-desktop-latest latest.json --clobber
+        run: |
+          set -euo pipefail
+          if ! gh release view lenos-desktop-latest >/dev/null 2>&1; then
+            gh release create lenos-desktop-latest \
+              --target "${{ needs.setup.outputs.source_sha }}" \
+              --title "LenOS Desktop latest" \
+              --notes "Rolling updater manifest for the latest stable LenOS Desktop release." \
+              --latest=false
+          fi
+          gh release upload lenos-desktop-latest latest.json --clobber
