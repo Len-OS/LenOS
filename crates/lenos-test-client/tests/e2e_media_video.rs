@@ -9,7 +9,7 @@
 //! cargo test -p lenos-test-client --test e2e_media_video -- --ignored --nocapture
 //! ```
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use base64::{engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD}, Engine as _};
 use nostr::{EventBuilder, JsonUtil, Keys, Kind, Tag, Timestamp};
 use reqwest::{Client, StatusCode};
 use sha2::{Digest, Sha256};
@@ -45,6 +45,33 @@ fn blossom_auth_header(event: &nostr::Event) -> String {
         "Nostr {}",
         URL_SAFE_NO_PAD.encode(event.as_json().as_bytes())
     )
+}
+
+fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
+    let payload = hex::encode(Sha256::digest(body));
+    let event = EventBuilder::new(Kind::HttpAuth, "")
+        .tags(vec![
+            Tag::parse(["u", url]).unwrap(),
+            Tag::parse(["method", "POST"]).unwrap(),
+            Tag::parse(["payload", &payload]).unwrap(),
+            Tag::parse(["nonce", &uuid::Uuid::new_v4().to_string()]).unwrap(),
+        ])
+        .sign_with_keys(keys)
+        .unwrap();
+    format!("Nostr {}", STANDARD.encode(serde_json::to_string(&event).unwrap()))
+}
+
+async fn post_event(client: &Client, keys: &Keys, event: &nostr::Event) -> reqwest::Response {
+    let url = format!("{}/events", relay_http_url());
+    let body = serde_json::to_vec(event).unwrap();
+    client
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
+        .header("Content-Type", "application/json")
+        .body(body)
+        .send()
+        .await
+        .expect("event request")
 }
 
 /// Build a minimal but structurally valid fast-start MP4 (H.264, 1s, 320×240).
@@ -472,7 +499,6 @@ async fn test_video_poster_imeta_accepted_via_ws() {
 
     let client = http_client();
     let keys = Keys::generate();
-    let pubkey_hex = keys.public_key().to_hex();
 
     // 1. Create a channel
     let channel_uuid = uuid::Uuid::new_v4();
@@ -486,14 +512,7 @@ async fn test_video_poster_imeta_accepted_via_ws() {
         ])
         .sign_with_keys(&keys)
         .unwrap();
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&create_event).unwrap())
-        .send()
-        .await
-        .unwrap();
+    let resp = post_event(&client, &keys, &create_event).await;
     assert!(resp.status().is_success(), "channel creation failed");
 
     // 2. Upload video
@@ -571,7 +590,6 @@ async fn test_video_poster_imeta_rejects_video_as_poster() {
 
     let client = http_client();
     let keys = Keys::generate();
-    let pubkey_hex = keys.public_key().to_hex();
 
     // 1. Create channel
     let channel_uuid = uuid::Uuid::new_v4();
@@ -585,14 +603,7 @@ async fn test_video_poster_imeta_rejects_video_as_poster() {
         ])
         .sign_with_keys(&keys)
         .unwrap();
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&create_event).unwrap())
-        .send()
-        .await
-        .unwrap();
+    let resp = post_event(&client, &keys, &create_event).await;
     assert!(resp.status().is_success());
 
     // 2. Upload video
