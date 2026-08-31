@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.6
+
+### Desktop release packaging and production rollout
+
+- Fix the Linux release container dependency for bundled Opus builds.
+- Sign updater archives for unsigned macOS fallback builds.
+- Harden passphrase clamp coverage for hyphenated wordlist entries.
+
 ## v0.5.3
 
 ### Desktop and shared changes
