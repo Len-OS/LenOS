@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.7
+
+### Desktop release publication
+
+- Create the rolling desktop release before publishing the unified updater manifest.
+- Retry the multi-platform release after the verified v0.5.6 artifact build.
+
 ## v0.5.6
 
 ### Desktop release packaging and production rollout
