@@ -15,11 +15,11 @@
 
 use std::time::Duration;
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use lenos_test_client::{LenOSTestClient, RelayMessage};
 use nostr::{Alphabet, EventBuilder, Filter, Keys, Kind, SingleLetterTag, Tag, Timestamp};
 use reqwest::Client;
 use serde_json::Value;
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use sha2::{Digest, Sha256};
 
 const PERSONA_KIND: u16 = 30175;
@@ -54,7 +54,10 @@ fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
         ])
         .sign_with_keys(keys)
         .unwrap();
-    format!("Nostr {}", STANDARD.encode(serde_json::to_string(&event).unwrap()))
+    format!(
+        "Nostr {}",
+        STANDARD.encode(serde_json::to_string(&event).unwrap())
+    )
 }
 
 /// Submit an event via the NIP-98 HTTP bridge (`POST /events`).
@@ -1571,7 +1574,10 @@ async fn test_persona_http_query_shared_visible_with_newer_private_ahead() {
         let url = format!("{}/query", relay_http_url());
         client
             .post(&url)
-            .header("Authorization", nip98_post_header(&foreign_keys, &url, &body))
+            .header(
+                "Authorization",
+                nip98_post_header(&foreign_keys, &url, &body),
+            )
             .header("Content-Type", "application/json")
             .body(body)
             .send()
