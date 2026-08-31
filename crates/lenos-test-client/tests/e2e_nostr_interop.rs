@@ -23,6 +23,9 @@ use std::time::Duration;
 
 use lenos_test_client::{LenOSTestClient, RelayMessage, TestClientError};
 use nostr::{Alphabet, EventBuilder, Filter, Keys, Kind, SingleLetterTag, Tag};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
+use reqwest::{Client, Response};
+use sha2::{Digest, Sha256};
 
 fn relay_url() -> String {
     std::env::var("RELAY_URL").unwrap_or_else(|_| "ws://localhost:3000".to_string())
@@ -40,10 +43,35 @@ fn sub_id(name: &str) -> String {
     format!("e2e-{name}-{}", uuid::Uuid::new_v4())
 }
 
+fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
+    let payload = hex::encode(Sha256::digest(body));
+    let event = EventBuilder::new(Kind::HttpAuth, "")
+        .tags(vec![
+            Tag::parse(["u", url]).unwrap(),
+            Tag::parse(["method", "POST"]).unwrap(),
+            Tag::parse(["payload", &payload]).unwrap(),
+            Tag::parse(["nonce", &uuid::Uuid::new_v4().to_string()]).unwrap(),
+        ])
+        .sign_with_keys(keys)
+        .unwrap();
+    format!("Nostr {}", STANDARD.encode(serde_json::to_string(&event).unwrap()))
+}
+
+async fn post_json(client: &Client, keys: &Keys, path: &str, body: Vec<u8>) -> Response {
+    let url = format!("{}{path}", relay_http_url());
+    client
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
+        .header("Content-Type", "application/json")
+        .body(body)
+        .send()
+        .await
+        .expect("POST request")
+}
+
 /// Create a real channel in the DB via REST so the relay accepts events for it.
 async fn create_test_channel(keys: &Keys) -> String {
-    let client = reqwest::Client::new();
-    let pubkey_hex = keys.public_key().to_hex();
+    let client = Client::new();
     let channel_uuid = uuid::Uuid::new_v4();
     let channel_name = format!("interop-e2e-{}", channel_uuid);
 
@@ -57,14 +85,7 @@ async fn create_test_channel(keys: &Keys) -> String {
         .sign_with_keys(keys)
         .unwrap();
 
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
-        .send()
-        .await
-        .expect("submit create-channel event");
+    let resp = post_json(&client, keys, "/events", serde_json::to_vec(&event).unwrap()).await;
     assert!(
         resp.status().is_success(),
         "channel creation event failed: {}",
@@ -82,20 +103,12 @@ async fn create_test_channel(keys: &Keys) -> String {
 
 /// Send a message via a signed kind:9 event and return the event_id hex.
 async fn send_rest_message(keys: &Keys, channel_id: &str, content: &str) -> String {
-    let client = reqwest::Client::new();
-    let pubkey_hex = keys.public_key().to_hex();
+    let client = Client::new();
     let event = EventBuilder::new(Kind::Custom(9), content)
         .tags(vec![Tag::parse(["h", channel_id]).unwrap()])
         .sign_with_keys(keys)
         .unwrap();
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
-        .send()
-        .await
-        .expect("submit send-message event");
+    let resp = post_json(&client, keys, "/events", serde_json::to_vec(&event).unwrap()).await;
     assert!(
         resp.status().is_success(),
         "send message failed: {}",
@@ -108,8 +121,7 @@ async fn send_rest_message(keys: &Keys, channel_id: &str, content: &str) -> Stri
 /// Create a DM via a signed kind:41010 (DM open) command event and return the
 /// channel_id UUID string parsed from the relay's `response:{...}` message.
 async fn create_dm(requester_keys: &Keys, other_pubkey_hex: &str) -> String {
-    let client = reqwest::Client::new();
-    let pubkey_hex = requester_keys.public_key().to_hex();
+    let client = Client::new();
     // Backdate the initial open so a later re-open kind:41010 with identical
     // tags in the same wall-clock second does not produce an identical event id
     // (which the relay would dedupe as "duplicate: already processed").
@@ -119,14 +131,13 @@ async fn create_dm(requester_keys: &Keys, other_pubkey_hex: &str) -> String {
         .custom_created_at(backdated)
         .sign_with_keys(requester_keys)
         .unwrap();
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
-        .send()
-        .await
-        .expect("create DM request");
+    let resp = post_json(
+        &client,
+        requester_keys,
+        "/events",
+        serde_json::to_vec(&event).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "create DM failed: {}",
@@ -148,20 +159,12 @@ async fn create_dm(requester_keys: &Keys, other_pubkey_hex: &str) -> String {
 
 /// Submit a signed command event via REST and assert it was accepted.
 async fn post_signed_event(keys: &Keys, kind: u16, tags: Vec<Tag>) {
-    let client = reqwest::Client::new();
-    let pubkey_hex = keys.public_key().to_hex();
+    let client = Client::new();
     let event = EventBuilder::new(Kind::Custom(kind), "")
         .tags(tags)
         .sign_with_keys(keys)
         .unwrap();
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
-        .send()
-        .await
-        .expect("submit signed event");
+    let resp = post_json(&client, keys, "/events", serde_json::to_vec(&event).unwrap()).await;
     assert!(
         resp.status().is_success(),
         "event kind:{kind} failed: {}",
@@ -186,7 +189,7 @@ async fn query_thread_replies(
     channel_id: &str,
     root_event_id: &str,
 ) -> Vec<serde_json::Value> {
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let filters = serde_json::json!([{
         "kinds": [9],
         "#h": [channel_id],
@@ -194,14 +197,13 @@ async fn query_thread_replies(
         "depth_limit": 10,
         "limit": 50,
     }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filters).unwrap())
-        .send()
-        .await
-        .expect("submit thread query");
+    let resp = post_json(
+        &client,
+        keys,
+        "/query",
+        serde_json::to_vec(&filters).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "thread query failed: {}",
@@ -231,20 +233,19 @@ fn has_broadcast_tag(event: &serde_json::Value) -> bool {
 /// Query the channel's stored kind:9 messages via `POST /query` (`#h`, no
 /// `depth_limit`), exercising the relay's standard NIP-01 query path.
 async fn query_channel_messages(keys: &Keys, channel_id: &str) -> Vec<serde_json::Value> {
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let filters = serde_json::json!([{
         "kinds": [9],
         "#h": [channel_id],
         "limit": 50,
     }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filters).unwrap())
-        .send()
-        .await
-        .expect("submit channel query");
+    let resp = post_json(
+        &client,
+        keys,
+        "/query",
+        serde_json::to_vec(&filters).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "channel query failed: {}",
@@ -1419,20 +1420,13 @@ async fn test_nipdv_snapshot_is_private_to_owner() {
 
     // B queries A's snapshot via REST (#p = A). The relay's #p-gate must reject
     // this — B may only read snapshots addressed to B.
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let filters = serde_json::json!([{
         "kinds": [30622],
         "#p": [a_pubkey_hex],
         "limit": 1,
     }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &b_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filters).unwrap())
-        .send()
-        .await
-        .expect("submit cross-viewer query");
+    let resp = post_json(&client, &keys_b, "/query", serde_json::to_vec(&filters).unwrap()).await;
 
     assert_eq!(
         resp.status(),
@@ -1590,16 +1584,9 @@ async fn test_nipdv_ids_query_rejects_third_party() {
 
     // B queries by that id over REST with a kindless filter — passes the gate
     // (ids exemption) but the result-level owner check yields an empty set.
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let filters = serde_json::json!([{ "ids": [snapshot_id], "limit": 1 }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &b_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filters).unwrap())
-        .send()
-        .await
-        .expect("submit ids query");
+    let resp = post_json(&client, &keys_b, "/query", serde_json::to_vec(&filters).unwrap()).await;
     assert_eq!(
         resp.status(),
         reqwest::StatusCode::OK,
@@ -1644,16 +1631,9 @@ async fn test_nipdv_explicit_kind_query_forbidden_for_third_party() {
     let snapshot_id = snapshot.id.to_hex();
     client_a.disconnect().await.expect("disconnect A");
 
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let filters = serde_json::json!([{ "kinds": [30622], "ids": [snapshot_id], "limit": 1 }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &b_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filters).unwrap())
-        .send()
-        .await
-        .expect("submit explicit-kind query");
+    let resp = post_json(&client, &keys_b, "/query", serde_json::to_vec(&filters).unwrap()).await;
     assert_eq!(
         resp.status(),
         reqwest::StatusCode::FORBIDDEN,
@@ -1728,7 +1708,7 @@ async fn query_channel_window(
     limit: u32,
     cursor: Option<(i64, &str)>,
 ) -> Vec<serde_json::Value> {
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let mut filter = serde_json::json!({
         "kinds": [9],
         "#h": [channel_id],
@@ -1741,14 +1721,13 @@ async fn query_channel_window(
         filter["until"] = serde_json::json!(until);
         filter["before_id"] = serde_json::json!(before_id);
     }
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&serde_json::json!([filter])).unwrap())
-        .send()
-        .await
-        .expect("submit window query");
+    let resp = post_json(
+        &client,
+        keys,
+        "/query",
+        serde_json::to_vec(&serde_json::json!([filter])).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "window query failed: {}",
@@ -1956,14 +1935,13 @@ async fn test_channel_window_rejects_half_cursor_and_client_overlay_kinds() {
         "top_level": true,
         "until": nostr::Timestamp::now().as_secs(),
     }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filter).unwrap())
-        .send()
-        .await
-        .expect("submit half-cursor query");
+    let resp = post_json(
+        &client,
+        &keys,
+        "/query",
+        serde_json::to_vec(&filter).unwrap(),
+    )
+    .await;
     assert_eq!(
         resp.status().as_u16(),
         400,
@@ -1980,14 +1958,13 @@ async fn test_channel_window_rejects_half_cursor_and_client_overlay_kinds() {
         "top_level": true,
         "before_id": "not-a-hex-event-id",
     }]);
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filter).unwrap())
-        .send()
-        .await
-        .expect("submit malformed before_id query");
+    let resp = post_json(
+        &client,
+        &keys,
+        "/query",
+        serde_json::to_vec(&filter).unwrap(),
+    )
+    .await;
     assert_eq!(
         resp.status().as_u16(),
         400,
