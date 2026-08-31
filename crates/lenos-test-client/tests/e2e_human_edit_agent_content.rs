@@ -18,10 +18,10 @@
 //! cargo test --test e2e_human_edit_agent_content -- --ignored
 //! ```
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use lenos_sdk::nip_oa;
 use lenos_test_client::LenOSTestClient;
 use nostr::{EventBuilder, Keys, Kind, Tag};
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use sha2::{Digest, Sha256};
 
 fn relay_url() -> String {
@@ -47,7 +47,10 @@ fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
         ])
         .sign_with_keys(keys)
         .unwrap();
-    format!("Nostr {}", BASE64.encode(serde_json::to_string(&event).unwrap()))
+    format!(
+        "Nostr {}",
+        BASE64.encode(serde_json::to_string(&event).unwrap())
+    )
 }
 
 /// Create a fresh channel owned by `owner_keys`, return the channel UUID string.
