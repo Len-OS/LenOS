@@ -153,7 +153,8 @@ async fn pop_out_huddle(app: tauri::AppHandle) -> Result<(), String> {
         .inner_size(280.0, 80.0)
         .build()
         .map_err(|e| e.to_string())?;
-    app.emit("huddle-pip-opened", ()).map_err(|e| e.to_string())?;
+    app.emit("huddle-pip-opened", ())
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -162,7 +163,8 @@ async fn pop_in_huddle(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(win) = app.get_webview_window("huddle-pip") {
         win.close().map_err(|e| e.to_string())?;
     }
-    app.emit("huddle-pip-closed", ()).map_err(|e| e.to_string())?;
+    app.emit("huddle-pip-closed", ())
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
