@@ -80,5 +80,6 @@ jobs:
             -- test_ --nocapture --include-ignored
         env:
           RELAY_URL: ${{ vars.RELAY_URL || secrets.RELAY_URL }}
+          RELAY_HTTP_URL: https://relay.lengrowth.com
           LENOS_TEST_OWNER_PRIVATE_KEY: ${{ steps.secret.outputs.privkey }}
           RUST_LOG: "info"
