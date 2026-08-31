@@ -71,6 +71,26 @@ fn nip98_post_header(keys: &Keys, url: &str, body: &str) -> String {
     )
 }
 
+async fn post_event_http(
+    client: &reqwest::Client,
+    keys: &Keys,
+    event: &nostr::Event,
+) -> reqwest::Response {
+    let url = format!("{}/events", relay_http_url());
+    let body = serde_json::to_vec(event).expect("serialize event");
+    client
+        .post(&url)
+        .header(
+            "Authorization",
+            nip98_post_header(keys, &url, std::str::from_utf8(&body).expect("event JSON")),
+        )
+        .header("Content-Type", "application/json")
+        .body(body)
+        .send()
+        .await
+        .expect("submit event")
+}
+
 async fn e2e_db_pool() -> sqlx::Pool<sqlx::Postgres> {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://lenos:lenos_dev@localhost:5432/lenos".to_string());
@@ -164,7 +184,6 @@ async fn invite_post_with_host(
 /// Create a real channel via a signed kind:9007 event submitted to POST /events.
 async fn create_test_channel(keys: &Keys) -> String {
     let client = reqwest::Client::new();
-    let pubkey_hex = keys.public_key().to_hex();
     let channel_uuid = uuid::Uuid::new_v4();
     let channel_name = format!("relay-e2e-{}", channel_uuid);
 
@@ -178,14 +197,7 @@ async fn create_test_channel(keys: &Keys) -> String {
         .sign_with_keys(keys)
         .unwrap();
 
-    let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
-        .send()
-        .await
-        .expect("submit create-channel event");
+    let resp = post_event_http(&client, keys, &event).await;
     assert!(
         resp.status().is_success(),
         "channel creation event failed: {}",
@@ -238,14 +250,7 @@ async fn test_client_submitted_nip43_membership_snapshots_are_rejected() {
     assert_eq!(ok.message, "restricted: relay-only kind");
     ws.disconnect().await.expect("disconnect");
 
-    let response = reqwest::Client::new()
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&forged).unwrap())
-        .send()
-        .await
-        .expect("submit forged snapshot via HTTP");
+    let response = post_event_http(&reqwest::Client::new(), &keys, &forged).await;
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
     let body = response.text().await.expect("read HTTP rejection");
     assert!(
@@ -1048,11 +1053,16 @@ async fn test_kind0_nip05_sync() {
         "authors": [&pubkey_hex],
         "limit": 1,
     }]);
+    let query_url = format!("{}/query", http);
+    let query_body = serde_json::to_string(&filters).unwrap();
     let profile_resp = http_client
-        .post(format!("{}/query", http))
-        .header("X-Pubkey", &pubkey_hex)
+        .post(&query_url)
+        .header(
+            "Authorization",
+            nip98_post_header(&keys, &query_url, &query_body),
+        )
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&filters).unwrap())
+        .body(query_body)
         .send()
         .await
         .expect("query kind:0");
@@ -1185,10 +1195,10 @@ async fn test_unarchive_emits_member_added_notification() {
     let url = relay_url();
 
     let owner_keys = Keys::generate();
-    let owner_pubkey_hex = owner_keys.public_key().to_hex();
 
     // Creating the channel makes the owner its sole member.
     let channel_id = create_test_channel(&owner_keys).await;
+    let owner_pubkey_hex = owner_keys.public_key().to_hex();
 
     let mut ws = LenOSTestClient::connect(&url, &owner_keys)
         .await
@@ -1266,14 +1276,7 @@ async fn test_nip29_put_user_nobody_blocks() {
     )
     .sign_with_keys(&agent_keys)
     .expect("sign kind:10100");
-    let resp = http_client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &agent_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&policy_event).unwrap())
-        .send()
-        .await
-        .expect("set policy request");
+    let resp = post_event_http(&http_client, &agent_keys, &policy_event).await;
     assert!(
         resp.status().is_success(),
         "set policy failed: {}",
@@ -1328,14 +1331,7 @@ async fn test_nip29_put_user_self_add_bypasses_policy() {
     )
     .sign_with_keys(&agent_keys)
     .expect("sign kind:10100");
-    let resp = http_client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &agent_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&policy_event).unwrap())
-        .send()
-        .await
-        .expect("set policy request");
+    let resp = post_event_http(&http_client, &agent_keys, &policy_event).await;
     assert!(
         resp.status().is_success(),
         "set policy failed: {}",
@@ -1388,14 +1384,7 @@ async fn test_nip29_put_user_owner_only_blocks() {
     )
     .sign_with_keys(&agent_keys)
     .expect("sign kind:10100");
-    let resp = http_client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &agent_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&policy_event).unwrap())
-        .send()
-        .await
-        .expect("set policy request");
+    let resp = post_event_http(&http_client, &agent_keys, &policy_event).await;
     assert!(
         resp.status().is_success(),
         "set policy failed: {}",
@@ -1702,14 +1691,7 @@ async fn test_membership_notification_emitted_on_add() {
         ])
         .sign_with_keys(&owner_keys)
         .unwrap();
-    let resp = http_client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &owner_keys.public_key().to_hex())
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&add_event).unwrap())
-        .send()
-        .await
-        .expect("submit add-member event");
+    let resp = post_event_http(&http_client, &owner_keys, &add_event).await;
     assert!(
         resp.status().is_success(),
         "add member failed: {}",
@@ -1968,7 +1950,6 @@ async fn test_membership_notification_emitted_on_remove() {
         .expect("EOSE for membership sub");
 
     let http_client = reqwest::Client::new();
-    let owner_pubkey_hex = owner_keys.public_key().to_hex();
 
     // Add agent to the channel via signed kind:9000 event.
     let add_event = EventBuilder::new(Kind::Custom(9000), "")
@@ -1978,14 +1959,7 @@ async fn test_membership_notification_emitted_on_remove() {
         ])
         .sign_with_keys(&owner_keys)
         .unwrap();
-    let resp = http_client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &owner_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&add_event).unwrap())
-        .send()
-        .await
-        .expect("submit add-member event");
+    let resp = post_event_http(&http_client, &owner_keys, &add_event).await;
     assert!(
         resp.status().is_success(),
         "add member failed: {}",
@@ -2017,14 +1991,7 @@ async fn test_membership_notification_emitted_on_remove() {
         ])
         .sign_with_keys(&owner_keys)
         .unwrap();
-    let resp = http_client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &owner_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&remove_event).unwrap())
-        .send()
-        .await
-        .expect("submit remove-member event");
+    let resp = post_event_http(&http_client, &owner_keys, &remove_event).await;
     assert!(
         resp.status().is_success(),
         "remove member failed: {}",
