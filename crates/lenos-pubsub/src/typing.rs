@@ -11,8 +11,10 @@ use uuid::Uuid;
 use crate::error::PubSubError;
 use crate::topic::LENOS_PREFIX;
 
+/// Lifetime of a typing indicator in Redis.
 pub const TYPING_TTL_SECS: u64 = 8;
 
+/// Build the tenant-scoped Redis key for a typing indicator.
 pub fn typing_key(ctx: &TenantContext, channel_id: Uuid, pubkey: &PublicKey) -> String {
     format!(
         "{LENOS_PREFIX}:{}:typing:{}:{}",
@@ -48,11 +50,7 @@ pub async fn get_typers(
     channel_id: Uuid,
 ) -> Result<Vec<String>, PubSubError> {
     let mut conn = pool.get().await?;
-    let pattern = format!(
-        "{LENOS_PREFIX}:{}:typing:{}:*",
-        ctx.community(),
-        channel_id
-    );
+    let pattern = format!("{LENOS_PREFIX}:{}:typing:{}:*", ctx.community(), channel_id);
 
     let mut cursor: u64 = 0;
     let mut pubkeys = Vec::new();
@@ -123,7 +121,10 @@ mod tests {
         let ctx = ctx(0xaaaa, "a.example");
         let ch_a = Uuid::from_u128(0x1111);
         let ch_b = Uuid::from_u128(0x2222);
-        assert_ne!(typing_key(&ctx, ch_a, &pubkey), typing_key(&ctx, ch_b, &pubkey));
+        assert_ne!(
+            typing_key(&ctx, ch_a, &pubkey),
+            typing_key(&ctx, ch_b, &pubkey)
+        );
     }
 
     #[tokio::test]

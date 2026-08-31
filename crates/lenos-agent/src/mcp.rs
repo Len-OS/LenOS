@@ -29,6 +29,8 @@ const MARKER_FIELD_MAX: usize = 256;
 pub const MAX_MCP_SERVERS: usize = 16;
 const MAX_HOOK_RESULT_BYTES: usize = 16 * 1024;
 
+type RestartResult = Result<(Arc<Client>, Option<u32>, Vec<String>), AgentError>;
+
 /// Byte budgets for a single tool result. `total` bounds everything the
 /// result may occupy in history (text + images); `text` bounds the text
 /// portion alone, since text is where runaway outputs (build logs, file
@@ -753,15 +755,14 @@ impl McpRegistry {
             self.max_attempts
         );
 
-        let restart_result: Result<(Arc<Client>, Option<u32>, Vec<String>), AgentError> =
-            match &server.kind {
-                ServerKind::Stdio(spec) => spawn_one(spec, self.init_timeout).await.map(
-                    |(client, pgid, tool_names, _raw_tools)| (Arc::new(client), pgid, tool_names),
-                ),
-                ServerKind::Http(spec) => connect_http(spec, self.init_timeout)
-                    .await
-                    .map(|(client, tool_names, _raw_tools)| (Arc::new(client), None, tool_names)),
-            };
+        let restart_result: RestartResult = match &server.kind {
+            ServerKind::Stdio(spec) => spawn_one(spec, self.init_timeout)
+                .await
+                .map(|(client, pgid, tool_names, _raw_tools)| (Arc::new(client), pgid, tool_names)),
+            ServerKind::Http(spec) => connect_http(spec, self.init_timeout)
+                .await
+                .map(|(client, tool_names, _raw_tools)| (Arc::new(client), None, tool_names)),
+        };
 
         match restart_result {
             Ok((client, pgid, tool_names)) => {

@@ -546,7 +546,8 @@ pub async fn create_community_channel(
     body: axum::body::Bytes,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = format!("/operator/communities/{community_id}/channels");
-    let operator_pk = authorize_operator_request(&state, &headers, "POST", &path, None, Some(&body)).await?;
+    let operator_pk =
+        authorize_operator_request(&state, &headers, "POST", &path, None, Some(&body)).await?;
 
     let community_uuid: Uuid = community_id
         .parse()
@@ -563,7 +564,9 @@ pub async fn create_community_channel(
         #[serde(default)]
         channel_type: Option<String>,
     }
-    fn default_visibility() -> String { "open".to_string() }
+    fn default_visibility() -> String {
+        "open".to_string()
+    }
 
     let req: Req = serde_json::from_slice(&body)
         .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("invalid JSON: {e}")))?;
@@ -571,13 +574,23 @@ pub async fn create_community_channel(
     let visibility = match req.visibility.as_str() {
         "open" => lenos_db::channel::ChannelVisibility::Open,
         "private" => lenos_db::channel::ChannelVisibility::Private,
-        other => return Err(api_error(StatusCode::BAD_REQUEST, &format!("unknown visibility: {other}"))),
+        other => {
+            return Err(api_error(
+                StatusCode::BAD_REQUEST,
+                &format!("unknown visibility: {other}"),
+            ))
+        }
     };
     let channel_type = match req.channel_type.as_deref().unwrap_or("stream") {
         "stream" => lenos_db::channel::ChannelType::Stream,
         "forum" => lenos_db::channel::ChannelType::Forum,
         "dm" => lenos_db::channel::ChannelType::Dm,
-        other => return Err(api_error(StatusCode::BAD_REQUEST, &format!("unknown channel_type: {other}"))),
+        other => {
+            return Err(api_error(
+                StatusCode::BAD_REQUEST,
+                &format!("unknown channel_type: {other}"),
+            ))
+        }
     };
 
     let creator_bytes = operator_pk.to_bytes().to_vec();
@@ -589,7 +602,10 @@ pub async fn create_community_channel(
         .await
         .map_err(|e| internal_error(&format!("list channels: {e}")))?;
     let canonical = lenos_core::channel::canonical_channel_name(&req.name);
-    if let Some(ch) = existing.iter().find(|c| lenos_core::channel::canonical_channel_name(&c.name) == canonical) {
+    if let Some(ch) = existing
+        .iter()
+        .find(|c| lenos_core::channel::canonical_channel_name(&c.name) == canonical)
+    {
         return Ok(Json(serde_json::json!({
             "channel_id": ch.id.to_string(),
             "created": false,
@@ -632,7 +648,8 @@ pub async fn add_channel_member(
     body: axum::body::Bytes,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = format!("/operator/communities/{community_id}/channels/{channel_id}/members");
-    let _operator_pk = authorize_operator_request(&state, &headers, "POST", &path, None, Some(&body)).await?;
+    let _operator_pk =
+        authorize_operator_request(&state, &headers, "POST", &path, None, Some(&body)).await?;
 
     let community_uuid: Uuid = community_id
         .parse()
@@ -648,19 +665,27 @@ pub async fn add_channel_member(
         #[serde(default = "default_role")]
         role: String,
     }
-    fn default_role() -> String { "member".to_string() }
+    fn default_role() -> String {
+        "member".to_string()
+    }
 
     let req: Req = serde_json::from_slice(&body)
         .map_err(|e| api_error(StatusCode::BAD_REQUEST, &format!("invalid JSON: {e}")))?;
 
-    let pubkey_hex = validate_pubkey_hex(&req.pubkey)
-        .ok_or_else(|| api_error(StatusCode::BAD_REQUEST, "invalid pubkey: expected 64-char hex"))?;
+    let pubkey_hex = validate_pubkey_hex(&req.pubkey).ok_or_else(|| {
+        api_error(
+            StatusCode::BAD_REQUEST,
+            "invalid pubkey: expected 64-char hex",
+        )
+    })?;
     let pubkey_bytes = hex::decode(&pubkey_hex)
         .map_err(|_| api_error(StatusCode::BAD_REQUEST, "pubkey hex decode failed"))?;
-    let role: lenos_db::channel::MemberRole = req
-        .role
-        .parse()
-        .map_err(|_| api_error(StatusCode::BAD_REQUEST, &format!("unknown role: {}", req.role)))?;
+    let role: lenos_db::channel::MemberRole = req.role.parse().map_err(|_| {
+        api_error(
+            StatusCode::BAD_REQUEST,
+            &format!("unknown role: {}", req.role),
+        )
+    })?;
 
     // Operator-privileged add: use the target pubkey as its own inviter so the
     // creator-bootstrap path in add_member is satisfied for open channels.
@@ -669,7 +694,13 @@ pub async fn add_channel_member(
     // and falls back to a direct UPSERT if the inviter check would fail.
     let result = state
         .db
-        .add_member(community, channel_uuid, &pubkey_bytes, role.clone(), Some(&pubkey_bytes))
+        .add_member(
+            community,
+            channel_uuid,
+            &pubkey_bytes,
+            role,
+            Some(&pubkey_bytes),
+        )
         .await;
 
     match result {
