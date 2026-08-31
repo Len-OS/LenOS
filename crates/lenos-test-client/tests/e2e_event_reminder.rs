@@ -18,11 +18,11 @@
 
 use std::time::Duration;
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use lenos_test_client::{LenOSTestClient, RelayMessage};
 use nostr::{EventBuilder, Filter, Keys, Kind, Tag, Timestamp};
 use reqwest::Client;
 use serde_json::Value;
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use sha2::{Digest, Sha256};
 
 const KIND_EVENT_REMINDER: u16 = 30300;
@@ -537,7 +537,11 @@ async fn test_other_user_cannot_query_reminders_http() {
         .post(format!("{}/query", relay_http_url()))
         .header(
             "Authorization",
-            nip98_post_header(&other_keys, &format!("{}/query", relay_http_url()), &serde_json::to_vec(&vec![filter.clone()]).unwrap()),
+            nip98_post_header(
+                &other_keys,
+                &format!("{}/query", relay_http_url()),
+                &serde_json::to_vec(&vec![filter.clone()]).unwrap(),
+            ),
         )
         .header("Content-Type", "application/json")
         .json(&vec![filter])
@@ -726,7 +730,10 @@ async fn test_mixed_kind_filter_omits_other_authors_reminders_ws() {
         let body = serde_json::to_vec(&event).unwrap();
         let resp = client
             .post(&url)
-            .header("Authorization", nip98_post_header(&reader_keys, &url, &body))
+            .header(
+                "Authorization",
+                nip98_post_header(&reader_keys, &url, &body),
+            )
             .header("Content-Type", "application/json")
             .body(body)
             .send()
