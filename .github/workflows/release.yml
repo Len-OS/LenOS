@@ -492,6 +492,7 @@ jobs:
             -o DPkg::Lock::Timeout=120 \
             build-essential \
             ca-certificates \
+            cmake \
             curl \
             desktop-file-utils \
             file \
