@@ -181,25 +181,25 @@ pub async fn start_huddle(
     state: State<'_, AppState>,
 ) -> Result<HuddleJoinInfo, String> {
     // Compute effective parent ID (synthetic for DM, UUID for channel).
-    let (effective_parent_id, is_dm, other_pubkey_for_event) =
-        if let Some(ref dm_pks) = dm_pubkeys {
-            let mut sorted = dm_pks.clone();
-            sorted.sort();
-            let synthetic_id = sorted.join(":");
-            let own_pk = state
-                .keys
-                .lock()
-                .map(|k| k.public_key().to_hex())
-                .unwrap_or_default();
-            let other_pk = sorted
-                .iter()
-                .find(|pk| **pk != own_pk)
-                .cloned()
-                .unwrap_or_else(|| sorted.first().cloned().unwrap_or_default());
-            (synthetic_id, true, Some(other_pk))
-        } else {
-            (parent_channel_id.clone(), false, None)
-        };
+    let (effective_parent_id, is_dm, other_pubkey_for_event) = if let Some(ref dm_pks) = dm_pubkeys
+    {
+        let mut sorted = dm_pks.clone();
+        sorted.sort();
+        let synthetic_id = sorted.join(":");
+        let own_pk = state
+            .keys
+            .lock()
+            .map(|k| k.public_key().to_hex())
+            .unwrap_or_default();
+        let other_pk = sorted
+            .iter()
+            .find(|pk| **pk != own_pk)
+            .cloned()
+            .unwrap_or_else(|| sorted.first().cloned().unwrap_or_default());
+        (synthetic_id, true, Some(other_pk))
+    } else {
+        (parent_channel_id.clone(), false, None)
+    };
 
     // Validate inputs at the Tauri boundary.
     if member_pubkeys.len() > MAX_HUDDLE_AGENTS {
