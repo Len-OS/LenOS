@@ -153,7 +153,7 @@ pub async fn search_chunks(
             d.channel_id,
             (1.0 - (dc.embedding <=> $1::vector))::float8 AS score
         FROM document_chunks dc
-        JOIN documents d ON d.id = dc.document_id
+        JOIN documents d ON d.community_id = dc.community_id AND d.id = dc.document_id
         WHERE dc.community_id = $2
           AND d.deleted_at IS NULL
           AND d.status = 'ready'

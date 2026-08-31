@@ -37,6 +37,7 @@ fn validate_slug(slug: &str) -> bool {
 }
 
 #[derive(Debug, Deserialize)]
+/// Request body for changing the workspace subdomain.
 pub struct PatchSubdomainRequest {
     slug: String,
 }

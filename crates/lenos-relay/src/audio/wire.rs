@@ -18,6 +18,11 @@
 //! Trust decisions (admission, moderation, kicks) MUST NOT consume
 //! `level_dbov`.
 
+// Video parsing was added after the original audio test module; keep the
+// protocol tests colocated with the audio parser until the wire module is
+// split into separate audio/video files.
+#![allow(clippy::items_after_test_module)]
+
 /// Length of the v2 per-frame header in bytes. The wire layout is, in
 /// network byte order:
 ///
