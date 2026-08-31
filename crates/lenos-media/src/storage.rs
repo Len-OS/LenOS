@@ -277,13 +277,7 @@ impl MediaStorage {
     ) -> Result<Vec<String>, MediaError> {
         let (result, _status) = self
             .bucket
-            .list_page(
-                prefix.to_owned(),
-                None,
-                None,
-                None,
-                Some(max_keys),
-            )
+            .list_page(prefix.to_owned(), None, None, None, Some(max_keys))
             .await?;
         Ok(result.contents.into_iter().map(|obj| obj.key).collect())
     }
