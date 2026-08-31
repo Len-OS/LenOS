@@ -22,6 +22,8 @@ use lenos_test_client::{LenOSTestClient, RelayMessage};
 use nostr::{EventBuilder, Filter, Keys, Kind, Tag, Timestamp};
 use reqwest::Client;
 use serde_json::Value;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use sha2::{Digest, Sha256};
 
 const KIND_EVENT_REMINDER: u16 = 30300;
 
@@ -46,6 +48,23 @@ fn http_client() -> Client {
         .timeout(Duration::from_secs(10))
         .build()
         .expect("failed to build HTTP client")
+}
+
+fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
+    let payload = hex::encode(Sha256::digest(body));
+    let event = EventBuilder::new(Kind::HttpAuth, "")
+        .tags(vec![
+            Tag::parse(["u", url]).unwrap(),
+            Tag::parse(["method", "POST"]).unwrap(),
+            Tag::parse(["payload", &payload]).unwrap(),
+            Tag::parse(["nonce", &uuid::Uuid::new_v4().to_string()]).unwrap(),
+        ])
+        .sign_with_keys(keys)
+        .unwrap();
+    format!(
+        "Nostr {}",
+        BASE64.encode(serde_json::to_string(&event).unwrap())
+    )
 }
 
 /// Build a valid kind:30300 reminder event with the given tags.
@@ -90,12 +109,13 @@ fn build_reminder_at(
 
 /// Submit an event via the HTTP bridge and return (accepted, message).
 async fn submit_event_http(client: &Client, keys: &Keys, event: &nostr::Event) -> (bool, String) {
-    let pubkey_hex = keys.public_key().to_hex();
+    let url = format!("{}/events", relay_http_url());
+    let body = serde_json::to_vec(event).unwrap();
     let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(event).unwrap())
+        .body(body)
         .send()
         .await
         .expect("submit event");
@@ -115,12 +135,14 @@ async fn submit_event_http(client: &Client, keys: &Keys, event: &nostr::Event) -
 }
 
 /// Query events via the HTTP bridge. Returns the JSON array of events.
-async fn query_events_http(client: &Client, pubkey_hex: &str, filters: Vec<Filter>) -> Vec<Value> {
+async fn query_events_http(client: &Client, keys: &Keys, filters: Vec<Filter>) -> Vec<Value> {
+    let url = format!("{}/query", relay_http_url());
+    let body = serde_json::to_vec(&filters).unwrap();
     let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", pubkey_hex)
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
         .header("Content-Type", "application/json")
-        .json(&filters)
+        .body(body)
         .send()
         .await
         .expect("query events");
@@ -137,14 +159,16 @@ async fn query_events_http(client: &Client, pubkey_hex: &str, filters: Vec<Filte
 /// Count events via the HTTP bridge. Returns the count or an error status.
 async fn count_events_http(
     client: &Client,
-    pubkey_hex: &str,
+    keys: &Keys,
     filters: Vec<Filter>,
 ) -> Result<u64, (u16, String)> {
+    let url = format!("{}/count", relay_http_url());
+    let body = serde_json::to_vec(&filters).unwrap();
     let resp = client
-        .post(format!("{}/count", relay_http_url()))
-        .header("X-Pubkey", pubkey_hex)
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
         .header("Content-Type", "application/json")
-        .json(&filters)
+        .body(body)
         .send()
         .await
         .expect("count events");
@@ -459,7 +483,6 @@ async fn test_reminder_accepted_expiration_without_not_before() {
 async fn test_author_can_query_own_reminders_http() {
     let client = http_client();
     let keys = Keys::generate();
-    let pubkey_hex = keys.public_key().to_hex();
     let d_tag = uuid::Uuid::new_v4().to_string();
 
     // Store a reminder
@@ -475,7 +498,7 @@ async fn test_author_can_query_own_reminders_http() {
     let filter = Filter::new()
         .kind(Kind::Custom(KIND_EVENT_REMINDER))
         .author(keys.public_key());
-    let results = query_events_http(&client, &pubkey_hex, vec![filter]).await;
+    let results = query_events_http(&client, &keys, vec![filter]).await;
 
     assert!(
         results.iter().any(|e| {
@@ -495,7 +518,6 @@ async fn test_other_user_cannot_query_reminders_http() {
     let client = http_client();
     let author_keys = Keys::generate();
     let other_keys = Keys::generate();
-    let other_pubkey_hex = other_keys.public_key().to_hex();
     let d_tag = uuid::Uuid::new_v4().to_string();
 
     // Store a reminder as author
@@ -513,7 +535,10 @@ async fn test_other_user_cannot_query_reminders_http() {
         .author(author_keys.public_key());
     let resp = client
         .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &other_pubkey_hex)
+        .header(
+            "Authorization",
+            nip98_post_header(&other_keys, &format!("{}/query", relay_http_url()), &serde_json::to_vec(&vec![filter.clone()]).unwrap()),
+        )
         .header("Content-Type", "application/json")
         .json(&vec![filter])
         .send()
@@ -531,7 +556,6 @@ async fn test_other_user_cannot_query_reminders_http() {
 async fn test_author_can_count_own_reminders_http() {
     let client = http_client();
     let keys = Keys::generate();
-    let pubkey_hex = keys.public_key().to_hex();
     let d_tag = uuid::Uuid::new_v4().to_string();
 
     // Store a reminder
@@ -547,7 +571,7 @@ async fn test_author_can_count_own_reminders_http() {
     let filter = Filter::new()
         .kind(Kind::Custom(KIND_EVENT_REMINDER))
         .author(keys.public_key());
-    let count = count_events_http(&client, &pubkey_hex, vec![filter])
+    let count = count_events_http(&client, &keys, vec![filter])
         .await
         .expect("count should succeed for author");
     assert!(count >= 1, "author should count at least 1 reminder");
@@ -559,7 +583,6 @@ async fn test_other_user_cannot_count_reminders_http() {
     let client = http_client();
     let author_keys = Keys::generate();
     let other_keys = Keys::generate();
-    let other_pubkey_hex = other_keys.public_key().to_hex();
     let d_tag = uuid::Uuid::new_v4().to_string();
 
     // Store a reminder as author
@@ -575,7 +598,7 @@ async fn test_other_user_cannot_count_reminders_http() {
     let filter = Filter::new()
         .kind(Kind::Custom(KIND_EVENT_REMINDER))
         .author(author_keys.public_key());
-    let result = count_events_http(&client, &other_pubkey_hex, vec![filter]).await;
+    let result = count_events_http(&client, &other_keys, vec![filter]).await;
     assert!(
         result.is_err(),
         "should get error counting another author's reminders"
@@ -813,7 +836,6 @@ async fn test_reminder_replacement_semantics() {
     // Verify parameterized replaceable behavior: same (pubkey, kind, d) replaces
     let client = http_client();
     let keys = Keys::generate();
-    let pubkey_hex = keys.public_key().to_hex();
     let d_tag = uuid::Uuid::new_v4().to_string();
 
     // First version. Explicit distinct created_at makes replacement ordering
@@ -846,7 +868,7 @@ async fn test_reminder_replacement_semantics() {
     let filter = Filter::new()
         .kind(Kind::Custom(KIND_EVENT_REMINDER))
         .author(keys.public_key());
-    let results = query_events_http(&client, &pubkey_hex, vec![filter]).await;
+    let results = query_events_http(&client, &keys, vec![filter]).await;
 
     let matching: Vec<&Value> = results
         .iter()
