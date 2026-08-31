@@ -823,19 +823,50 @@ async fn test_subscription_limit_enforced() {
         .await
         .expect("connect");
 
-    // Open 1024 subscriptions (the relay's MAX_SUBSCRIPTIONS).
+    // Open 1024 subscriptions (the relay's MAX_SUBSCRIPTIONS). An impossible
+    // event id makes these limit-only subscriptions cheap and avoids coupling
+    // this capacity check to the size of the live event history.
+    let no_history_id = nostr::EventId::from_hex(&"00".repeat(32)).expect("zero event id");
+    let mut batch_ids = Vec::with_capacity(40);
     for i in 0..1024 {
         let sid = format!("limit-sub-{i}");
-        let filter = Filter::new().kind(Kind::Custom(9));
+        let filter = Filter::new()
+            .kind(Kind::Custom(49999))
+            .id(no_history_id);
         client
             .subscribe(&sid, vec![filter])
             .await
             .expect("subscribe");
-        // Drain EOSE to avoid buffer buildup.
-        client
-            .collect_until_eose(&sid, Duration::from_secs(5))
-            .await
-            .expect("EOSE");
+        batch_ids.push(format!("limit-sub-{i}"));
+
+        // The relay deliberately rate-limits REQ frames, independently of the
+        // maximum active-subscription count. Keep each batch below that quota,
+        // drain its EOSEs, then allow the quota window to refill.
+        if batch_ids.len() == 40 || i == 1023 {
+            let expected = batch_ids.len();
+            let mut eose_ids = std::collections::HashSet::with_capacity(expected);
+            while eose_ids.len() < expected {
+                match client
+                    .recv_event(Duration::from_secs(30))
+                    .await
+                    .expect("recv EOSE")
+                {
+                    RelayMessage::Eose { subscription_id } => {
+                        eose_ids.insert(subscription_id);
+                    }
+                    RelayMessage::Event { .. } => {}
+                    RelayMessage::Closed {
+                        subscription_id,
+                        message,
+                    } => panic!("unexpected CLOSED for {subscription_id}: {message}"),
+                    _ => {}
+                }
+            }
+            batch_ids.clear();
+            if i != 1023 {
+                tokio::time::sleep(Duration::from_secs(5)).await;
+            }
+        }
     }
 
     let overflow_sid = sub_id("overflow");
