@@ -21,9 +21,9 @@
 
 use std::time::Duration;
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use lenos_test_client::{LenOSTestClient, RelayMessage, TestClientError};
 use nostr::{Alphabet, EventBuilder, Filter, Keys, Kind, SingleLetterTag, Tag};
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use reqwest::{Client, Response};
 use sha2::{Digest, Sha256};
 
@@ -54,7 +54,10 @@ fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
         ])
         .sign_with_keys(keys)
         .unwrap();
-    format!("Nostr {}", STANDARD.encode(serde_json::to_string(&event).unwrap()))
+    format!(
+        "Nostr {}",
+        STANDARD.encode(serde_json::to_string(&event).unwrap())
+    )
 }
 
 async fn post_json(client: &Client, keys: &Keys, path: &str, body: Vec<u8>) -> Response {
@@ -85,7 +88,13 @@ async fn create_test_channel(keys: &Keys) -> String {
         .sign_with_keys(keys)
         .unwrap();
 
-    let resp = post_json(&client, keys, "/events", serde_json::to_vec(&event).unwrap()).await;
+    let resp = post_json(
+        &client,
+        keys,
+        "/events",
+        serde_json::to_vec(&event).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "channel creation event failed: {}",
@@ -108,7 +117,13 @@ async fn send_rest_message(keys: &Keys, channel_id: &str, content: &str) -> Stri
         .tags(vec![Tag::parse(["h", channel_id]).unwrap()])
         .sign_with_keys(keys)
         .unwrap();
-    let resp = post_json(&client, keys, "/events", serde_json::to_vec(&event).unwrap()).await;
+    let resp = post_json(
+        &client,
+        keys,
+        "/events",
+        serde_json::to_vec(&event).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "send message failed: {}",
@@ -164,7 +179,13 @@ async fn post_signed_event(keys: &Keys, kind: u16, tags: Vec<Tag>) {
         .tags(tags)
         .sign_with_keys(keys)
         .unwrap();
-    let resp = post_json(&client, keys, "/events", serde_json::to_vec(&event).unwrap()).await;
+    let resp = post_json(
+        &client,
+        keys,
+        "/events",
+        serde_json::to_vec(&event).unwrap(),
+    )
+    .await;
     assert!(
         resp.status().is_success(),
         "event kind:{kind} failed: {}",
@@ -1426,7 +1447,13 @@ async fn test_nipdv_snapshot_is_private_to_owner() {
         "#p": [a_pubkey_hex],
         "limit": 1,
     }]);
-    let resp = post_json(&client, &keys_b, "/query", serde_json::to_vec(&filters).unwrap()).await;
+    let resp = post_json(
+        &client,
+        &keys_b,
+        "/query",
+        serde_json::to_vec(&filters).unwrap(),
+    )
+    .await;
 
     assert_eq!(
         resp.status(),
@@ -1586,7 +1613,13 @@ async fn test_nipdv_ids_query_rejects_third_party() {
     // (ids exemption) but the result-level owner check yields an empty set.
     let client = Client::new();
     let filters = serde_json::json!([{ "ids": [snapshot_id], "limit": 1 }]);
-    let resp = post_json(&client, &keys_b, "/query", serde_json::to_vec(&filters).unwrap()).await;
+    let resp = post_json(
+        &client,
+        &keys_b,
+        "/query",
+        serde_json::to_vec(&filters).unwrap(),
+    )
+    .await;
     assert_eq!(
         resp.status(),
         reqwest::StatusCode::OK,
@@ -1633,7 +1666,13 @@ async fn test_nipdv_explicit_kind_query_forbidden_for_third_party() {
 
     let client = Client::new();
     let filters = serde_json::json!([{ "kinds": [30622], "ids": [snapshot_id], "limit": 1 }]);
-    let resp = post_json(&client, &keys_b, "/query", serde_json::to_vec(&filters).unwrap()).await;
+    let resp = post_json(
+        &client,
+        &keys_b,
+        "/query",
+        serde_json::to_vec(&filters).unwrap(),
+    )
+    .await;
     assert_eq!(
         resp.status(),
         reqwest::StatusCode::FORBIDDEN,
