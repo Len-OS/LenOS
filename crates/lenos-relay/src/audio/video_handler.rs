@@ -289,13 +289,10 @@ async fn handle_video_connection(
         return;
     }
 
-    let is_member = match state
+    let is_member = state
         .is_member_cached(tenant.community(), channel_id, &pubkey_bytes)
         .await
-    {
-        Ok(v) => v,
-        Err(_) => false,
-    };
+        .unwrap_or_default();
 
     let parent_channel_id = auth_msg.parent_channel_id;
     if !is_member && channel.visibility != "open" {
