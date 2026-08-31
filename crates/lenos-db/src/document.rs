@@ -5,7 +5,7 @@ use pgvector::Vector;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::error::{DbError, Result};
+use crate::error::Result;
 use lenos_core::CommunityId;
 
 /// Parameters for creating a new document record.
