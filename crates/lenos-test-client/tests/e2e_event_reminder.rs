@@ -711,7 +711,6 @@ async fn test_mixed_kind_filter_omits_other_authors_reminders_ws() {
     // Create a channel so the reader can send a kind:9 message
     let channel = {
         let client = reqwest::Client::new();
-        let pubkey_hex = reader_keys.public_key().to_hex();
         let channel_uuid = uuid::Uuid::new_v4();
         let channel_name = format!("niper-e2e-{}", channel_uuid);
         let event = EventBuilder::new(Kind::Custom(9007), "")
@@ -723,11 +722,13 @@ async fn test_mixed_kind_filter_omits_other_authors_reminders_ws() {
             ])
             .sign_with_keys(&reader_keys)
             .unwrap();
+        let url = format!("{}/events", relay_http_url());
+        let body = serde_json::to_vec(&event).unwrap();
         let resp = client
-            .post(format!("{}/events", relay_http_url()))
-            .header("X-Pubkey", &pubkey_hex)
+            .post(&url)
+            .header("Authorization", nip98_post_header(&reader_keys, &url, &body))
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&event).unwrap())
+            .body(body)
             .send()
             .await
             .expect("create channel");
