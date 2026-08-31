@@ -11,8 +11,10 @@ use uuid::Uuid;
 use crate::error::PubSubError;
 use crate::topic::LENOS_PREFIX;
 
+/// Lifetime of a typing indicator in Redis.
 pub const TYPING_TTL_SECS: u64 = 8;
 
+/// Build the tenant-scoped Redis key for a typing indicator.
 pub fn typing_key(ctx: &TenantContext, channel_id: Uuid, pubkey: &PublicKey) -> String {
     format!(
         "{LENOS_PREFIX}:{}:typing:{}:{}",
