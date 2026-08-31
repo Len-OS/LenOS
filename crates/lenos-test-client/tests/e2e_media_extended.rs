@@ -3,7 +3,10 @@
 //!
 //! Run: cargo test -p lenos-test-client --test e2e_media_extended -- --ignored --nocapture
 
-use base64::{engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD}, Engine as _};
+use base64::{
+    engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
+    Engine as _,
+};
 use nostr::{EventBuilder, JsonUtil, Keys, Kind, Tag, Timestamp};
 use reqwest::Client;
 use sha2::{Digest, Sha256};
@@ -88,7 +91,10 @@ fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
         ])
         .sign_with_keys(keys)
         .unwrap();
-    format!("Nostr {}", STANDARD.encode(serde_json::to_string(&event).unwrap()))
+    format!(
+        "Nostr {}",
+        STANDARD.encode(serde_json::to_string(&event).unwrap())
+    )
 }
 
 async fn post_event(client: &Client, keys: &Keys, event: &nostr::Event) -> reqwest::Response {
