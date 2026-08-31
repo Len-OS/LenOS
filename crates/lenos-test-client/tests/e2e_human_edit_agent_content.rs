@@ -21,6 +21,8 @@
 use lenos_sdk::nip_oa;
 use lenos_test_client::LenOSTestClient;
 use nostr::{EventBuilder, Keys, Kind, Tag};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use sha2::{Digest, Sha256};
 
 fn relay_url() -> String {
     std::env::var("RELAY_URL").unwrap_or_else(|_| "ws://localhost:3000".to_string())
@@ -32,6 +34,20 @@ fn relay_http_url() -> String {
         .replace("ws://", "http://")
         .trim_end_matches('/')
         .to_string()
+}
+
+fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
+    let payload = hex::encode(Sha256::digest(body));
+    let event = EventBuilder::new(Kind::HttpAuth, "")
+        .tags(vec![
+            Tag::parse(["u", url]).unwrap(),
+            Tag::parse(["method", "POST"]).unwrap(),
+            Tag::parse(["payload", &payload]).unwrap(),
+            Tag::parse(["nonce", &uuid::Uuid::new_v4().to_string()]).unwrap(),
+        ])
+        .sign_with_keys(keys)
+        .unwrap();
+    format!("Nostr {}", BASE64.encode(serde_json::to_string(&event).unwrap()))
 }
 
 /// Create a fresh channel owned by `owner_keys`, return the channel UUID string.
@@ -49,11 +65,13 @@ async fn create_agent_owned_channel(agent_keys: &Keys) -> String {
         .sign_with_keys(agent_keys)
         .unwrap();
 
+    let url = format!("{}/events", relay_http_url());
+    let body = serde_json::to_vec(&event).unwrap();
     let resp = http
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &agent_keys.public_key().to_hex())
+        .post(&url)
+        .header("Authorization", nip98_post_header(agent_keys, &url, &body))
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
+        .body(body)
         .send()
         .await
         .expect("submit create-channel event");
@@ -606,11 +624,13 @@ async fn create_private_agent_owned_channel(agent_keys: &Keys) -> String {
         .sign_with_keys(agent_keys)
         .unwrap();
 
+    let url = format!("{}/events", relay_http_url());
+    let body = serde_json::to_vec(&event).unwrap();
     let resp = http
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &agent_keys.public_key().to_hex())
+        .post(&url)
+        .header("Authorization", nip98_post_header(agent_keys, &url, &body))
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&event).unwrap())
+        .body(body)
         .send()
         .await
         .expect("submit create-private-channel event");
