@@ -69,9 +69,15 @@ jobs:
 
       - name: Run E2E suite
         run: |
+          test_count=$(cargo test -p lenos-test-client --tests -- test_ --list 2>/dev/null | awk '/: test$/{count++} END{print count+0}')
+          if [ "$test_count" -lt 1 ]; then
+            echo "No live E2E tests matched the workflow selector"
+            exit 1
+          fi
+          echo "Selected live E2E tests: $test_count"
           cargo test -p lenos-test-client \
             --tests \
-            -- --nocapture --include-ignored
+            -- test_ --nocapture --include-ignored
         env:
           RELAY_URL: ${{ vars.RELAY_URL || secrets.RELAY_URL }}
           LENOS_TEST_OWNER_PRIVATE_KEY: ${{ steps.secret.outputs.privkey }}
