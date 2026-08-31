@@ -9,6 +9,7 @@ use crate::error::Result;
 use lenos_core::CommunityId;
 
 /// Parameters for creating a new document record.
+#[allow(missing_docs)]
 pub struct CreateDocumentParams {
     pub id: Uuid,
     pub community_id: CommunityId,
@@ -22,6 +23,7 @@ pub struct CreateDocumentParams {
 
 /// A document row as returned from the database.
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct DocumentRecord {
     pub id: Uuid,
     pub community_id: Uuid,
@@ -37,6 +39,7 @@ pub struct DocumentRecord {
 }
 
 /// A document chunk row used for bulk insert.
+#[allow(missing_docs)]
 pub struct ChunkRecord {
     pub document_id: Uuid,
     pub community_id: CommunityId,
@@ -48,6 +51,7 @@ pub struct ChunkRecord {
 
 /// A chunk result with document metadata from a similarity search.
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct ChunkSearchResult {
     pub id: Uuid,
     pub document_id: Uuid,
