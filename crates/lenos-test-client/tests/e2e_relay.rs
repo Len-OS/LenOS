@@ -840,9 +840,7 @@ async fn test_subscription_limit_enforced() {
     let mut batch_ids = Vec::with_capacity(40);
     for i in 0..1024 {
         let sid = format!("limit-sub-{i}");
-        let filter = Filter::new()
-            .kind(Kind::Custom(49999))
-            .id(no_history_id);
+        let filter = Filter::new().kind(Kind::Custom(49999)).id(no_history_id);
         client
             .subscribe(&sid, vec![filter])
             .await
