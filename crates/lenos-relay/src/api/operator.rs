@@ -698,7 +698,7 @@ pub async fn add_channel_member(
             community,
             channel_uuid,
             &pubkey_bytes,
-            role.clone(),
+            role,
             Some(&pubkey_bytes),
         )
         .await;
