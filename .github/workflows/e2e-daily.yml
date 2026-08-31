@@ -71,7 +71,7 @@ jobs:
         run: |
           cargo test -p lenos-test-client \
             --tests \
-            -- e2e --nocapture --include-ignored
+            -- --nocapture --include-ignored
         env:
           RELAY_URL: ${{ vars.RELAY_URL || secrets.RELAY_URL }}
           LENOS_TEST_OWNER_PRIVATE_KEY: ${{ steps.secret.outputs.privkey }}
