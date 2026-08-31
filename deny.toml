@@ -19,6 +19,10 @@ ignore = [
     # Transitive dep: mesh-llm → nostr-sdk 0.44.1 → nostr-relay-pool.
     # No fix until mesh-llm bumps nostr-sdk.
     { id = "RUSTSEC-2026-0243", reason = "transitive dep via mesh-llm→nostr-sdk 0.44.1; no upstream fix available" },
+    # ttf-parser 0.25.1 — unmaintained transitive dependency of lopdf/pdf-extract.
+    # No safe replacement is available in the current pdf-extract release; keep
+    # the exception narrow and revisit when its parser dependency changes.
+    { id = "RUSTSEC-2026-0192", reason = "transitive via lopdf→pdf-extract; no safe upstream replacement available" },
 ]
 
 [licenses]
