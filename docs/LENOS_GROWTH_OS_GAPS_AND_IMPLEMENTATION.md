@@ -2883,3 +2883,13 @@ later found to be inaccurate.
   LIVE EVIDENCE**. Full desktop install/update/recovery, provider callbacks,
   broader Growth authorization coverage, distribution signing, and alert
   recipient ownership remain open.
+
+### 2026-09-01 — Desktop release publication verification
+
+- **Evidence:** Immutable release `desktop-v0.5.7` is published with uploaded
+  packages. The rolling updater manifest reports version `0.5.7`, and all four
+  platform download URLs return HTTP 200.
+- **Boundary:** Artifact publication and updater reachability are verified;
+  installed-client login, workspace selection, update application, and
+  recovery behavior are not yet verified. Windows distribution signing is
+  still blocked by unavailable signing credentials.

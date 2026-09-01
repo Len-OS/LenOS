@@ -1537,3 +1537,17 @@ adoption and recovery evidence justify it.
   recipient ownership, direct desktop login/update/recovery verification, and
   the remaining full live Growth authorization/integration evidence are still
   not claimed passed.
+
+### 2026-09-01 — Published desktop artifact reachability
+
+- **Release:** Immutable release `desktop-v0.5.7` is published (not draft or
+  prerelease) with uploaded Linux, macOS, and Windows packages plus updater
+  signatures where configured.
+- **Updater:** The rolling `latest.json` reports version `0.5.7`; the four
+  platform URLs (`darwin-aarch64`, `darwin-x86_64`, `linux-x86_64`, and
+  `windows-x86_64`) all returned HTTP 200 and resolved to the published
+  release assets.
+- **Limitation:** This proves publication and download reachability, not an
+  installed-client login, workspace-selection, update, or recovery run. The
+  published Windows installer remains explicitly unsigned pending signing
+  credentials.
