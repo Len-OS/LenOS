@@ -1601,3 +1601,12 @@ adoption and recovery evidence justify it.
   Growth API all returned HTTP 200. A refreshed Terraform plan reports no
   changes.
 - **Safety:** Secret values and Terraform state contents were not emitted.
+
+### 2026-09-01 — Post-reconciliation live identity smoke
+
+- **Evidence:** GitHub workflow run `33507477030` passed both durable identity
+  jobs (`e2e-32` and `e2e-33`) after the relay rollout. The smoke path covered
+  live relay authentication and adapter messaging through the configured E2E
+  workspace.
+- **Status:** Relay infrastructure, live identity smoke, and post-apply
+  Terraform reconciliation are **PASSED WITH LIVE EVIDENCE**.

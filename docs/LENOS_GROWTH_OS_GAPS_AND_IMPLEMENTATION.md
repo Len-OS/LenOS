@@ -2938,3 +2938,11 @@ later found to be inaccurate.
   drained, all five public health endpoints returned HTTP 200, and the
   refreshed plan reported no changes.
 - **Safety:** Secret values and Terraform state contents were not exposed.
+
+### 2026-09-01 — Post-reconciliation live identity smoke
+
+- **Evidence:** GitHub workflow run `33507477030` passed both durable identity
+  jobs (`e2e-32` and `e2e-33`) after the relay rollout, including live relay
+  authentication and adapter messaging.
+- **Status:** Relay rollout and live identity smoke passed; packaged desktop
+  signing and installed-client validation remain separate open gates.
