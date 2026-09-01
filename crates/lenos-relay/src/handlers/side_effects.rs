@@ -3469,11 +3469,13 @@ mod tests {
         let p_tag = Tag::parse(["p", &actor]).unwrap();
         let h_tag = Tag::parse(["h", &channel_id]).unwrap();
 
-        let event_a = EventBuilder::new(Kind::Custom(KIND_MEMBER_ADDED_NOTIFICATION as u16), content_a)
+        let event_a =
+            EventBuilder::new(Kind::Custom(KIND_MEMBER_ADDED_NOTIFICATION as u16), content_a)
             .tags([p_tag.clone(), h_tag.clone()])
             .sign_with_keys(&keys)
             .unwrap();
-        let event_b = EventBuilder::new(Kind::Custom(KIND_MEMBER_ADDED_NOTIFICATION as u16), content_b)
+        let event_b =
+            EventBuilder::new(Kind::Custom(KIND_MEMBER_ADDED_NOTIFICATION as u16), content_b)
             .tags([p_tag, h_tag])
             .sign_with_keys(&keys)
             .unwrap();
