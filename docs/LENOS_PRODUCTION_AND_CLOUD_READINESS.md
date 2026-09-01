@@ -1610,3 +1610,12 @@ adoption and recovery evidence justify it.
   workspace.
 - **Status:** Relay infrastructure, live identity smoke, and post-apply
   Terraform reconciliation are **PASSED WITH LIVE EVIDENCE**.
+
+### 2026-09-01 — Identity workflow runtime pinning
+
+- **Change:** Commit `fd10769cd` pins the identity-smoke workflow to the
+  authoritative `actions/checkout` v7.0.1 and `actions/setup-python` v7.0.0
+  commits, removing its Node.js 20 deprecation path.
+- **Verification:** YAML parsing and `git diff --check` pass locally. The
+  change is not yet on `main`; the current main-branch workflow remains the
+  live evidence until a reviewed PR is merged.

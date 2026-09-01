@@ -2946,3 +2946,10 @@ later found to be inaccurate.
   authentication and adapter messaging.
 - **Status:** Relay rollout and live identity smoke passed; packaged desktop
   signing and installed-client validation remain separate open gates.
+
+### 2026-09-01 — Identity workflow runtime pinning
+
+- **Change:** Commit `fd10769cd` pins checkout and setup-python in the
+  identity-smoke workflow to their current Node.js 24-compatible releases.
+- **Verification:** YAML parsing and whitespace validation pass locally. The
+  workflow change awaits a reviewed merge to `main`.
