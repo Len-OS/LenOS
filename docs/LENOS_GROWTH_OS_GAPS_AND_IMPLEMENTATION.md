@@ -2953,3 +2953,13 @@ later found to be inaccurate.
   identity-smoke workflow to their current Node.js 24-compatible releases.
 - **Verification:** YAML parsing and whitespace validation pass locally. The
   workflow change awaits a reviewed merge to `main`.
+
+### 2026-09-01 — Identity workflow runtime pinning merged
+
+- **Evidence:** PR #17 merged as `3a0710d27605962a45d9a9bf4e205acd7fb4ad7a`.
+  Required Desktop Core, macOS build, aggregate Desktop, release-contract,
+  and dead-token checks passed.
+- **Post-merge verification:** `main` workflow run `33509701432` passed both
+  durable identity jobs (`e2e-32` and `e2e-33`).
+- **Boundary:** Packaged-binary signing and signed update application remain
+  blocked on unavailable distribution signing credentials/tools.

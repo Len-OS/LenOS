@@ -1619,3 +1619,14 @@ adoption and recovery evidence justify it.
 - **Verification:** YAML parsing and `git diff --check` pass locally. The
   change is not yet on `main`; the current main-branch workflow remains the
   live evidence until a reviewed PR is merged.
+
+### 2026-09-01 — Identity workflow runtime pinning merged
+
+- **Evidence:** PR #17 merged successfully as `3a0710d27605962a45d9a9bf4e205acd7fb4ad7a`.
+  Its required Desktop Core, macOS Desktop Build, aggregate Desktop,
+  release-contract, and dead-token checks all passed.
+- **Post-merge verification:** Workflow run `33509701432`, dispatched from
+  `main`, passed both durable identity jobs (`e2e-32` and `e2e-33`).
+- **Boundary:** Windows/macOS distribution signing and installed packaged-
+  binary update application remain open because signing credentials/tools are
+  unavailable.
