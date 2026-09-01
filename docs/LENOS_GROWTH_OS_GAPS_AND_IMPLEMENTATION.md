@@ -2919,3 +2919,12 @@ later found to be inaccurate.
   download guard with no in-app install calls.
 - **Boundary:** Applying an update from a signed packaged binary remains
   unverified.
+
+### 2026-09-01 — Infrastructure configuration gate verification
+
+- **Evidence:** Terraform formatting/validation and strict Helm lint plus a
+  production-shaped chart render pass. The no-write Terraform plan probe still
+  needs protected inputs `relay_private_key_secret_arn`, `relay_image`, and
+  `alarm_sns_topic_arn`.
+- **Safety:** No apply or infrastructure mutation occurred, and no secret or
+  state content was exposed.

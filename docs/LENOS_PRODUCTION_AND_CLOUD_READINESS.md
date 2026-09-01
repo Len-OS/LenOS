@@ -1580,3 +1580,13 @@ adoption and recovery evidence justify it.
   that requires manual download without invoking in-app download/install.
 - **Boundary:** The updater state machine is covered through the native E2E
   bridge; applying an update from a signed packaged binary remains open.
+
+### 2026-09-01 — Infrastructure configuration gate verification
+
+- **Evidence:** `terraform fmt -check`, `terraform validate`, `helm lint
+  --strict`, and a production-shaped `helm template` render pass. A no-write
+  Terraform plan probe is blocked only by absent protected inputs:
+  `relay_private_key_secret_arn`, `relay_image`, and
+  `alarm_sns_topic_arn`.
+- **Safety:** No Terraform apply or infrastructure mutation was performed;
+  no secret values or state contents were emitted.
