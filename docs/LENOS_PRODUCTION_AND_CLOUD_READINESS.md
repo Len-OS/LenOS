@@ -1507,3 +1507,17 @@ adoption and recovery evidence justify it.
 - **Current open items:** Main CI was still running at record time. Windows and
   macOS desktop distribution signing, SNS alert-recipient ownership, and the
   remaining live desktop/browser/authorization evidence are not claimed passed.
+
+### 2026-09-01 — Live identity/isolation and CI recovery evidence
+
+- **Hosted identity evidence:** `Daily E2E identity check` run `33500906867`
+  passed for both `e2e-32` and `e2e-33`. Each job connected through the live
+  tenant WebSocket, completed NIP-42 authentication, published the scoped
+  command, and received an adapter reply.
+- **CI recovery:** Main CI run `33498474534` was cancelled only after its
+  substantive Windows Tauri test had passed and its cache post-step remained
+  wedged for more than four hours. The active cleanup state is not treated as
+  a test failure; the same commit was rerun for a terminal result.
+- **Current status:** Production relay/adapter smoke and hosted identity smoke
+  have live evidence. Desktop signing, SNS recipient ownership, and direct
+  desktop login/update/recovery verification remain open.

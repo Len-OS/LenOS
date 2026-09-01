@@ -2858,3 +2858,13 @@ later found to be inaccurate.
 - **Status:** Relay, adapter, and agent smoke path is **PASSED WITH LIVE
   EVIDENCE**. Desktop signing, alert ownership, and remaining full live Growth
   flows remain open and private-beta readiness is not claimed.
+
+### 2026-09-01 — Live identity smoke completion
+
+- **Evidence:** Hosted `Daily E2E identity check` run `33500906867` passed for
+  both configured E2E identities. The checks authenticated to the live relay,
+  published scoped commands, and received LenGrowth adapter replies through the
+  repaired workspace mapping.
+- **Status:** Identity and relay adapter reachability are **PASSED WITH LIVE
+  EVIDENCE**. This does not claim full desktop-flow, provider-integration, or
+  production authorization coverage.
