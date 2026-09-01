@@ -1590,3 +1590,14 @@ adoption and recovery evidence justify it.
   `alarm_sns_topic_arn`.
 - **Safety:** No Terraform apply or infrastructure mutation was performed;
   no secret values or state contents were emitted.
+
+### 2026-09-01 — Relay Terraform reconciliation and rollout
+
+- **Apply:** Terraform apply succeeded with exactly 1 task-definition add, 1
+  ECS service change, and 1 prior task-definition destroy. No database, Redis,
+  networking, storage, or alarm resources changed.
+- **Verification:** ECS revision 14 started two healthy relay tasks; the old
+  revision drained normally. Relay, both tenant hosts, LenGrowth, and the
+  Growth API all returned HTTP 200. A refreshed Terraform plan reports no
+  changes.
+- **Safety:** Secret values and Terraform state contents were not emitted.

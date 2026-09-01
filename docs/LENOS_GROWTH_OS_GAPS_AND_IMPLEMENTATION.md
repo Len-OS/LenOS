@@ -2928,3 +2928,13 @@ later found to be inaccurate.
   `alarm_sns_topic_arn`.
 - **Safety:** No apply or infrastructure mutation occurred, and no secret or
   state content was exposed.
+
+### 2026-09-01 — Relay Terraform reconciliation and rollout
+
+- **Apply:** Terraform applied the verified relay-only change: one ECS task
+  definition replacement and one service update; no database, Redis,
+  networking, storage, or alarm resource changes were planned.
+- **Verification:** Two new relay tasks reached `RUNNING/HEALTHY`, old targets
+  drained, all five public health endpoints returned HTTP 200, and the
+  refreshed plan reported no changes.
+- **Safety:** Secret values and Terraform state contents were not exposed.
