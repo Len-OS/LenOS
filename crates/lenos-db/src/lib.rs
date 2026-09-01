@@ -4586,7 +4586,9 @@ impl Db {
     /// Atomically replace a replaceable event: NIP-16 kinds (0, 3, 41, 10000–19999)
     /// and NIP-29 discovery state (39000–39002, called from side_effects.rs).
     ///
-    /// Keeps only the event with the highest `created_at` per (kind, pubkey, channel_id).
+    /// Keeps only the event with the highest `created_at` per replacement
+    /// coordinate. NIP-29 discovery events use `(kind, pubkey, d_tag)` even
+    /// when their storage channel is global; other callers use `channel_id`.
     /// Same-second ties are broken by lowest event `id` (NIP-16 deterministic ordering).
     /// Returns `(event, false)` for stale writes and duplicate IDs — callers should
     /// skip fan-out/dispatch when `was_inserted` is false.
@@ -4598,6 +4600,8 @@ impl Db {
     ) -> Result<(StoredEvent, bool)> {
         let kind_i32 = lenos_core::kind::event_kind_i32(event);
         let pubkey_bytes = event.pubkey.to_bytes();
+        let is_nip29_discovery = (39000..=39002).contains(&kind_i32);
+        let d_tag = event::extract_d_tag(event);
         let created_at_secs = event.created_at.as_secs() as i64;
         let created_at = chrono::DateTime::from_timestamp(created_at_secs, 0)
             .ok_or(DbError::InvalidTimestamp(created_at_secs))?;
@@ -4607,12 +4611,16 @@ impl Db {
             community_id,
             kind_i32,
             pubkey_bytes.as_slice(),
-            channel_id.as_ref().map(|id| id.as_bytes().as_slice()),
+            if is_nip29_discovery {
+                d_tag.as_deref().map(str::as_bytes)
+            } else {
+                channel_id.as_ref().map(|id| id.as_bytes().as_slice())
+            },
         );
 
         let mut tx = self.pool.begin().await?;
 
-        // Serialize all writers for the same (kind, pubkey, channel_id) tuple.
+        // Serialize all writers for the same replacement coordinate.
         // Advisory lock is transaction-scoped — released on commit/rollback.
         sqlx::query("SELECT pg_advisory_xact_lock($1)")
             .bind(lock_key)
@@ -4621,19 +4629,34 @@ impl Db {
 
         // Check for the newest existing event. ORDER BY + LIMIT 1 is defensive against
         // historical data where prior bugs may have left multiple live rows.
-        let existing: Option<(chrono::DateTime<chrono::Utc>, Vec<u8>)> = sqlx::query_as(
-            "SELECT created_at, id FROM events \
-             WHERE community_id = $1 AND kind = $2 AND pubkey = $3 \
-             AND channel_id IS NOT DISTINCT FROM $4 \
-             AND deleted_at IS NULL \
-             ORDER BY created_at DESC, id ASC LIMIT 1",
-        )
-        .bind(community_id.as_uuid())
-        .bind(kind_i32)
-        .bind(pubkey_bytes.as_slice())
-        .bind(channel_id)
-        .fetch_optional(&mut *tx)
-        .await?;
+        let existing: Option<(chrono::DateTime<chrono::Utc>, Vec<u8>)> = if is_nip29_discovery {
+            sqlx::query_as(
+                "SELECT created_at, id FROM events \
+                 WHERE community_id = $1 AND kind = $2 AND pubkey = $3 \
+                 AND d_tag = $4 AND deleted_at IS NULL \
+                 ORDER BY created_at DESC, id ASC LIMIT 1",
+            )
+            .bind(community_id.as_uuid())
+            .bind(kind_i32)
+            .bind(pubkey_bytes.as_slice())
+            .bind(d_tag.as_deref().unwrap_or_default())
+            .fetch_optional(&mut *tx)
+            .await?
+        } else {
+            sqlx::query_as(
+                "SELECT created_at, id FROM events \
+                 WHERE community_id = $1 AND kind = $2 AND pubkey = $3 \
+                 AND channel_id IS NOT DISTINCT FROM $4 \
+                 AND deleted_at IS NULL \
+                 ORDER BY created_at DESC, id ASC LIMIT 1",
+            )
+            .bind(community_id.as_uuid())
+            .bind(kind_i32)
+            .bind(pubkey_bytes.as_slice())
+            .bind(channel_id)
+            .fetch_optional(&mut *tx)
+            .await?
+        };
 
         // Stale-write protection: reject if incoming is not newer.
         // NIP-16: created_at is second-resolution. On same-second tie, lowest
@@ -4653,25 +4676,37 @@ impl Db {
         }
 
         // Soft-delete the old event (if any). IS NOT DISTINCT FROM for NULL safety.
-        sqlx::query(
-            "UPDATE events SET deleted_at = NOW() \
-             WHERE community_id = $1 AND kind = $2 AND pubkey = $3 \
-             AND channel_id IS NOT DISTINCT FROM $4 \
-             AND deleted_at IS NULL",
-        )
-        .bind(community_id.as_uuid())
-        .bind(kind_i32)
-        .bind(pubkey_bytes.as_slice())
-        .bind(channel_id)
-        .execute(&mut *tx)
-        .await?;
+        if is_nip29_discovery {
+            sqlx::query(
+                "UPDATE events SET deleted_at = NOW() \
+                 WHERE community_id = $1 AND kind = $2 AND pubkey = $3 \
+                 AND d_tag = $4 AND deleted_at IS NULL",
+            )
+            .bind(community_id.as_uuid())
+            .bind(kind_i32)
+            .bind(pubkey_bytes.as_slice())
+            .bind(d_tag.as_deref().unwrap_or_default())
+            .execute(&mut *tx)
+            .await?;
+        } else {
+            sqlx::query(
+                "UPDATE events SET deleted_at = NOW() \
+                 WHERE community_id = $1 AND kind = $2 AND pubkey = $3 \
+                 AND channel_id IS NOT DISTINCT FROM $4 \
+                 AND deleted_at IS NULL",
+            )
+            .bind(community_id.as_uuid())
+            .bind(kind_i32)
+            .bind(pubkey_bytes.as_slice())
+            .bind(channel_id)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         // Insert the new event inside the same transaction.
         let sig_bytes = event.sig.serialize();
         let tags_json = serde_json::to_value(&event.tags)?;
         let received_at = chrono::Utc::now();
-        let d_tag = crate::event::extract_d_tag(event);
-
         let insert_result = sqlx::query(
             "INSERT INTO events (community_id, id, pubkey, created_at, kind, tags, content, sig, received_at, channel_id, d_tag) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \
@@ -4908,9 +4943,9 @@ impl Db {
     /// by its d-tag, regardless of which channel it was submitted to. The `channel_id`
     /// parameter is stored on the new row for query scoping but does not affect replacement.
     ///
-    /// Note: `replace_addressable_event()` keys on `channel_id` because it serves
-    /// relay-signed NIP-29 group metadata (kind 39000–39002) where the relay is the
-    /// author and channel_id distinguishes groups. User-submitted NIP-33 events use
+    /// Note: `replace_addressable_event()` keys NIP-29 group metadata
+    /// (kind 39000–39002) on the relay author's pubkey + d-tag, while using
+    /// `channel_id` for its other callers. User-submitted NIP-33 events use
     /// this function instead, where the author's pubkey + d-tag is the natural key.
     pub async fn replace_parameterized_event(
         &self,

@@ -924,12 +924,7 @@ pub async fn emit_membership_notification(
         }
     };
 
-    let content = serde_json::json!({
-        "type": event_type,
-        "channel_id": channel_id_str,
-        "actor": actor_hex,
-    })
-    .to_string();
+    let content = membership_notification_content(event_type, &channel_id_str, &actor_hex);
 
     let event = EventBuilder::new(Kind::Custom(notification_kind as u16), content)
         .tags([p_tag, h_tag])
@@ -979,6 +974,19 @@ pub async fn emit_membership_notification(
         "membership notification emitted"
     );
     Ok(())
+}
+
+fn membership_notification_content(event_type: &str, channel_id: &str, actor: &str) -> String {
+    serde_json::json!({
+        "type": event_type,
+        "channel_id": channel_id,
+        "actor": actor,
+        // Notifications are signals, not replaceable state. Include a nonce
+        // so two identical transitions in the same Nostr second cannot
+        // collide and suppress the later fan-out at the events primary key.
+        "notification_id": Uuid::new_v4().to_string(),
+    })
+    .to_string()
 }
 
 /// Sign, store (replacing previous), and fan-out a single addressable discovery event.
@@ -3449,5 +3457,33 @@ mod tests {
         }];
 
         assert!(actor_is_channel_owner_or_admin(&members, &actor));
+    }
+
+    #[test]
+    fn membership_notifications_have_distinct_event_ids_within_one_second() {
+        let keys = nostr::Keys::generate();
+        let channel_id = Uuid::new_v4().to_string();
+        let actor = keys.public_key().to_hex();
+        let content_a = membership_notification_content("member_added", &channel_id, &actor);
+        let content_b = membership_notification_content("member_added", &channel_id, &actor);
+        let p_tag = Tag::parse(["p", &actor]).unwrap();
+        let h_tag = Tag::parse(["h", &channel_id]).unwrap();
+
+        let event_a = EventBuilder::new(
+            Kind::Custom(KIND_MEMBER_ADDED_NOTIFICATION as u16),
+            content_a,
+        )
+        .tags([p_tag.clone(), h_tag.clone()])
+        .sign_with_keys(&keys)
+        .unwrap();
+        let event_b = EventBuilder::new(
+            Kind::Custom(KIND_MEMBER_ADDED_NOTIFICATION as u16),
+            content_b,
+        )
+        .tags([p_tag, h_tag])
+        .sign_with_keys(&keys)
+        .unwrap();
+
+        assert_ne!(event_a.id, event_b.id);
     }
 }

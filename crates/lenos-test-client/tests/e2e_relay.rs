@@ -1401,6 +1401,7 @@ async fn test_nip29_standard_client_flow() {
     let url = relay_url();
     let keys = Keys::generate();
     let channel_id = create_test_channel(&keys).await;
+    let second_channel_id = create_test_channel(&keys).await;
 
     let mut client = LenOSTestClient::connect(&url, &keys)
         .await
@@ -1430,6 +1431,15 @@ async fn test_nip29_standard_client_flow() {
         our_group.is_some(),
         "should find kind:39000 for our channel among {} events",
         discovery_events.len()
+    );
+    assert!(
+        discovery_events.iter().any(|event| {
+            event.tags.iter().any(|tag| {
+                let parts = tag.as_slice();
+                parts.len() >= 2 && parts[0] == "d" && parts[1] == second_channel_id
+            })
+        }),
+        "discovery query must retain both concurrently-created open channels"
     );
 
     let group_meta = our_group.unwrap();
