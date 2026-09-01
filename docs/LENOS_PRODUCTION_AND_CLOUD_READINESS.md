@@ -1581,7 +1581,7 @@ adoption and recovery evidence justify it.
 - **Boundary:** The updater state machine is covered through the native E2E
   bridge; applying an update from a signed packaged binary remains open.
 
-### 2026-09-01 — Infrastructure configuration gate verification
+### 2026-09-01 — Infrastructure configuration gate verification (historical pre-apply)
 
 - **Evidence:** `terraform fmt -check`, `terraform validate`, `helm lint
   --strict`, and a production-shaped `helm template` render pass. A no-write
@@ -1611,7 +1611,7 @@ adoption and recovery evidence justify it.
 - **Status:** Relay infrastructure, live identity smoke, and post-apply
   Terraform reconciliation are **PASSED WITH LIVE EVIDENCE**.
 
-### 2026-09-01 — Identity workflow runtime pinning
+### 2026-09-01 — Identity workflow runtime pinning (historical pre-merge)
 
 - **Change:** Commit `fd10769cd` pins the identity-smoke workflow to the
   authoritative `actions/checkout` v7.0.1 and `actions/setup-python` v7.0.0

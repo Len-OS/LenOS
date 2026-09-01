@@ -2920,7 +2920,7 @@ later found to be inaccurate.
 - **Boundary:** Applying an update from a signed packaged binary remains
   unverified.
 
-### 2026-09-01 — Infrastructure configuration gate verification
+### 2026-09-01 — Infrastructure configuration gate verification (historical pre-apply)
 
 - **Evidence:** Terraform formatting/validation and strict Helm lint plus a
   production-shaped chart render pass. The no-write Terraform plan probe still
@@ -2947,7 +2947,7 @@ later found to be inaccurate.
 - **Status:** Relay rollout and live identity smoke passed; packaged desktop
   signing and installed-client validation remain separate open gates.
 
-### 2026-09-01 — Identity workflow runtime pinning
+### 2026-09-01 — Identity workflow runtime pinning (historical pre-merge)
 
 - **Change:** Commit `fd10769cd` pins checkout and setup-python in the
   identity-smoke workflow to their current Node.js 24-compatible releases.
