@@ -2893,3 +2893,13 @@ later found to be inaccurate.
   installed-client login, workspace selection, update application, and
   recovery behavior are not yet verified. Windows distribution signing is
   still blocked by unavailable signing credentials.
+
+### 2026-09-01 — Desktop virtualized composer clearance regression
+
+- **Evidence:** The representative desktop smoke slice passed 4/4 after the
+  E2E build, including mocked message send; the composer-expansion
+  scroll-history regression passed 1/1; TypeScript validation passed.
+- **Fix:** Commit `1084e9032` reserves real trailing space in the virtualized
+  timeline using the measured composer overlay height.
+- **Boundary:** Installed-client login, workspace selection, update, recovery,
+  and platform signing remain separately unverified.

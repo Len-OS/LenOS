@@ -1551,3 +1551,16 @@ adoption and recovery evidence justify it.
   installed-client login, workspace-selection, update, or recovery run. The
   published Windows installer remains explicitly unsigned pending signing
   credentials.
+
+### 2026-09-01 — Desktop virtualized composer clearance regression
+
+- **Evidence:** After the E2E build, the representative desktop smoke slice
+  passed 4/4, including mocked message send. The dedicated composer-expansion
+  scroll-history regression passed 1/1, and desktop TypeScript validation
+  passed.
+- **Fix:** Commit `1084e9032` makes the virtualized timeline's trailing spacer
+  track the measured composer overlay height, preserving bottom-row visibility
+  when the composer expands.
+- **Boundary:** This is browser-level E2E evidence; it does not replace
+  installed-client login, workspace selection, update, recovery, or signing
+  validation.
