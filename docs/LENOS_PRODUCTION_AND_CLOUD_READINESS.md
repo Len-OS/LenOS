@@ -1564,3 +1564,11 @@ adoption and recovery evidence justify it.
 - **Boundary:** This is browser-level E2E evidence; it does not replace
   installed-client login, workspace selection, update, recovery, or signing
   validation.
+
+### 2026-09-01 — Desktop recovery-flow E2E evidence
+
+- **Evidence:** The targeted Playwright recovery suite completed 31/31 with
+  no failed tests, covering identity-loss boot, key import/relaunch, backup
+  creation and verification, sign-out safeguards, and environment selection.
+- **Boundary:** These tests use the E2E native bridge. Real packaged-binary
+  login, update application, rollback, and platform signing remain open.

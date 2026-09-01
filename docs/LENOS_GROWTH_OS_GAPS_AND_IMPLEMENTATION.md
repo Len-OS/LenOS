@@ -2903,3 +2903,11 @@ later found to be inaccurate.
   timeline using the measured composer overlay height.
 - **Boundary:** Installed-client login, workspace selection, update, recovery,
   and platform signing remain separately unverified.
+
+### 2026-09-01 — Desktop recovery-flow E2E evidence
+
+- **Evidence:** The targeted Playwright recovery suite passed 31/31 with no
+  failures across identity-loss boot, key import/relaunch, backup creation and
+  verification, sign-out safeguards, and environment selection.
+- **Boundary:** This is E2E native-bridge evidence; packaged-binary login,
+  update, rollback, recovery, and platform signing remain open.
