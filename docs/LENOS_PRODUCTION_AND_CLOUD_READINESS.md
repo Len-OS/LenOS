@@ -1521,3 +1521,19 @@ adoption and recovery evidence justify it.
 - **Current status:** Production relay/adapter smoke and hosted identity smoke
   have live evidence. Desktop signing, SNS recipient ownership, and direct
   desktop login/update/recovery verification remain open.
+
+### 2026-09-01 — Post-merge main CI terminal evidence
+
+- **GitHub:** Main CI run `33503560752` completed successfully for commit
+  `ffeb8963e5e2a8494109802575ccef2e9c425980`. Rust lint, unit tests, security,
+  both server cross-compiles, Desktop Core, macOS Desktop Build, Desktop
+  aggregation, and Windows Rust all passed; intentionally disabled mobile/web
+  and desktop live-E2E jobs remained skipped.
+- **Live checks:** The rolling updater manifest reports version `0.5.7` for all
+  four published platforms. Relay, both tenant hosts, LenGrowth, and the
+  Growth API returned HTTP 200. GitHub currently reports zero open secret-
+  scanning and Dependabot alerts.
+- **Remaining open:** Windows/macOS distribution signing, SNS on-call
+  recipient ownership, direct desktop login/update/recovery verification, and
+  the remaining full live Growth authorization/integration evidence are still
+  not claimed passed.

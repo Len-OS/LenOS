@@ -2868,3 +2868,18 @@ later found to be inaccurate.
 - **Status:** Identity and relay adapter reachability are **PASSED WITH LIVE
   EVIDENCE**. This does not claim full desktop-flow, provider-integration, or
   production authorization coverage.
+
+### 2026-09-01 — Main CI and live-service verification
+
+- **Evidence:** Main CI run `33503560752` completed successfully at commit
+  `ffeb8963e5e2a8494109802575ccef2e9c425980`, including Windows Rust/Tauri,
+  Desktop Core, both server cross-compiles, security, unit tests, and Rust
+  lint. The rolling desktop updater manifest is version `0.5.7` across the
+  four published platform targets; all five configured production health
+  endpoints returned HTTP 200.
+- **Security evidence:** GitHub reports zero open secret-scanning alerts and
+  zero open Dependabot alerts.
+- **Status:** CI and the repaired relay/adapter smoke paths are **PASSED WITH
+  LIVE EVIDENCE**. Full desktop install/update/recovery, provider callbacks,
+  broader Growth authorization coverage, distribution signing, and alert
+  recipient ownership remain open.
