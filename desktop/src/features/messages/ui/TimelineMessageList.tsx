@@ -684,7 +684,12 @@ function VirtualizedTimelineRows({
               return (
                 <div
                   aria-hidden
-                  className="h-0"
+                  // The virtualizer owns the actual scroll element, so the
+                  // parent's padding/overlay CSS variable cannot reserve
+                  // space by itself. Keep this real trailing row in sync with
+                  // the measured composer height; its estimate above uses the
+                  // same 6rem fallback before the first measurement arrives.
+                  className="h-[var(--composer-overlay-height,6rem)]"
                   key={virtualizedItemKey(item)}
                 />
               );
