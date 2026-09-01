@@ -1437,6 +1437,50 @@ private incident details in this document.
   migration, hardened RDS/Redis cutover, backup/restore, signed desktop
   release, and LenGrowth frontend lint/full-test remediation remain open.
 
+### 2026-09-01 — Production cutover and release evidence update
+
+- **AWS hardening:** Applied the Terraform hardening successfully. RDS is
+  encrypted, Multi-AZ, private, and configured with seven-day backups. Redis
+  is a TLS/at-rest-encrypted replication group with automatic failover. ECS
+  runs two private-subnet relay tasks from the immutable GHCR image digest;
+  the service rollout is complete.
+- **Migration:** The corrected private Fargate migration task completed with
+  exit code 0 and logged `Database migrations complete.`
+- **Terraform state:** Migrated local state to the versioned,
+  public-access-blocked S3 backend at `lenos-terraform-state-288947333598`,
+  key `lenos/terraform.tfstate`, using S3 lockfiles. The post-migration plan
+  is zero-change. The backend currently uses AES256 rather than a
+  customer-managed KMS key.
+- **Live endpoints:** API, relay health, LenGrowth web, and both E2E domains
+  returned HTTP 200 after the cutover.
+- **Desktop:** PR #14 merged, and immutable tag `desktop-v0.5.7` was pushed;
+  its release workflow is queued for artifact assembly and rolling updater
+  manifest publication.
+- **Still open:** the v0.5.7 release workflow and updater assets, backup/
+  restore exercise, confirmed SNS on-call subscription, and any platform
+  decision to replace AES256 with a customer-managed KMS key.
+
+### 2026-09-01 — Relay schema/bootstrap and hosted E2E repair
+
+- **AWS repair:** Re-ran the controlled ECS migration task (`lenos-migration:3`)
+  successfully, then rolled the relay service. Fresh tasks on revision 12
+  connected to PostgreSQL, ensured the deployment community for
+  `relay.lengrowth.com`, and reached the listener without schema errors.
+- **Live E2E evidence:** Hosted run `33494542124` authenticated through GitHub
+  OIDC and retrieved the durable test secret. After the relay repair, reminder
+  authorization passed **29/29**, human/agent edits **19/19**, and the relay
+  suite passed **40/43**; the three failures were direct localhost PostgreSQL
+  setup in invite tests, not relay behavior.
+- **Implementation:** Removed that hidden database dependency from
+  `crates/lenos-test-client/tests/e2e_relay.rs`. The four invite checks were
+  then verified live against the production relay at **4/4**. ECS revision 13
+  now bootstraps the durable E2E owner from its public key while retaining the
+  private key only in existing secret storage.
+- **Status:** The live relay and focused invite behavior are repaired. A full
+  green hosted run from the committed harness change remains pending because
+  the branch is intentionally not force-pushed over its diverged remote.
+  Windows artifact signing and SNS recipient ownership remain open.
+
 ## 11. Beyond private beta
 
 General production readiness should add stronger availability targets, larger capacity
@@ -1444,3 +1488,145 @@ tests, formal penetration testing, SSO/SCIM, contractual data-processing require
 data residency decisions, longer operational soak, customer-facing status history,
 formal business continuity exercises, and removal of the legacy fallback only after
 adoption and recovery evidence justify it.
+
+### 2026-09-01 — Post-merge production smoke and workspace-record repair
+
+- **GitHub:** PR #15 merged to `main` at `87b81a3b`. Protected main E2E run
+  `33498484168` passed OIDC, durable-secret retrieval, and the production relay
+  suite. The Windows Rust/Tauri job passed.
+- **LenGrowth/relay repair:** The documented `lenos-e2e32` workspace record was
+  retained but pointed at a retired relay community and channel. An idempotent
+  Scalingo one-off migration updated only that workspace's relay community,
+  `hq_channel_id`, and `growth_channel_id`; the Scalingo `nostradapter` process
+  was restarted. The public workspace bootstrap now returns the live community
+  and relay URL.
+- **Docker evidence:** Docker workflow `33498474597` passed after the repair:
+  Linux amd64/arm64 image builds, immutable manifest merge, and the production
+  relay-to-adapter-to-agent smoke test all passed. The smoke tenant and channel
+  are now provisioned and represented in the deployed LenGrowth record.
+- **Current open items:** Main CI was still running at record time. Windows and
+  macOS desktop distribution signing, SNS alert-recipient ownership, and the
+  remaining live desktop/browser/authorization evidence are not claimed passed.
+
+### 2026-09-01 — Live identity/isolation and CI recovery evidence
+
+- **Hosted identity evidence:** `Daily E2E identity check` run `33500906867`
+  passed for both `e2e-32` and `e2e-33`. Each job connected through the live
+  tenant WebSocket, completed NIP-42 authentication, published the scoped
+  command, and received an adapter reply.
+- **CI recovery:** Main CI run `33498474534` was cancelled only after its
+  substantive Windows Tauri test had passed and its cache post-step remained
+  wedged for more than four hours. The active cleanup state is not treated as
+  a test failure; the same commit was rerun for a terminal result.
+- **Current status:** Production relay/adapter smoke and hosted identity smoke
+  have live evidence. Desktop signing, SNS recipient ownership, and direct
+  desktop login/update/recovery verification remain open.
+
+### 2026-09-01 — Post-merge main CI terminal evidence
+
+- **GitHub:** Main CI run `33503560752` completed successfully for commit
+  `ffeb8963e5e2a8494109802575ccef2e9c425980`. Rust lint, unit tests, security,
+  both server cross-compiles, Desktop Core, macOS Desktop Build, Desktop
+  aggregation, and Windows Rust all passed; intentionally disabled mobile/web
+  and desktop live-E2E jobs remained skipped.
+- **Live checks:** The rolling updater manifest reports version `0.5.7` for all
+  four published platforms. Relay, both tenant hosts, LenGrowth, and the
+  Growth API returned HTTP 200. GitHub currently reports zero open secret-
+  scanning and Dependabot alerts.
+- **Remaining open:** Windows/macOS distribution signing, SNS on-call
+  recipient ownership, direct desktop login/update/recovery verification, and
+  the remaining full live Growth authorization/integration evidence are still
+  not claimed passed.
+
+### 2026-09-01 — Published desktop artifact reachability
+
+- **Release:** Immutable release `desktop-v0.5.7` is published (not draft or
+  prerelease) with uploaded Linux, macOS, and Windows packages plus updater
+  signatures where configured.
+- **Updater:** The rolling `latest.json` reports version `0.5.7`; the four
+  platform URLs (`darwin-aarch64`, `darwin-x86_64`, `linux-x86_64`, and
+  `windows-x86_64`) all returned HTTP 200 and resolved to the published
+  release assets.
+- **Limitation:** This proves publication and download reachability, not an
+  installed-client login, workspace-selection, update, or recovery run. The
+  published Windows installer remains explicitly unsigned pending signing
+  credentials.
+
+### 2026-09-01 — Desktop virtualized composer clearance regression
+
+- **Evidence:** After the E2E build, the representative desktop smoke slice
+  passed 4/4, including mocked message send. The dedicated composer-expansion
+  scroll-history regression passed 1/1, and desktop TypeScript validation
+  passed.
+- **Fix:** Commit `1084e9032` makes the virtualized timeline's trailing spacer
+  track the measured composer overlay height, preserving bottom-row visibility
+  when the composer expands.
+- **Boundary:** This is browser-level E2E evidence; it does not replace
+  installed-client login, workspace selection, update, recovery, or signing
+  validation.
+
+### 2026-09-01 — Desktop recovery-flow E2E evidence
+
+- **Evidence:** The targeted Playwright recovery suite completed 31/31 with
+  no failed tests, covering identity-loss boot, key import/relaunch, backup
+  creation and verification, sign-out safeguards, and environment selection.
+- **Boundary:** These tests use the E2E native bridge. Real packaged-binary
+  login, update application, rollback, and platform signing remain open.
+
+### 2026-09-01 — Desktop updater E2E evidence
+
+- **Evidence:** Three updater tests passed 3/3: ready-state install/relaunch,
+  header-to-sidebar install-state synchronization, and the non-AppImage guard
+  that requires manual download without invoking in-app download/install.
+- **Boundary:** The updater state machine is covered through the native E2E
+  bridge; applying an update from a signed packaged binary remains open.
+
+### 2026-09-01 — Infrastructure configuration gate verification (historical pre-apply)
+
+- **Evidence:** `terraform fmt -check`, `terraform validate`, `helm lint
+  --strict`, and a production-shaped `helm template` render pass. A no-write
+  Terraform plan probe is blocked only by absent protected inputs:
+  `relay_private_key_secret_arn`, `relay_image`, and
+  `alarm_sns_topic_arn`.
+- **Safety:** No Terraform apply or infrastructure mutation was performed;
+  no secret values or state contents were emitted.
+
+### 2026-09-01 — Relay Terraform reconciliation and rollout
+
+- **Apply:** Terraform apply succeeded with exactly 1 task-definition add, 1
+  ECS service change, and 1 prior task-definition destroy. No database, Redis,
+  networking, storage, or alarm resources changed.
+- **Verification:** ECS revision 14 started two healthy relay tasks; the old
+  revision drained normally. Relay, both tenant hosts, LenGrowth, and the
+  Growth API all returned HTTP 200. A refreshed Terraform plan reports no
+  changes.
+- **Safety:** Secret values and Terraform state contents were not emitted.
+
+### 2026-09-01 — Post-reconciliation live identity smoke
+
+- **Evidence:** GitHub workflow run `33507477030` passed both durable identity
+  jobs (`e2e-32` and `e2e-33`) after the relay rollout. The smoke path covered
+  live relay authentication and adapter messaging through the configured E2E
+  workspace.
+- **Status:** Relay infrastructure, live identity smoke, and post-apply
+  Terraform reconciliation are **PASSED WITH LIVE EVIDENCE**.
+
+### 2026-09-01 — Identity workflow runtime pinning (historical pre-merge)
+
+- **Change:** Commit `fd10769cd` pins the identity-smoke workflow to the
+  authoritative `actions/checkout` v7.0.1 and `actions/setup-python` v7.0.0
+  commits, removing its Node.js 20 deprecation path.
+- **Verification:** YAML parsing and `git diff --check` pass locally. The
+  change is not yet on `main`; the current main-branch workflow remains the
+  live evidence until a reviewed PR is merged.
+
+### 2026-09-01 — Identity workflow runtime pinning merged
+
+- **Evidence:** PR #17 merged successfully as `3a0710d27605962a45d9a9bf4e205acd7fb4ad7a`.
+  Its required Desktop Core, macOS Desktop Build, aggregate Desktop,
+  release-contract, and dead-token checks all passed.
+- **Post-merge verification:** Workflow run `33509701432`, dispatched from
+  `main`, passed both durable identity jobs (`e2e-32` and `e2e-33`).
+- **Boundary:** Windows/macOS distribution signing and installed packaged-
+  binary update application remain open because signing credentials/tools are
+  unavailable.
