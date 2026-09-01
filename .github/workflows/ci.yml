@@ -990,7 +990,10 @@ jobs:
             touch "desktop/src-tauri/binaries/${bin}-${TARGET}.exe"
           done
       - name: Clippy (workspace)
-        run: cargo clippy --workspace --all-targets --target $env:TARGET -- -D warnings
+        # The Linux Rust Lint job covers the full workspace. On Windows this
+        # check is specifically for the MSVC/Windows-only shell resolver; the
+        # Tauri crate is tested separately below.
+        run: cargo clippy -p lenos-dev-mcp --all-targets --target $env:TARGET -- -D warnings
       - name: Test (lenos-dev-mcp)
         # The Windows-only bash resolver lives in lenos-dev-mcp; its unit tests
         # only gate if this crate is tested ON Windows.
