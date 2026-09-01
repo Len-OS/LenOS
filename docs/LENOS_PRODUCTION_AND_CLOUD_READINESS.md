@@ -1572,3 +1572,11 @@ adoption and recovery evidence justify it.
   creation and verification, sign-out safeguards, and environment selection.
 - **Boundary:** These tests use the E2E native bridge. Real packaged-binary
   login, update application, rollback, and platform signing remain open.
+
+### 2026-09-01 — Desktop updater E2E evidence
+
+- **Evidence:** Three updater tests passed 3/3: ready-state install/relaunch,
+  header-to-sidebar install-state synchronization, and the non-AppImage guard
+  that requires manual download without invoking in-app download/install.
+- **Boundary:** The updater state machine is covered through the native E2E
+  bridge; applying an update from a signed packaged binary remains open.

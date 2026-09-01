@@ -2911,3 +2911,11 @@ later found to be inaccurate.
   verification, sign-out safeguards, and environment selection.
 - **Boundary:** This is E2E native-bridge evidence; packaged-binary login,
   update, rollback, recovery, and platform signing remain open.
+
+### 2026-09-01 — Desktop updater E2E evidence
+
+- **Evidence:** Three updater tests passed 3/3 for ready-state install/relaunch,
+  cross-surface install-state synchronization, and the non-AppImage manual-
+  download guard with no in-app install calls.
+- **Boundary:** Applying an update from a signed packaged binary remains
+  unverified.
