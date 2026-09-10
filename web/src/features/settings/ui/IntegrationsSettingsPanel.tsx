@@ -2,8 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 import { relayHttpUrl, relayWsUrl } from "@/shared/lib/relay-url";
 import { makeNip98AuthHeader } from "@/shared/lib/nip98";
-
-const LENGROWTH_API = "https://growth-api.lenquant.com";
+import {
+  disconnectGrowthWorkspaceIntegration,
+  getGrowthWorkspaceIntegrations,
+  growthWorkspaceIntegrationConnectUrl,
+  growthCompanyStorageKey,
+  type GrowthWorkspaceIntegration,
+} from "@/features/growth/api/growth-api";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 
 const PLATFORMS = [
   { id: "github", label: "GitHub" },
@@ -20,6 +27,45 @@ interface OutgoingWebhook {
   event_filter: Record<string, unknown>;
   secret: string;
   created_at: string;
+}
+
+function syncHealth(integration: GrowthWorkspaceIntegration) {
+  const tokenExpiry = integration.token_expiry
+    ? Date.parse(integration.token_expiry)
+    : NaN;
+  if (Number.isFinite(tokenExpiry) && tokenExpiry <= Date.now()) {
+    return {
+      label: "Token expired",
+      className: "text-red-700 dark:text-red-300",
+    };
+  }
+  if (
+    integration.last_error ||
+    ["failed", "error"].includes(integration.sync_status ?? "")
+  ) {
+    return {
+      label: "Sync needs attention",
+      className: "text-red-700 dark:text-red-300",
+    };
+  }
+  if (!integration.last_sync_at) {
+    return {
+      label: "Awaiting first sync",
+      className: "text-amber-700 dark:text-amber-300",
+    };
+  }
+  const lastSync = Date.parse(integration.last_sync_at);
+  const stale =
+    !Number.isFinite(lastSync) || Date.now() - lastSync > 48 * 60 * 60 * 1000;
+  return stale
+    ? {
+        label: "Sync is stale",
+        className: "text-amber-700 dark:text-amber-300",
+      }
+    : {
+        label: "Sync healthy",
+        className: "text-emerald-700 dark:text-emerald-300",
+      };
 }
 
 function webhookBase() {
@@ -122,8 +168,8 @@ function WebhooksSection() {
                   <p className="truncate text-sm text-black dark:text-white">
                     {wh.url}
                   </p>
-                  <p className="mt-0.5 font-mono text-xs text-black/40 dark:text-white/40">
-                    secret: {wh.secret.slice(0, 8)}…
+                  <p className="mt-0.5 text-xs text-black/40 dark:text-white/40">
+                    Signing secret configured (value hidden)
                   </p>
                 </div>
                 <button
@@ -173,57 +219,129 @@ function WebhooksSection() {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function IntegrationsSettingsPanel() {
-  const [integrations, setIntegrations] = useState<Record<string, boolean>>({});
+  const [integrations, setIntegrations] = useState<
+    Record<string, GrowthWorkspaceIntegration>
+  >({});
   const [loading, setLoading] = useState(false);
   const [companyId, setCompanyId] = useState("");
+  const [integrationError, setIntegrationError] = useState<string | null>(null);
+  const [oauthNotice, setOauthNotice] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
+  const workspace = useWorkspace();
+  const communityId = useCommunityId();
+  const [actorPubkey, setActorPubkey] = useState<string | null>(null);
+  const workspaceSlug =
+    workspace.status === "found" ? workspace.workspace.slug : "";
 
-  const fetchStatus = useCallback(async (cid: string) => {
-    const token = localStorage.getItem("lenos_managed_signer_token");
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${LENGROWTH_API}/api/workspace/integrations/status?company_id=${cid}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (res.ok) {
-        const data: { platform: string; connected: boolean }[] =
-          await res.json();
-        const map: Record<string, boolean> = {};
-        for (const item of data) {
-          map[item.platform] = item.connected;
-        }
-        setIntegrations(map);
-      }
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get("connected");
+    const error = params.get("error");
+    if (connected) {
+      setOauthNotice({
+        kind: "success",
+        message: `${connected} connected successfully. Refreshing its status…`,
+      });
+    } else if (error?.endsWith("_oauth_failed")) {
+      const platform = error.slice(0, -"_oauth_failed".length);
+      setOauthNotice({
+        kind: "error",
+        message: `${platform || "Integration"} connection was not completed. Try again or check the provider account.`,
+      });
+    }
+    if (connected || error) {
+      const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+      window.history.replaceState({}, "", cleanUrl);
     }
   }, []);
 
+  const fetchStatus = useCallback(
+    async (cid: string) => {
+      setLoading(true);
+      setIntegrationError(null);
+      try {
+        if (!workspaceSlug || !communityId || !actorPubkey) return;
+        const data = await getGrowthWorkspaceIntegrations(cid, {
+          envelope: {
+            correlationId: `growth-integrations:${workspaceSlug}`,
+            idempotencyKey: `growth-integrations-read:${workspaceSlug}`,
+            workspaceSlug,
+            relayCommunityId: communityId,
+            actorPubkey,
+            companyId: cid,
+          },
+        });
+        const map: Record<string, GrowthWorkspaceIntegration> = {};
+        for (const item of data) map[item.platform] = item;
+        setIntegrations(map);
+      } catch (cause) {
+        setIntegrationError(
+          cause instanceof Error
+            ? cause.message
+            : "Integration status unavailable.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [actorPubkey, communityId, workspaceSlug],
+  );
+
   useEffect(() => {
-    const cid = localStorage.getItem("lengrowth-company-id") ?? "";
+    getCurrentPubkey()
+      .then(setActorPubkey)
+      .catch(() => {});
+    const cid = workspaceSlug
+      ? (localStorage.getItem(growthCompanyStorageKey(workspaceSlug)) ?? "")
+      : "";
     setCompanyId(cid);
     if (cid) {
       fetchStatus(cid);
     }
-  }, [fetchStatus]);
+  }, [fetchStatus, workspaceSlug]);
 
   const handleConnect = (platform: string) => {
+    const correlationId = `growth-integration-connect:${platform}`;
+    const idempotencyKey = `growth-integration-connect:${companyId}:${platform}:${Date.now()}`;
+    if (!workspaceSlug || !communityId || !actorPubkey) return;
     window.open(
-      `${LENGROWTH_API}/api/workspace/integrations/${platform}/connect?company_id=${companyId}`,
+      growthWorkspaceIntegrationConnectUrl(companyId, platform, {
+        envelope: {
+          correlationId,
+          idempotencyKey,
+          workspaceSlug,
+          relayCommunityId: communityId,
+          actorPubkey,
+          companyId,
+        },
+      }),
       "_blank",
     );
   };
 
   const handleDisconnect = async (platform: string) => {
-    const token = localStorage.getItem("lenos_managed_signer_token");
-    await fetch(
-      `${LENGROWTH_API}/api/workspace/integrations/${platform}?company_id=${companyId}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
-    fetchStatus(companyId);
+    if (!workspaceSlug || !communityId || !actorPubkey) return;
+    try {
+      setIntegrationError(null);
+      await disconnectGrowthWorkspaceIntegration(companyId, platform, {
+        envelope: {
+          correlationId: `growth-integration-disconnect:${platform}`,
+          idempotencyKey: `growth-integration-disconnect:${companyId}:${platform}`,
+          workspaceSlug,
+          relayCommunityId: communityId,
+          actorPubkey,
+          companyId,
+        },
+      });
+      setOauthNotice(null);
+      await fetchStatus(companyId);
+    } catch (cause) {
+      setIntegrationError(
+        cause instanceof Error ? cause.message : "Disconnect failed.",
+      );
+    }
   };
 
   return (
@@ -242,34 +360,137 @@ export function IntegrationsSettingsPanel() {
       ) : loading ? (
         <p className="text-sm text-black/40 dark:text-white/40">Loading…</p>
       ) : (
-        <div className="space-y-2">
-          {PLATFORMS.map((p) => {
-            const connected = integrations[p.id] ?? false;
-            return (
-              <div
-                key={p.id}
-                className="flex items-center justify-between rounded-lg border border-black/15 px-4 py-3 dark:border-white/15"
+        <>
+          {oauthNotice && (
+            <div
+              role="status"
+              className={`mb-3 rounded-md border p-3 text-xs ${
+                oauthNotice.kind === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  : "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/20 dark:text-red-200"
+              }`}
+            >
+              {oauthNotice.message}
+            </div>
+          )}
+          {integrationError && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+              <span>{integrationError}</span>
+              <button
+                type="button"
+                onClick={() => void fetchStatus(companyId)}
+                className="rounded border border-current px-2 py-1 font-medium"
               >
-                <span className="text-sm font-medium text-black dark:text-white">
-                  {p.label}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    connected ? handleDisconnect(p.id) : handleConnect(p.id)
-                  }
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                    connected
-                      ? "bg-black/[0.08] text-black hover:bg-black/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-                      : "bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80"
-                  }`}
+                Retry status
+              </button>
+            </div>
+          )}
+          <div className="space-y-2">
+            {PLATFORMS.map((p) => {
+              const integration = integrations[p.id];
+              const connected = integration?.connected ?? false;
+              const health = integration ? syncHealth(integration) : null;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-lg border border-black/15 px-4 py-3 dark:border-white/15"
                 >
-                  {connected ? "Disconnect" : "Connect"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                  <span className="text-sm font-medium text-black dark:text-white">
+                    {p.label}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    {integration?.connected_at && (
+                      <span className="text-xs text-black/45 dark:text-white/45">
+                        Connected{" "}
+                        {new Date(
+                          integration.connected_at,
+                        ).toLocaleDateString()}
+                      </span>
+                    )}
+                    {integration && (
+                      <span className="text-xs capitalize text-black/45 dark:text-white/45">
+                        {integration.sync_status?.replace(/_/g, " ") ??
+                          "status unavailable"}
+                      </span>
+                    )}
+                    {integration?.last_sync_at && (
+                      <span className="text-xs text-black/45 dark:text-white/45">
+                        Synced{" "}
+                        {new Date(
+                          integration.last_sync_at,
+                        ).toLocaleDateString()}
+                      </span>
+                    )}
+                    {integration?.token_expiry &&
+                      Number.isFinite(Date.parse(integration.token_expiry)) && (
+                        <span className="hidden text-xs text-black/45 dark:text-white/45 lg:inline">
+                          Token{" "}
+                          {new Date(
+                            integration.token_expiry,
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+                    {health && (
+                      <span
+                        className={`text-xs font-medium ${health.className}`}
+                      >
+                        {health.label}
+                      </span>
+                    )}
+                    {integration?.supported_metrics?.length ? (
+                      <span
+                        className="hidden text-xs text-black/45 dark:text-white/45 sm:inline"
+                        title="Metrics available from this integration"
+                      >
+                        {integration.supported_metrics.join(", ")}
+                      </span>
+                    ) : null}
+                    {integration?.scopes?.length ? (
+                      <span
+                        className="hidden text-xs text-black/45 dark:text-white/45 md:inline"
+                        title="Granted provider scopes"
+                      >
+                        {integration.scopes.length} scopes
+                      </span>
+                    ) : null}
+                    {integration?.scope_status === "reduced" && (
+                      <span className="text-xs font-medium text-red-700 dark:text-red-300">
+                        Access reduced
+                      </span>
+                    )}
+                    {connected && health && health.label !== "Sync healthy" && (
+                      <button
+                        type="button"
+                        onClick={() => handleConnect(p.id)}
+                        className="rounded-md border border-amber-700/40 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-50 dark:border-amber-300/40 dark:text-amber-200 dark:hover:bg-amber-950/30"
+                      >
+                        Reconnect
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        connected ? handleDisconnect(p.id) : handleConnect(p.id)
+                      }
+                      className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                        connected
+                          ? "bg-black/[0.08] text-black hover:bg-black/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                          : "bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80"
+                      }`}
+                    >
+                      {connected ? "Disconnect" : "Connect"}
+                    </button>
+                  </div>
+                  {integration?.last_error && (
+                    <p className="mt-1 text-right text-xs text-red-700 dark:text-red-300">
+                      {integration.last_error}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <WebhooksSection />

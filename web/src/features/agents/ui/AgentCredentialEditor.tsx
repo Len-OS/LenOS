@@ -28,8 +28,9 @@ export function AgentCredentialEditor({ agentDTag, currentProvider }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const config: ProviderCredentialConfig | null =
-    currentProvider ? (PROVIDER_CREDENTIAL_CONFIG[currentProvider] ?? null) : null;
+  const config: ProviderCredentialConfig | null = currentProvider
+    ? (PROVIDER_CREDENTIAL_CONFIG[currentProvider] ?? null)
+    : null;
 
   const hasEncryptionKey = getEncryptionKey() !== null;
 
@@ -47,10 +48,12 @@ export function AgentCredentialEditor({ agentDTag, currentProvider }: Props) {
         setSavedKeys(keys);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load credentials");
+        setError(
+          err instanceof Error ? err.message : "Failed to load credentials",
+        );
       })
       .finally(() => setLoading(false));
-  }, [agentDTag, currentProvider]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [agentDTag, currentProvider, config, hasEncryptionKey]);
 
   if (!currentProvider || !config) {
     return (
@@ -83,7 +86,7 @@ export function AgentCredentialEditor({ agentDTag, currentProvider }: Props) {
       envVars[key] = formValues[key].trim();
     }
     // Include LENOS_AGENT_PROVIDER so the agent knows which provider to use
-    envVars["LENOS_AGENT_PROVIDER"] = currentProvider;
+    envVars.LENOS_AGENT_PROVIDER = currentProvider;
 
     setSaving(true);
     setError(null);

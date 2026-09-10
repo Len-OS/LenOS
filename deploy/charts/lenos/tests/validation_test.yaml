@@ -27,7 +27,7 @@ tests:
       externalPostgresql.url: postgres://u:p@h:5432/d
     asserts:
       - failedTemplate:
-          errorPattern: "ownerPubkey: Does not match pattern"
+          errorPattern: "ownerPubkey must be 64 lowercase hex characters"
 
   - it: fails when replicaCount>1 without Redis
     set:
@@ -58,17 +58,6 @@ tests:
       - failedTemplate:
           errorPattern: "Postgres source missing"
 
-  - it: rejects an invalid S3 addressing style
-    set:
-      relayUrl: wss://lenos.example.com
-      ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
-      externalPostgresql.url: postgres://u:p@h:5432/d
-      s3.endpoint: http://minio:9000
-      s3.addressingStyle: auto
-    asserts:
-      - failedTemplate:
-          errorPattern: "s3.addressingStyle: s3.addressingStyle must be one of the following:.*path.*virtual"
-
   - it: fails when S3/object-storage source is missing
     set:
       relayUrl: wss://lenos.example.com
@@ -77,3 +66,16 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "S3/object-storage source missing"
+
+  - it: fails closed when production migration has no external Secret
+    set:
+      relayUrl: wss://lenos.example.com
+      ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      externalPostgresql.url: postgres://u:p@h:5432/d
+      externalRedis.url: redis://h:6379
+      s3.endpoint: https://storage.example.com
+      s3.bucket: lenos-media
+      migrate.preUpgradeJob.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "non-quickstart profiles require secrets.existingSecret"

@@ -1,37 +1,72 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
-
-const LENGROWTH_API = "https://growth-api.lenquant.com";
-const getToken = () => localStorage.getItem("lenos_managed_signer_token");
-
-interface Cron {
-  cron_id: string;
-  prompt: string;
-  schedule: string;
-  timezone: string;
-  enabled: boolean;
-  last_run_at: string | null;
-  next_run_at: string | null;
-  run_count: number;
-}
+import {
+  deleteGrowthAutomation,
+  getGrowthAutomations,
+  type GrowthRequestOptions,
+} from "@/features/growth/api/growth-api";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 
 export function AutomationsSettingsPanel() {
-  const [crons, setCrons] = useState<Cron[]>([]);
+  const [crons, setCrons] = useState<
+    Awaited<ReturnType<typeof getGrowthAutomations>>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [companyId, setCompanyId] = useState("");
+  const [actorPubkey, setActorPubkey] = useState("");
+  const workspace = useWorkspace();
+  const communityId = useCommunityId();
+  const workspaceSlug =
+    workspace.status === "found" ? workspace.workspace.slug : "";
 
-  const fetchCrons = useCallback(async (cid: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${LENGROWTH_API}/api/agent/crons?company_id=${cid}`,
-        { headers: { Authorization: `Bearer ${getToken()}` } },
-      );
-      if (res.ok) setCrons(await res.json());
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    getCurrentPubkey()
+      .then((value) => setActorPubkey(value ?? ""))
+      .catch(() => {});
   }, []);
+
+  const requestOptions = useMemo<GrowthRequestOptions | undefined>(
+    () =>
+      workspaceSlug && communityId && actorPubkey
+        ? {
+            envelope: {
+              correlationId: `growth-automation:${workspaceSlug}`,
+              idempotencyKey: `growth-automation-read:${workspaceSlug}`,
+              workspaceSlug,
+              relayCommunityId: communityId,
+              actorPubkey,
+              companyId,
+            },
+          }
+        : undefined,
+    [actorPubkey, companyId, communityId, workspaceSlug],
+  );
+
+  const fetchCrons = useCallback(
+    async (cid: string) => {
+      setLoading(true);
+      try {
+        setCrons(
+          await getGrowthAutomations(
+            cid,
+            requestOptions
+              ? {
+                  ...requestOptions,
+                  envelope: {
+                    ...requestOptions.envelope,
+                    companyId: cid,
+                  },
+                }
+              : undefined,
+          ),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [requestOptions],
+  );
 
   useEffect(() => {
     const cid = localStorage.getItem("lengrowth-company-id") ?? "";
@@ -40,9 +75,20 @@ export function AutomationsSettingsPanel() {
   }, [fetchCrons]);
 
   const handleDelete = async (cronId: string) => {
-    await fetch(
-      `${LENGROWTH_API}/api/agent/crons/${cronId}?company_id=${companyId}`,
-      { method: "DELETE", headers: { Authorization: `Bearer ${getToken()}` } },
+    await deleteGrowthAutomation(
+      companyId,
+      cronId,
+      requestOptions
+        ? {
+            ...requestOptions,
+            envelope: {
+              ...requestOptions.envelope,
+              correlationId: `growth-automation:delete:${cronId}`,
+              idempotencyKey: `growth-automation:delete:${companyId}:${cronId}`,
+              companyId,
+            },
+          }
+        : undefined,
     );
     setCrons((prev) => prev.filter((c) => c.cron_id !== cronId));
   };

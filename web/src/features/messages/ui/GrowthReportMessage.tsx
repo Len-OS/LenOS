@@ -7,6 +7,9 @@ interface GrowthReportPayload {
   highlights: string[];
   opportunities: string[];
   metrics_snapshot: Record<string, unknown>;
+  report_url?: string;
+  completed_work?: string[];
+  approved_learnings?: string[];
 }
 
 function parsePayload(content: string): GrowthReportPayload | null {
@@ -56,13 +59,21 @@ export function GrowthReportMessage({ msg }: Props) {
             {formatDate(payload.generated_at)}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="text-xs text-indigo-500 hover:underline"
-        >
-          {expanded ? "Collapse" : "View full report"}
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href={payload.report_url ?? "?tab=reports"}
+            className="text-xs text-indigo-500 hover:underline"
+          >
+            Open permanent report
+          </a>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs text-indigo-500 hover:underline"
+          >
+            {expanded ? "Collapse" : "Preview details"}
+          </button>
+        </div>
       </div>
 
       {payload.highlights.length > 0 && (

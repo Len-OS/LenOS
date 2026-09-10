@@ -1,0 +1,39 @@
+{{- if .Values.migrate.preUpgradeJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "lenos.fullname" . }}-migrate
+  labels:
+    {{- include "lenos.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrate.preUpgradeJob.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrate.preUpgradeJob.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "lenos.relaySelectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "lenos.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.relay.securityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "lenos.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/usr/local/bin/lenos-admin", "migrate"]
+          securityContext:
+            {{- toYaml .Values.relay.containerSecurityContext | nindent 12 }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lenos.envSecretName" . }}
+                  key: DATABASE_URL
+          resources:
+            {{- toYaml .Values.migrate.preUpgradeJob.resources | nindent 12 }}
+{{- end }}

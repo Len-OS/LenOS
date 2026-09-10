@@ -22,29 +22,48 @@ const VIEWPORTS = [
   { name: "desktop-1280", width: 1280, height: 800 },
 ];
 
-async function setupMocks(page: Parameters<typeof test>[1] extends (args: { page: infer P }) => unknown ? P : never) {
+async function setupMocks(
+  page: Parameters<typeof test>[1] extends (args: { page: infer P }) => unknown
+    ? P
+    : never,
+) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await page.addInitScript(() => { (window as any).__LENOS_WORKSPACE_SLUG__ = "test-workspace"; });
+  await page.addInitScript(() => {
+    (
+      window as unknown as { __LENOS_WORKSPACE_SLUG__: string }
+    ).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
+  });
   await page.route(WORKSPACE_API, (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_WORKSPACE) }),
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_WORKSPACE),
+    }),
   );
   await page.route("wss://relay.test/**", (route) => route.abort());
 }
 
 for (const vp of VIEWPORTS) {
-  test(`no horizontal overflow at ${vp.name} (${vp.width}px)`, async ({ page }) => {
+  test(`no horizontal overflow at ${vp.name} (${vp.width}px)`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await setupMocks(page);
     await page.goto("/channels");
     await page.waitForTimeout(1_500);
 
     const overflowX = await page.evaluate(() => {
-      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      return (
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+      );
     });
     expect(overflowX, `horizontal overflow at ${vp.width}px`).toBe(false);
   });
 
-  test(`renders without JS crash at ${vp.name} (${vp.width}px)`, async ({ page }) => {
+  test(`renders without JS crash at ${vp.name} (${vp.width}px)`, async ({
+    page,
+  }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
@@ -54,7 +73,10 @@ for (const vp of VIEWPORTS) {
     await page.waitForTimeout(1_500);
 
     const fatal = errors.filter(
-      (e) => !e.includes("WebSocket") && !e.includes("AbortError") && !e.includes("Failed to fetch"),
+      (e) =>
+        !e.includes("WebSocket") &&
+        !e.includes("AbortError") &&
+        !e.includes("Failed to fetch"),
     );
     expect(fatal).toHaveLength(0);
   });
@@ -80,7 +102,10 @@ test("mobile: sidebar or menu button visible at 375px", async ({ page }) => {
     .isVisible()
     .catch(() => false);
 
-  expect(hasSidebar || hasOnboarding, "mobile: sidebar or onboarding should be visible").toBe(true);
+  expect(
+    hasSidebar || hasOnboarding,
+    "mobile: sidebar or onboarding should be visible",
+  ).toBe(true);
 });
 
 test("keyboard: Tab key produces visible focus ring", async ({ page }) => {
@@ -106,11 +131,15 @@ test("keyboard: Tab key produces visible focus ring", async ({ page }) => {
   // Not all apps have focus ring on first Tab (e.g., if first element is a skip link).
   // This is a soft check — warn rather than hard-fail if no focused element found.
   if (!focusedOutline) {
-    console.warn("No visible focus ring detected after first Tab — review accessibility.");
+    console.warn(
+      "No visible focus ring detected after first Tab — review accessibility.",
+    );
   }
 });
 
-test("dialog semantics: settings or modal dialog has correct ARIA role", async ({ page }) => {
+test("dialog semantics: settings or modal dialog has correct ARIA role", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await setupMocks(page);
   await page.goto("/channels");

@@ -1,0 +1,96 @@
+name: Publish Helm chart
+
+on:
+  push:
+    tags:
+      - "chart-v[0-9]*"
+
+concurrency:
+  group: helm-chart-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish immutable chart
+    if: github.repository == 'Len-OS/LenOS'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: deploy/charts/lenos
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: v4.2.4
+
+      - name: Verify tag matches Chart.yaml
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          tag_version="${RELEASE_TAG#chart-v}"
+          chart_version="$(awk -F': ' '$1 == "version" { print $2; exit }' Chart.yaml)"
+          test "$tag_version" = "$chart_version" || {
+            echo "::error::tag version $tag_version does not match Chart.yaml $chart_version"
+            exit 1
+          }
+
+      - name: Build dependencies
+        run: helm dependency build .
+
+      - name: Lint chart
+        run: helm lint .
+
+      - name: Run chart unit tests
+        run: |
+          plugin_archive="$RUNNER_TEMP/helm-unittest-v1.1.2.tgz"
+          plugin_dir="$RUNNER_TEMP/helm-unittest-v1.1.2"
+          curl --fail --location --silent --show-error \
+            --proto '=https' --tlsv1.2 \
+            -o "$plugin_archive" \
+            https://github.com/helm-unittest/helm-unittest/releases/download/v1.1.2/helm-unittest-linux-amd64-1.1.2.tgz
+          echo "de03d6b7ba7683282064702d0b36fbbe812ab2a22691fa3a8b2ce57c2682609c  $plugin_archive" | sha256sum --check --status
+          mkdir "$plugin_dir"
+          tar -xzf "$plugin_archive" -C "$plugin_dir" --strip-components=1
+          helm plugin install "$plugin_dir" --verify=false
+          helm unittest --skip-schema-validation .
+
+      - name: Package chart
+        id: package
+        shell: bash
+        run: |
+          chart_package="$(helm package . --destination "$RUNNER_TEMP" | awk '{print $NF}')"
+          test -f "$chart_package"
+          echo "path=$chart_package" >> "$GITHUB_OUTPUT"
+
+      - name: Attest chart package provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: ${{ steps.package.outputs.path }}
+
+      - name: Log in to GHCR
+        shell: bash
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$CR_PAT" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Push chart to GHCR
+        shell: bash
+        run: |
+          chart_package="$(find "$RUNNER_TEMP" -maxdepth 1 -type f -name 'lenos-*.tgz' -print -quit)"
+          test -n "$chart_package"
+          helm push "$chart_package" oci://ghcr.io/len-os/lenos/charts

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Cpu, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { getGrowthHealth } from "@/features/growth/api/growth-api";
+import { getCurrentPubkey } from "@/shared/lib/nostr-signer";
+import { useCommunityId, useWorkspace } from "@/shared/lib/workspace-context";
 
 const LENGROWTH_API = "https://growth-api.lenquant.com";
 
@@ -28,21 +31,41 @@ export function HarnessSettingsPanel() {
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [companyId, setCompanyId] = useState("");
   const [lastChecked, setLastChecked] = useState<string | null>(null);
+  const [actorPubkey, setActorPubkey] = useState<string | null>(null);
+  const workspace = useWorkspace();
+  const communityId = useCommunityId();
+  const workspaceSlug =
+    workspace.status === "found" ? workspace.workspace.slug : "";
 
   useEffect(() => {
     const cid = localStorage.getItem("lengrowth-company-id") ?? "";
     setCompanyId(cid);
   }, []);
 
+  useEffect(() => {
+    getCurrentPubkey()
+      .then(setActorPubkey)
+      .catch(() => setActorPubkey(null));
+  }, []);
+
   const checkConnection = useCallback(async () => {
     setStatus("checking");
     try {
-      const token = localStorage.getItem("lenos_managed_signer_token");
-      const res = await fetch(`${LENGROWTH_API}/api/health`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        signal: AbortSignal.timeout(5000),
-      });
-      setStatus(res.ok ? "connected" : "disconnected");
+      const options =
+        workspaceSlug && communityId && actorPubkey
+          ? {
+              envelope: {
+                correlationId: `growth-health:${workspaceSlug}`,
+                idempotencyKey: `growth-health:${workspaceSlug}`,
+                workspaceSlug,
+                relayCommunityId: communityId,
+                actorPubkey,
+                companyId: companyId || null,
+              },
+            }
+          : undefined;
+      await getGrowthHealth(options);
+      setStatus("connected");
     } catch {
       setStatus("disconnected");
     }
@@ -52,7 +75,7 @@ export function HarnessSettingsPanel() {
         minute: "2-digit",
       }),
     );
-  }, []);
+  }, [actorPubkey, companyId, communityId, workspaceSlug]);
 
   useEffect(() => {
     checkConnection();

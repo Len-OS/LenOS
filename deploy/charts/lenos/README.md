@@ -197,9 +197,20 @@ default so long-lived WebSocket connections have time to drain.
 
 ## Upgrades
 
-Schema migrations are embedded in the relay binary via `sqlx::migrate!` and run at startup, gated by `LENOS_AUTO_MIGRATE` (default `true`). Multiple replicas race-safely behind a Postgres advisory lock. `helm upgrade` is the entire upgrade procedure.
+Schema migrations are embedded in the relay binary via `sqlx::migrate!`. The
+quickstart profile may run them at startup through `LENOS_AUTO_MIGRATE=true`,
+with multiple replicas protected by a Postgres advisory lock. Production
+profiles must use the controlled migration hook below; `helm upgrade` alone is
+not a production migration procedure.
 
-If you prefer decoupling migrations from serving, set `migrate.autoMigrate=false`. **In that mode the chart does not run migrations for you** — you own running `lenos-admin migrate` (separate Pod / one-shot Job) against the database before every `helm install` / `helm upgrade`. Readiness probes only verify DB connectivity, not schema freshness, so a pod will appear healthy against an unmigrated schema and fail under load. A pre-upgrade Helm Job for this is on the chart roadmap; the values knob `migrate.preUpgradeJob.enabled` is reserved.
+For production, enable `migrate.preUpgradeJob.enabled=true`. The chart then runs
+`lenos-admin migrate` as a bounded pre-install/pre-upgrade hook using the
+database Secret and automatically disables relay startup migration. Serving
+pods are not released until the hook succeeds. Readiness probes still verify DB
+connectivity rather than schema freshness, so a failed migration must abort the
+release and be investigated before retrying. All non-quickstart profiles must
+set `secrets.existingSecret` to a pre-created Secret. Set `quickstart=true` only
+for evaluation installs that intentionally use chart-managed generated secrets.
 
 ## Backups
 
@@ -224,9 +235,9 @@ Save these. Losing any of them is data loss. See NOTES.txt printed by `helm inst
   currently stands up real Redis and S3 rather than the relay's single-node
   fallbacks. (Full-text search already runs in Postgres, so no separate search
   service is provisioned.)
-- **Cosign signing of the published chart** is a follow-up (the relay image is
-  attested via `actions/attest-build-provenance`; the chart is not yet). The
-  chart itself is published to GHCR — see [Releasing](#releasing).
+- The packaged chart is attested with `actions/attest-build-provenance` before
+  publication. The chart itself is published to GHCR — see
+  [Releasing](#releasing).
 
 ## Releasing
 
@@ -253,7 +264,9 @@ done
 
 # Unit tests
 helm plugin install https://github.com/helm-unittest/helm-unittest
-helm unittest .
+# validation_test.yaml includes intentional schema-invalid fixtures; skip the
+# chart schema only for this template-level unit suite.
+helm unittest --skip-schema-validation .
 
 # Lint
 helm dependency build .

@@ -15,7 +15,9 @@ interface Props {
 }
 
 export function AgentReadinessBadge({ agentDTag, onConfigure }: Props) {
-  const [readiness, setReadiness] = useState<ReadinessState>({ status: "loading" });
+  const [readiness, setReadiness] = useState<ReadinessState>({
+    status: "loading",
+  });
 
   useEffect(() => {
     if (!getEncryptionKey()) {
@@ -30,9 +32,12 @@ export function AgentReadinessBadge({ agentDTag, onConfigure }: Props) {
           setReadiness({ status: "missing", missingKeys: [] });
           return;
         }
-        const provider = keys["LENOS_AGENT_PROVIDER"];
+        const provider = keys.LENOS_AGENT_PROVIDER;
         if (!provider || !PROVIDER_CREDENTIAL_CONFIG[provider]) {
-          setReadiness({ status: "missing", missingKeys: ["LENOS_AGENT_PROVIDER"] });
+          setReadiness({
+            status: "missing",
+            missingKeys: ["LENOS_AGENT_PROVIDER"],
+          });
           return;
         }
         const cfg = PROVIDER_CREDENTIAL_CONFIG[provider];
