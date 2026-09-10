@@ -44,6 +44,7 @@ pub const RECORDING_CHANNEL_CAPACITY: usize = 512;
 /// signals `closed`.
 #[derive(Clone)]
 pub struct RecordingHandle {
+    /// Channel sender for captured frames.
     pub tx: mpsc::Sender<RecordedFrame>,
     /// Path of the output file.
     pub path: PathBuf,

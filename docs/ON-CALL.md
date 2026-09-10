@@ -4,14 +4,15 @@
 
 | Service | Owner | Backup |
 |---------|-------|--------|
-| LenOS relay (AWS ECS) | [relay-owner] | [backup] |
-| LenOS web (Cloudflare Pages) | [web-owner] | [backup] |
-| LenGrowth backend (Scalingo) | [backend-owner] | [backup] |
-| Postgres (RDS) | [db-owner] | [backup] |
-| Redis (ElastiCache) | [db-owner] | [backup] |
-| S3 / media | [infra-owner] | [backup] |
+| LenOS relay (AWS ECS) | Secure roster: relay platform owner | Secure roster: relay platform backup |
+| LenOS web (Cloudflare Pages) | Secure roster: web platform owner | Secure roster: web platform backup |
+| LenGrowth backend (Scalingo) | Secure roster: Growth backend owner | Secure roster: Growth backend backup |
+| Postgres (RDS) | Secure roster: data platform owner | Secure roster: data platform backup |
+| Redis (ElastiCache) | Secure roster: data platform owner | Secure roster: data platform backup |
+| S3 / media | Secure roster: infrastructure owner | Secure roster: infrastructure backup |
 
-_Fill in owner names before merging._
+_Resolve each secure-roster role to a named owner and backup before beta; do not
+publish private phone numbers or personal contact details here._
 
 ## Alerting
 
@@ -44,17 +45,25 @@ _Fill in owner names before merging._
 
 ## Escalation path
 
-[on-call] → [relay-owner] → [CTO/eng lead]
+Primary on-call (secure roster) → service owner (secure roster) → engineering
+escalation lead (secure roster)
 
 ## Privacy and retention
 
-- Events stored in Postgres — no automated TTL/purge today (roadmap)
-- Media (S3): no lifecycle policy (roadmap)
-- Audit log: append-only, hash-chained, no deletion
-- GDPR export: `GET /api/export` (NIP-98 auth) — admin can export by pubkey
-- GDPR deletion: not implemented (roadmap)
-- Age-gate: not implemented (roadmap if required by jurisdiction)
+- Events and collaboration records follow the approved beta retention policy;
+  do not perform ad-hoc deletion from the database.
+- Media is private, versioned, and has an infrastructure-managed lifecycle
+  policy; verify the deployed bucket configuration before treating it as live
+  evidence.
+- RDS backups and snapshots follow the approved retention window; deletion
+  requests must record when backup expiry will complete.
+- Audit log: append-only, hash-chained, no deletion.
+- GDPR export: `GET /api/export` (NIP-98 auth) — admin can export by pubkey.
+- Workspace deletion is a manually verified operation during private beta; use
+  the procedure in `docs/DATA_LIFECYCLE.md` and obtain support/security approval.
+- Age-gate: not implemented (roadmap if required by jurisdiction).
 
 ## Support escalation
 
-User reports → [support channel] → on-call triages → routes to owner.
+User reports → support channel (secure roster) → primary on-call triages →
+routes to the service owner.

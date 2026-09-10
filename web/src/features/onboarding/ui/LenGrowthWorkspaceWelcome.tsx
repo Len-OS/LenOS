@@ -24,6 +24,10 @@ import {
   STARTER_CHANNELS,
 } from "@/features/onboarding/starterWorkspace";
 import { ProfileSetupStep } from "@/features/onboarding/ui/ProfileSetupStep";
+import {
+  GrowthIntakeStep,
+  growthIntakeCompletionKey,
+} from "@/features/onboarding/ui/GrowthIntakeStep";
 
 function Step({
   complete,
@@ -71,10 +75,20 @@ export function LenGrowthWorkspaceWelcome() {
   const agents = useAgents(communityId);
   const [pubkey, setPubkey] = useState<string | null>(null);
   const [profileDone, setProfileDone] = useState(false);
+  const [growthIntakeDone, setGrowthIntakeDone] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const autoProvisioned = useRef(false);
   const navigate = useNavigate();
+  const workspaceSlug =
+    workspace.status === "found" ? workspace.workspace.slug : null;
+
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    setGrowthIntakeDone(
+      localStorage.getItem(growthIntakeCompletionKey(workspaceSlug)) === "1",
+    );
+  }, [workspaceSlug]);
 
   const channelNames = new Set(
     channels.map((channel) => channel.name.trim().toLowerCase()),
@@ -162,6 +176,25 @@ export function LenGrowthWorkspaceWelcome() {
     return (
       <section className="mx-auto w-full max-w-3xl px-4 py-8">
         <ProfileSetupStep onComplete={() => setProfileDone(true)} />
+      </section>
+    );
+  }
+
+  if (pubkey && !growthIntakeDone && communityId) {
+    return (
+      <section className="mx-auto w-full max-w-3xl px-4 py-8">
+        <GrowthIntakeStep
+          workspaceSlug={workspace.workspace.slug}
+          communityId={communityId}
+          actorPubkey={pubkey}
+          onComplete={() => {
+            localStorage.setItem(
+              growthIntakeCompletionKey(workspaceSlug ?? ""),
+              "1",
+            );
+            setGrowthIntakeDone(true);
+          }}
+        />
       </section>
     );
   }

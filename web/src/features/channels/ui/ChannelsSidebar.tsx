@@ -84,6 +84,16 @@ export function ChannelsSidebar({ activeChannelId, onSelectChannel }: Props) {
     return () => window.removeEventListener("open-settings", openSettings);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (
+      params.get("tab") === "integrations" &&
+      (params.get("connected") || params.get("error"))
+    ) {
+      setSettingsOpen(true);
+    }
+  }, []);
+
   const workspaceName =
     workspace.status === "found" ? workspace.workspace.slug : "Workspace";
 

@@ -13,6 +13,14 @@ use tracing::debug;
 use lenos_ws_client::NostrWsConnection;
 pub use lenos_ws_client::{parse_relay_message, OkResponse, RelayMessage, WsClientError};
 
+/// Install the deterministic rustls provider before any HTTPS/WebSocket test
+/// client is constructed. Several transitive dependencies enable different
+/// rustls providers, so automatic process-level selection is ambiguous.
+#[ctor::ctor]
+fn install_rustls_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 /// Errors returned by [`LenOSTestClient`] operations.
 #[derive(Debug, Error)]
 pub enum TestClientError {

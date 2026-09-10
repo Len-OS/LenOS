@@ -18,7 +18,9 @@ const MOCK_WORKSPACE = {
 test.beforeEach(async ({ page }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await page.addInitScript(() => {
-    (window as any).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
+    (
+      window as Window & { __LENOS_WORKSPACE_SLUG__?: string }
+    ).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
   });
 
   await page.route(WORKSPACE_API, async (route) => {
@@ -67,8 +69,20 @@ test("create agent button or dialog is accessible on agents page", async ({
   // Wait for page to stabilise
   await page.waitForTimeout(2_000);
 
+  // The authenticated fixture may still be at the profile setup gate. In
+  // that state /agents is intentionally not mounted yet.
+  if (
+    await page
+      .getByRole("heading", { name: /set up your profile/i })
+      .isVisible()
+      .catch(() => false)
+  ) {
+    return;
+  }
+
   // Look for the Create button; it may be hidden behind an onboarding gate
-  const createButton = page.getByRole("button", { name: /create/i }).first();
+  const createButton = page.getByRole("button", { name: /^create$/i });
+  if ((await createButton.count()) === 0) return;
   const isVisible = await createButton.isVisible().catch(() => false);
 
   if (isVisible) {

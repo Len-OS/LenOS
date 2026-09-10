@@ -25,7 +25,9 @@ function mockHostname(
   // Use the __LENOS_WORKSPACE_SLUG__ escape hatch in extractSlug() instead.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return page.addInitScript(() => {
-    (window as any).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
+    (
+      window as unknown as { __LENOS_WORKSPACE_SLUG__: string }
+    ).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
   });
 }
 
@@ -55,13 +57,15 @@ test("workspace shell renders loading state while fetching workspace", async ({
     .catch(() => {
       // Loading may be too fast to capture; tolerate if workspace resolves first
     });
-  resolveWorkspace!(new Response());
+  resolveWorkspace?.(new Response());
 });
 
 test("workspace not-found state shown for unknown slug", async ({ page }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await page.addInitScript(() => {
-    (window as any).__LENOS_WORKSPACE_SLUG__ = "unknown-workspace";
+    (
+      window as unknown as { __LENOS_WORKSPACE_SLUG__: string }
+    ).__LENOS_WORKSPACE_SLUG__ = "unknown-workspace";
   });
 
   await page.route(

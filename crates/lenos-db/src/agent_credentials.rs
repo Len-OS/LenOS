@@ -11,6 +11,7 @@ use lenos_core::CommunityId;
 use crate::Db;
 
 /// A row from the `agent_credentials` table.
+#[allow(missing_docs)]
 pub struct AgentCredentialRecord {
     pub id: Uuid,
     pub community_id: Uuid,

@@ -18,7 +18,9 @@ const MOCK_WORKSPACE = {
 test.beforeEach(async ({ page }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await page.addInitScript(() => {
-    (window as any).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
+    (
+      window as unknown as { __LENOS_WORKSPACE_SLUG__: string }
+    ).__LENOS_WORKSPACE_SLUG__ = "test-workspace";
   });
 
   await page.route(WORKSPACE_API, async (route) => {

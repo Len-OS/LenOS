@@ -5,10 +5,11 @@ use pgvector::Vector;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::error::{DbError, Result};
+use crate::error::Result;
 use lenos_core::CommunityId;
 
 /// Parameters for creating a new document record.
+#[allow(missing_docs)]
 pub struct CreateDocumentParams {
     pub id: Uuid,
     pub community_id: CommunityId,
@@ -22,6 +23,7 @@ pub struct CreateDocumentParams {
 
 /// A document row as returned from the database.
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct DocumentRecord {
     pub id: Uuid,
     pub community_id: Uuid,
@@ -37,6 +39,7 @@ pub struct DocumentRecord {
 }
 
 /// A document chunk row used for bulk insert.
+#[allow(missing_docs)]
 pub struct ChunkRecord {
     pub document_id: Uuid,
     pub community_id: CommunityId,
@@ -48,6 +51,7 @@ pub struct ChunkRecord {
 
 /// A chunk result with document metadata from a similarity search.
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct ChunkSearchResult {
     pub id: Uuid,
     pub document_id: Uuid,
@@ -149,7 +153,7 @@ pub async fn search_chunks(
             d.channel_id,
             (1.0 - (dc.embedding <=> $1::vector))::float8 AS score
         FROM document_chunks dc
-        JOIN documents d ON d.id = dc.document_id
+        JOIN documents d ON d.community_id = dc.community_id AND d.id = dc.document_id
         WHERE dc.community_id = $2
           AND d.deleted_at IS NULL
           AND d.status = 'ready'

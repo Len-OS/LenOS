@@ -7,6 +7,8 @@
 //!   GET  /api/agent-credentials/{d_tag}/resolve     — NIP-98; decrypts and returns plaintext env vars
 //!   DELETE /api/agent-credentials/{d_tag}           — NIP-98; deletes caller's record
 
+#![allow(missing_docs)]
+
 use std::sync::Arc;
 
 use axum::{

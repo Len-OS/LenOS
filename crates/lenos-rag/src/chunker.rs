@@ -117,13 +117,23 @@ fn split_recursive(text: &str, separators: &[&str], out: &mut Vec<String>) {
     let mut pos = 0;
     while pos < text.len() {
         let end = (pos + max_chars).min(text.len());
-        let end = text.floor_char_boundary(end);
+        let end = floor_char_boundary(text, end);
         let chunk = text[pos..end].trim().to_owned();
         if !chunk.is_empty() {
             out.push(chunk);
         }
         pos = end;
     }
+}
+
+// Keep this compatible with the repository MSRV; str::floor_char_boundary
+// was stabilized after the supported compiler version.
+fn floor_char_boundary(text: &str, mut end: usize) -> usize {
+    end = end.min(text.len());
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    end
 }
 
 #[cfg(test)]

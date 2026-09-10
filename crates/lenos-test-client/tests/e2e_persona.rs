@@ -15,10 +15,12 @@
 
 use std::time::Duration;
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use lenos_test_client::{LenOSTestClient, RelayMessage};
 use nostr::{Alphabet, EventBuilder, Filter, Keys, Kind, SingleLetterTag, Tag, Timestamp};
 use reqwest::Client;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 const PERSONA_KIND: u16 = 30175;
 
@@ -41,14 +43,32 @@ fn http_client() -> Client {
         .expect("failed to build HTTP client")
 }
 
+fn nip98_post_header(keys: &Keys, url: &str, body: &[u8]) -> String {
+    let payload = hex::encode(Sha256::digest(body));
+    let event = EventBuilder::new(Kind::HttpAuth, "")
+        .tags(vec![
+            Tag::parse(["u", url]).unwrap(),
+            Tag::parse(["method", "POST"]).unwrap(),
+            Tag::parse(["payload", &payload]).unwrap(),
+            Tag::parse(["nonce", &uuid::Uuid::new_v4().to_string()]).unwrap(),
+        ])
+        .sign_with_keys(keys)
+        .unwrap();
+    format!(
+        "Nostr {}",
+        STANDARD.encode(serde_json::to_string(&event).unwrap())
+    )
+}
+
 /// Submit an event via the NIP-98 HTTP bridge (`POST /events`).
 async fn submit_event_http(client: &Client, keys: &Keys, event: &nostr::Event) -> (bool, String) {
-    let pubkey_hex = keys.public_key().to_hex();
+    let url = format!("{}/events", relay_http_url());
+    let body = serde_json::to_vec(event).unwrap();
     let resp = client
-        .post(format!("{}/events", relay_http_url()))
-        .header("X-Pubkey", &pubkey_hex)
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(event).unwrap())
+        .body(body)
         .send()
         .await
         .expect("submit event");
@@ -65,12 +85,14 @@ async fn submit_event_http(client: &Client, keys: &Keys, event: &nostr::Event) -
 }
 
 /// Query events via the NIP-98 HTTP bridge (`POST /query`).
-async fn query_events_http(client: &Client, pubkey_hex: &str, filters: Vec<Filter>) -> Vec<Value> {
+async fn query_events_http(client: &Client, keys: &Keys, filters: Vec<Filter>) -> Vec<Value> {
+    let url = format!("{}/query", relay_http_url());
+    let body = serde_json::to_vec(&filters).unwrap();
     let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", pubkey_hex)
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
         .header("Content-Type", "application/json")
-        .json(&filters)
+        .body(body)
         .send()
         .await
         .expect("query events");
@@ -87,14 +109,16 @@ async fn query_events_http(client: &Client, pubkey_hex: &str, filters: Vec<Filte
 /// Count events via the NIP-98 HTTP bridge (`POST /count`).
 async fn count_events_http(
     client: &Client,
-    pubkey_hex: &str,
+    keys: &Keys,
     filters: Vec<Filter>,
 ) -> Result<u64, (u16, String)> {
+    let url = format!("{}/count", relay_http_url());
+    let body = serde_json::to_vec(&filters).unwrap();
     let resp = client
-        .post(format!("{}/count", relay_http_url()))
-        .header("X-Pubkey", pubkey_hex)
+        .post(&url)
+        .header("Authorization", nip98_post_header(keys, &url, &body))
         .header("Content-Type", "application/json")
-        .json(&filters)
+        .body(body)
         .send()
         .await
         .expect("count events");
@@ -1261,8 +1285,7 @@ async fn test_persona_mixed_kind_filter_does_not_leak() {
 async fn test_persona_http_query_cross_author_gate() {
     let client = http_client();
     let author_keys = Keys::generate();
-    let foreign_pubkey_hex = Keys::generate().public_key().to_hex();
-    let author_pubkey_hex = author_keys.public_key().to_hex();
+    let foreign_keys = Keys::generate();
 
     let d_unshared = format!("priv-http-{}", &uuid::Uuid::new_v4().to_string()[..8]);
     let d_shared = format!("pub-http-{}", &uuid::Uuid::new_v4().to_string()[..8]);
@@ -1282,7 +1305,7 @@ async fn test_persona_http_query_cross_author_gate() {
     let filter = Filter::new()
         .kind(Kind::Custom(PERSONA_KIND))
         .author(author_keys.public_key());
-    let results = query_events_http(&client, &foreign_pubkey_hex, vec![filter]).await;
+    let results = query_events_http(&client, &foreign_keys, vec![filter]).await;
 
     let has_unshared = results.iter().any(|e| {
         e.get("id")
@@ -1308,7 +1331,7 @@ async fn test_persona_http_query_cross_author_gate() {
     let filter_self = Filter::new()
         .kind(Kind::Custom(PERSONA_KIND))
         .author(author_keys.public_key());
-    let self_results = query_events_http(&client, &author_pubkey_hex, vec![filter_self]).await;
+    let self_results = query_events_http(&client, &author_keys, vec![filter_self]).await;
     assert!(
         self_results.iter().any(|e| e
             .get("id")
@@ -1327,7 +1350,7 @@ async fn test_persona_http_query_cross_author_gate() {
     // Kindless ids lookup for unshared event: foreign must get nothing.
     let unshared_event_id = nostr::EventId::from_hex(&unshared_id_hex).unwrap();
     let filter_ids = Filter::new().id(unshared_event_id);
-    let id_results = query_events_http(&client, &foreign_pubkey_hex, vec![filter_ids]).await;
+    let id_results = query_events_http(&client, &foreign_keys, vec![filter_ids]).await;
     assert!(
         id_results.is_empty(),
         "/query {{ids:[unshared-id]}} must return nothing to foreign, got {}",
@@ -1338,7 +1361,7 @@ async fn test_persona_http_query_cross_author_gate() {
     let shared_event_id = nostr::EventId::from_hex(&shared_id_hex).unwrap();
     let filter_shared_ids = Filter::new().id(shared_event_id);
     let shared_id_results =
-        query_events_http(&client, &foreign_pubkey_hex, vec![filter_shared_ids]).await;
+        query_events_http(&client, &foreign_keys, vec![filter_shared_ids]).await;
     assert!(
         shared_id_results.iter().any(|e| e
             .get("id")
@@ -1358,8 +1381,7 @@ async fn test_persona_http_query_cross_author_gate() {
 async fn test_persona_http_count_cross_author_gate() {
     let client = http_client();
     let author_keys = Keys::generate();
-    let foreign_pubkey_hex = Keys::generate().public_key().to_hex();
-    let author_pubkey_hex = author_keys.public_key().to_hex();
+    let foreign_keys = Keys::generate();
 
     // Publish two unshared + one shared persona for the author.
     let d1 = format!("priv1-cnt-{}", &uuid::Uuid::new_v4().to_string()[..8]);
@@ -1376,7 +1398,7 @@ async fn test_persona_http_count_cross_author_gate() {
     let filter = Filter::new()
         .kind(Kind::Custom(PERSONA_KIND))
         .author(author_keys.public_key());
-    let foreign_count = count_events_http(&client, &foreign_pubkey_hex, vec![filter])
+    let foreign_count = count_events_http(&client, &foreign_keys, vec![filter])
         .await
         .expect("count should succeed");
     assert_eq!(
@@ -1388,7 +1410,7 @@ async fn test_persona_http_count_cross_author_gate() {
     let filter_self = Filter::new()
         .kind(Kind::Custom(PERSONA_KIND))
         .author(author_keys.public_key());
-    let author_count = count_events_http(&client, &author_pubkey_hex, vec![filter_self])
+    let author_count = count_events_http(&client, &author_keys, vec![filter_self])
         .await
         .expect("author count should succeed");
     assert_eq!(
@@ -1399,7 +1421,7 @@ async fn test_persona_http_count_cross_author_gate() {
     // Wildcard count (no authors filter) for the foreign reader — must not
     // include foreign unshared personas in the total.
     let filter_wildcard = Filter::new().kind(Kind::Custom(PERSONA_KIND));
-    let wildcard_count = count_events_http(&client, &foreign_pubkey_hex, vec![filter_wildcard])
+    let wildcard_count = count_events_http(&client, &foreign_keys, vec![filter_wildcard])
         .await
         .expect("wildcard count should succeed");
     // We can't assert the exact number (other tests may have published shared
@@ -1413,7 +1435,7 @@ async fn test_persona_http_count_cross_author_gate() {
     let filter_scoped = Filter::new()
         .kind(Kind::Custom(PERSONA_KIND))
         .author(author_keys.public_key());
-    let scoped_count2 = count_events_http(&client, &foreign_pubkey_hex, vec![filter_scoped])
+    let scoped_count2 = count_events_http(&client, &foreign_keys, vec![filter_scoped])
         .await
         .expect("scoped count2 should succeed");
     assert_eq!(
@@ -1515,7 +1537,7 @@ async fn test_persona_ws_req_shared_visible_with_newer_private_ahead() {
 async fn test_persona_http_query_shared_visible_with_newer_private_ahead() {
     let client = http_client();
     let author_keys = Keys::generate();
-    let foreign_pubkey_hex = Keys::generate().public_key().to_hex();
+    let foreign_keys = Keys::generate();
 
     let now = nostr::Timestamp::now().as_secs();
     let shared_ts = now.saturating_sub(10);
@@ -1547,14 +1569,21 @@ async fn test_persona_http_query_shared_visible_with_newer_private_ahead() {
         "authors": [author_keys.public_key().to_hex()],
         "limit": 2
     });
-    let resp = client
-        .post(format!("{}/query", relay_http_url()))
-        .header("X-Pubkey", &foreign_pubkey_hex)
-        .header("Content-Type", "application/json")
-        .json(&vec![filter])
-        .send()
-        .await
-        .expect("query");
+    let resp = {
+        let body = serde_json::to_vec(&vec![filter]).unwrap();
+        let url = format!("{}/query", relay_http_url());
+        client
+            .post(&url)
+            .header(
+                "Authorization",
+                nip98_post_header(&foreign_keys, &url, &body),
+            )
+            .header("Content-Type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .expect("query")
+    };
     assert!(
         resp.status().is_success(),
         "query failed: {}",

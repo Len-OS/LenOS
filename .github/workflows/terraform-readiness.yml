@@ -1,0 +1,74 @@
+name: Terraform Readiness
+
+on:
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform-readiness.yml"
+  push:
+    branches: [main, release]
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform-readiness.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-readiness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0d10 # v6.0.3
+
+      - name: Check formatting
+        run: terraform fmt -check -diff
+
+      - name: Initialize without a backend
+        run: terraform init -backend=false -input=false
+
+      - name: Validate configuration
+        run: terraform validate
+
+      - name: Reject mutable or plaintext-sensitive task settings
+        shell: bash
+        run: |
+          ! grep -Eq 'image[[:space:]]*=[[:space:]]*"[^"]*:main"' main.tf
+          ! grep -Eq 'name[[:space:]]*=[[:space:]]*"(DATABASE_URL|REDIS_URL|LENOS_RELAY_PRIVATE_KEY)"[^\n]*value[[:space:]]*=' main.tf
+          grep -Eq 'desired_count[[:space:]]*=[[:space:]]*var\.relay_desired_count' main.tf
+          grep -Eq 'deployment_circuit_breaker' main.tf
+          grep -Eq 'ordered_placement_strategy' main.tf
+          grep -Eq 'aws_nat_gateway' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_route_table_association"[[:space:]]+"private"' main.tf
+          grep -Eq 'subnets[[:space:]]*= aws_subnet\.private\[\*\]\.id' main.tf
+          grep -Eq 'assign_public_ip[[:space:]]*=[[:space:]]*false' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_s3_bucket_policy"[[:space:]]+"alb_logs"' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_s3_bucket_policy"[[:space:]]+"media"' main.tf
+          grep -Eq 'aws:SecureTransport' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_s3_bucket_ownership_controls"[[:space:]]+"media"' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_s3_bucket_versioning"[[:space:]]+"alb_logs"' main.tf
+          grep -Eq 'access_logs[[:space:]]*\{' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_elasticache_replication_group"[[:space:]]+"lenos"' main.tf
+          grep -Eq 'automatic_failover_enabled[[:space:]]*=[[:space:]]*true' main.tf
+          grep -Eq 'multi_az_enabled[[:space:]]*=[[:space:]]*true' main.tf
+          grep -Eq 'at_rest_encryption_enabled[[:space:]]*=[[:space:]]*true' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_db_instance"[[:space:]]+"lenos"' main.tf
+          grep -Eq 'storage_encrypted[[:space:]]*=[[:space:]]*true' main.tf
+          grep -Eq 'prevent_destroy[[:space:]]*=[[:space:]]*true' main.tf
+          grep -Eq 'skip_final_snapshot[[:space:]]*=[[:space:]]*false' main.tf
+          grep -Eq 'backup_window[[:space:]]*=' main.tf
+          grep -Eq 'maintenance_window[[:space:]]*=' main.tf
+          grep -Eq 'enabled_cloudwatch_logs_exports' main.tf
+          grep -Eq 'resource[[:space:]]+"aws_flow_log"[[:space:]]+"lenos"' main.tf
+          grep -Eq 'traffic_type[[:space:]]*=[[:space:]]*"ALL"' main.tf
+          grep -Eq 'LENOS_AUTO_MIGRATE.*false' main.tf
+          grep -Eq 'lenos-admin.*migrate' main.tf

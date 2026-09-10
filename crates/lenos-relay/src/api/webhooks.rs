@@ -10,6 +10,8 @@
 //! Each matching webhook receives a JSON-encoded Nostr event with an
 //! `X-LenOS-Signature` header containing an HMAC-SHA256 of the body.
 
+#![allow(missing_docs)]
+
 use std::sync::Arc;
 
 use axum::{

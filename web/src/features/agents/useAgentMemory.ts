@@ -29,6 +29,8 @@ export function useAgentMemory(agentPubkey: string): {
 
   useEffect(() => {
     if (!agentPubkey) return;
+    // This dependency intentionally retriggers the read after refetch().
+    void fetchKey;
 
     const seckey = getEncryptionKey();
     if (!seckey) {

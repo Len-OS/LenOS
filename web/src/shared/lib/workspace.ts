@@ -31,8 +31,8 @@ export function extractSlug(): string | null {
   // Test escape hatch — set window.__LENOS_WORKSPACE_SLUG__ via addInitScript
   // to avoid the Chromium restriction on redefining window.location.
   const testOverride = (
-    window as unknown as Record<string, string | undefined>
-  )["__LENOS_WORKSPACE_SLUG__"];
+    window as unknown as { __LENOS_WORKSPACE_SLUG__?: string }
+  ).__LENOS_WORKSPACE_SLUG__;
   if (testOverride) return testOverride;
 
   const hostname = window.location.hostname;

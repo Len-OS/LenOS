@@ -26,6 +26,7 @@ use super::{api_error, internal_error};
 const MAX_EXPORT_ROWS: i64 = 100_000;
 
 #[derive(serde::Deserialize)]
+/// Query parameters for an authenticated event export.
 pub struct ExportQuery {
     /// Hex-encoded public key to export. If omitted, defaults to the
     /// authenticated caller's own public key.

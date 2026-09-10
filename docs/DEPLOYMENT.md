@@ -1,37 +1,31 @@
 # LenOS Deployment Guide
 
-**Last updated:** 2026-08-09  
+**Last updated:** 2026-08-31
 **Status legend:** ✅ Done · 🔲 Pending · ⚠️ Partial
 
 ---
 
-## Real infrastructure (production)
+## Production environment (secure inventory)
 
 | Resource | Value |
 |---|---|
-| Relay WSS | `wss://relay.lengrowth.com` |
-| Relay HTTPS | `https://relay.lengrowth.com` |
-| Backend API | `https://growth-api.lenquant.com` |
-| Frontend (dashboard) | `https://app.lengrowth.com` |
-| AWS account | `288947333598` |
-| AWS region | `us-east-1` |
-| ECS cluster | `lenos` |
-| ECS service | `lenos-relay` |
-| Active task def | `lenos-relay:8` |
-| S3 media bucket | `lenos-media-288947333598` |
-| ACM certificate ARN | `arn:aws:acm:us-east-1:288947333598:certificate/98e00c4e-39d1-4eea-be01-81e883a07724` |
-| DNS provider | Cloudflare (proxy OFF on relay.lengrowth.com) |
-| Scalingo apps | `lengrowth-main` (backend) · `lengrowth-web` (frontend) · `lengrowth-cerbos` (RBAC) |
-| HQ channel UUID | `34fb566f-4883-4941-b18a-3ac7b9020552` |
-| nostr_adapter pubkey | `ce928671e149874e5eb96078fe6c3dd0c485c90c26ba05cad98cc948550f9b78` |
-| LENGROWTH_ADAPTER_PUBKEY | `6f994679b94588e0e427b31752377055a4ba02c1a6cd7d89fbb421bd46861c6f` |
-| MCP HTTP endpoint | `https://growth-api.lenquant.com/mcp` |
+| Relay WSS / HTTPS | Secure roster: production relay host |
+| Backend API / MCP | Secure roster: LenGrowth production endpoints |
+| Frontend | Secure roster: production dashboard host |
+| AWS account / region | Secure roster: AWS deployment account and region |
+| ECS cluster / service / task | Secure roster: production deployment identifiers |
+| S3 media bucket / ACM certificate | Secure roster: resource names and certificate reference |
+| DNS provider | Secure roster: DNS zone and proxy policy |
+| Scalingo apps | Secure roster: backend, frontend, and RBAC app identifiers |
+| Adapter identity / channel identifiers | Secure roster or protected change record |
 
-Secrets (`relay_private_key_hex`, `postgres_password`) live only in `infra/terraform/terraform.tfvars` — gitignored, never commit.
+Secrets live only in the approved secret manager and protected deployment
+inputs. Never commit or paste them into this guide, tickets, or CI logs. See
+`docs/PRODUCTION_ACCESS_INVENTORY.md` for the non-secret handoff process.
 
 ---
 
-## Part 1 — LenOS relay on AWS ✅ DONE
+## Part 1 — LenOS relay on AWS ⚠️ PARTIAL
 
 ### What was deployed
 
@@ -39,65 +33,98 @@ Secrets (`relay_private_key_hex`, `postgres_password`) live only in `infra/terra
 - RDS Postgres 17 (db.t3.micro) in private subnets
 - ElastiCache Redis (cache.t3.micro) in private subnets
 - S3 bucket for Blossom media
-- ECS Fargate service running `ghcr.io/len-os/lenos:main`
+- ECS Fargate service running an immutable release tag or image digest
 - ALB with HTTPS listener (ACM cert above), HTTP→HTTPS redirect
 - IAM task role with S3 read/write
 - CloudWatch log group `/ecs/lenos` (14-day retention)
 
-### How it was deployed
+### How it is deployed
 
-Terraform is in `infra/terraform/`. `terraform` binary was not on PATH, so the initial deploy used AWS CLI directly:
-
-```bash
-# Register task definition
-aws ecs register-task-definition --cli-input-json file://task-def.json
-
-# Force new deployment
-aws ecs update-service \
-  --cluster lenos \
-  --service lenos-relay \
-  --task-definition lenos-relay:4 \
-  --force-new-deployment
-```
-
-Future updates: edit `infra/terraform/main.tf` and re-register via AWS CLI, or install Terraform and run `terraform apply`.
+Terraform is the source of truth. Use the protected CI/CD environment and the
+reviewed procedure in `infra/terraform/REMOTE_STATE.md`; do not register ad-hoc
+task definitions or force deployments from a workstation.
 
 ### Terraform state
 
-⚠️ **CRITICAL RISK:** State is local only (`infra/terraform/terraform.tfstate`). No S3 remote backend. This file is the sole source of truth for all production AWS resources (RDS, ECS, ALB). **Do not delete it. Back it up before any Terraform operation.** If lost, you must import resources manually. Migrate to S3 remote backend before adding team members or automating deploys.
+⚠️ **READINESS BLOCKER:** The repository does not configure a remote backend.
+Local state and variable artifacts must remain outside Git and must not be
+treated as a team or production source of truth. Before any shared or
+production Terraform operation, follow `infra/terraform/REMOTE_STATE.md` to
+bootstrap an encrypted, versioned, locked backend, migrate the state, and
+review a refresh-only plan under the protected platform role. Do not print or
+commit state contents.
 
-### Key env vars set on ECS task (task def rev 9)
+### Controlled database migration
+
+Production migrations run as a separate ECS task. Do not enable startup
+migration on serving tasks.
+
+1. Record the current serving task-definition revision and release artifact;
+   keep both available as the application rollback point.
+2. Take and verify the approved database snapshot/restore point. Confirm the
+   migration is expand/ migrate/ contract compatible with the currently
+   serving revision.
+3. Resolve the migration task-definition family/revision, private subnet IDs,
+   security-group ID, cluster name, and region from the protected deployment
+   environment. Do not place those values or the database URL in this document.
+4. Run the task with public IP assignment disabled:
+
+   ```bash
+   aws ecs run-task \
+     --cluster <cluster-name> \
+     --task-definition <migration-task-definition:revision> \
+     --launch-type FARGATE \
+     --network-configuration 'awsvpcConfiguration={subnets=[<private-subnet-a>,<private-subnet-b>],securityGroups=[<relay-security-group>],assignPublicIp=DISABLED}' \
+     --region <aws-region>
+   ```
+
+5. Wait for the task to stop and inspect its non-secret exit code and logs. A
+   non-zero exit code aborts the release; do not start serving the new
+   application revision.
+6. Deploy the immutable serving task only after the migration succeeds, then
+   verify readiness and callback health. If the application rollout fails,
+   use the recorded prior serving task-definition revision and ECS deployment
+   circuit-breaker rollback; never rerun a destructive migration as rollback.
+7. Record the task ARN, migration result, snapshot identifier, release
+   artifact, rollback revision, operator, and timestamps in the protected
+   change record. Never record secret values or customer payloads.
+
+### Key env vars for the ECS task
 
 ```
-RELAY_URL                 = wss://relay.lengrowth.com
-LENOS_RELAY_URL           = wss://relay.lengrowth.com
-LENGROWTH_ADAPTER_PUBKEY  = 6f994679b94588e0e427b31752377055a4ba02c1a6cd7d89fbb421bd46861c6f
-LENOS_S3_BUCKET           = lenos-media-288947333598
-LENOS_S3_REGION           = us-east-1
-LENOS_S3_ENDPOINT         = https://s3.us-east-1.amazonaws.com
+RELAY_URL                 = <production relay URL from secure inventory>
+LENOS_RELAY_URL           = <production relay URL from secure inventory>
+LENGROWTH_ADAPTER_PUBKEY  = <approved public adapter identity>
+LENOS_S3_BUCKET           = <production media bucket from secure inventory>
+LENOS_S3_REGION            = <approved AWS region>
+LENOS_S3_ENDPOINT          = <approved S3 endpoint>
 LENOS_S3_ACCESS_KEY       = (empty — uses ECS task IAM role)
 LENOS_S3_SECRET_KEY       = (empty — uses ECS task IAM role)
 LENOS_S3_ADDRESSING_STYLE = virtual
-LENOS_MEDIA_BASE_URL      = https://relay.lengrowth.com/media
-LENOS_AUTO_MIGRATE        = true
+LENOS_MEDIA_BASE_URL      = <production media URL from secure inventory>
+LENOS_AUTO_MIGRATE        = false (production; use the controlled migration task)
 HUDDLE_RECORDING_DIR      = /tmp/huddle-recordings   ← enables per-huddle LENOSOPU recording + S3 upload
 ```
 
-IAM role `lenos-ecs-task` has `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListBucket` on `lenos-media-288947333598/*`. Recordings land under `huddles/{community_id}/{channel_id}/` prefix in the same bucket as Blossom media.
+The ECS task role needs only the approved media-bucket permissions
+(`s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, and scoped
+`s3:ListBucket`). Recordings land under the approved huddle prefix; exact
+resource identifiers belong in the secure inventory.
 
 ### Verify relay health
 
 ```bash
-curl -s https://relay.lengrowth.com/health
+curl -s https://<production-relay-host>/health
 # → ok
 
-curl -s -H "Accept: application/nostr+json" https://relay.lengrowth.com/info | python -m json.tool
+curl -s -H "Accept: application/nostr+json" https://<production-relay-host>/info | python -m json.tool
 # → NIP-11 JSON with relay metadata
 ```
 
 ### Cloudflare DNS
 
-`relay.lengrowth.com` is a CNAME to the ALB DNS name. **Proxy must be OFF** (DNS-only / grey cloud) — Cloudflare proxying breaks WebSocket upgrades.
+The production relay host is a CNAME to the ALB DNS name. **Proxy must be
+OFF** (DNS-only / grey cloud) — Cloudflare proxying breaks WebSocket upgrades.
 
 ---
 
@@ -108,16 +135,16 @@ All changes in `Lengrowth/backend` repo, auto-deployed to `lengrowth-main` on Sc
 ### What was deployed
 
 1. **`nostradapter` process** (underscore rejected by Scalingo — use `nostradapter` in Procfile)
-   - Connects to `wss://relay.lengrowth.com` with NIP-42 auth
-   - Subscribes to HQ channel `34fb566f` after connect
+   - Connects to the production relay host from the secure inventory with NIP-42 auth
+   - Subscribes to the approved HQ channel from the secure change record
    - Dispatches `@lengrowth get tasks` and `@lengrowth get metrics` commands
    - Replies with kind:9 messages in the same channel
 
-2. **MCP HTTP endpoint** at `https://growth-api.lenquant.com/mcp`
+2. **MCP HTTP endpoint** at the LenGrowth production endpoint in the secure inventory
    - `lengrowth_mcp` FastMCP server mounted in `main.py` via `app.mount("/mcp", _mcp_server.streamable_http_app())`
    - Available for future `lenos-acp` or external integrations
 
-3. **OAuth link page** at `https://app.lengrowth.com/auth/nostr-link`
+3. **OAuth link page** at the LenGrowth production dashboard host in the secure inventory
    - Receives `?pubkey=<hex>&relay=<url>&state=<token>` from LenOS
    - Requires LenGrowth login; calls `POST /api/auth/nostr-link`
    - On success redirects to `lenos://lengrowth-auth?linked=true`
@@ -135,16 +162,16 @@ nostradapter: python -m nostr_adapter.main
 
 ```
 NOSTR_PRIVATE_KEY   = <64-char hex — the adapter's Nostr identity keypair>
-LENOS_RELAY_URL     = wss://relay.lengrowth.com
-LENOS_HQ_CHANNEL_ID = 34fb566f-4883-4941-b18a-3ac7b9020552  (has code default, but set explicitly)
+LENOS_RELAY_URL     = <production relay URL from secure inventory>
+LENOS_HQ_CHANNEL_ID = <approved HQ channel identifier from secure change record>
 ```
 
 ### Check adapter logs
 
 ```bash
 scalingo --app lengrowth-main logs --filter nostradapter -n 100
-# Expect: "Connected to LenOS relay wss://relay.lengrowth.com"
-# Expect: "Subscribed to HQ channel 34fb566f..."
+# Expect: "Connected to LenOS relay <production relay URL>"
+# Expect: "Subscribed to the approved HQ channel"
 ```
 
 ---
@@ -155,15 +182,15 @@ Created 2026-08-04 via Python script (Rust CLI not available without local build
 
 ```
 Name:     LenGrowth HQ
-UUID:     34fb566f-4883-4941-b18a-3ac7b9020552
+UUID:     <approved HQ channel identifier>
 Kind:     9007 (NIP-29 channel create)
 Type:     stream / open
-Relay:    relay.lengrowth.com
+Relay:    <production relay host>
 ```
 
 Config committed in `crates/lenos-acp/agents/lengrowth.toml`:
 ```toml
-filter = 'channel_id == "34fb566f-4883-4941-b18a-3ac7b9020552"'
+filter = 'channel_id == "<approved HQ channel identifier>"'
 ```
 
 ---
@@ -182,8 +209,8 @@ Shell, relay health, and public workspace lookup verified 2026-08-06. Branding (
 2. Build command: `pnpm build` (root of `/web`)
 3. Output dir: `web/dist`
 4. Add wildcard DNS in Cloudflare: `*.lengrowth.com` CNAME to Pages hostname (proxy ON)
-5. Keep relay traffic separate from the Pages wildcard. The relay resolves tenants from the WebSocket `Host`, so browser relay URLs need a dedicated host family such as `<slug>.relay.lengrowth.com`, with DNS-only wildcard routing to the AWS ALB and an ACM certificate covering `*.relay.lengrowth.com`.
-6. Set `LENOS_RELAY_HOST_SUFFIX=.relay.lengrowth.com` in `lengrowth-main` and `VITE_RELAY_HOST_SUFFIX=.relay.lengrowth.com` in the Pages build.
+5. Keep relay traffic separate from the Pages wildcard. The relay resolves tenants from the WebSocket `Host`, so browser relay URLs need a dedicated host family such as `<slug>.<relay-host-suffix>`, with DNS-only wildcard routing to the AWS ALB and an ACM certificate covering the approved wildcard.
+6. Set `LENOS_RELAY_HOST_SUFFIX=<approved relay host suffix>` in `lengrowth-main` and `VITE_RELAY_HOST_SUFFIX=<approved relay host suffix>` in the Pages build.
 7. Configure provisioning and the adapter to use that relay host family, then migrate existing community host rows before enabling it in production.
 8. Web app reads subdomain at runtime → looks up community on relay → connects WebSocket
 
@@ -195,7 +222,7 @@ Add a second Fargate service to the existing `lenos` cluster serving `web/dist/`
 
 ## Part 5 — "Enter LenOS" post-login flow 🔲 PENDING
 
-After login/signup at `app.lengrowth.com`, users need two options:
+After login/signup at the LenGrowth production dashboard host, users need two options:
 
 1. **LenGrowth Dashboard** — existing platform (current default)
 2. **Enter workspace** — opens `company.lengrowth.com`
@@ -226,7 +253,7 @@ Each company gets `company.lengrowth.com`.
 3. **Relay**: community record must exist per company. Create via:
    ```bash
    # Via lenos-cli (requires local Rust build or relay HTTP API)
-   LENOS_RELAY_URL=wss://relay.lengrowth.com \
+   LENOS_RELAY_URL=<production relay URL> \
    LENOS_PRIVATE_KEY=<operator-key> \
    lenos community create --name "Acme Corp" --slug "acme"
    ```
@@ -244,11 +271,11 @@ Still pending: authenticated starter writes, LenGrowth link/revoke, task dispatc
 | Test | Expected |
 |---|---|
 | Visit `company.lengrowth.com` | Workspace loads, WebSocket connects to relay |
-| Login to LenGrowth at `app.lengrowth.com` | See "Enter workspace" option |
+| Login to LenGrowth at the production dashboard host | See "Enter workspace" option |
 | Click "Enter workspace" | Redirects to `company.lengrowth.com` |
-| Settings → LenGrowth → Connect | OAuth to `app.lengrowth.com/auth/nostr-link` |
+| Settings → LenGrowth → Connect | OAuth to the approved production OAuth link page |
 | Complete OAuth | Redirects `lenos://lengrowth-auth?linked=true`, Settings shows "Connected" |
-| Open LenGrowth HQ channel | Channel `34fb566f` loads |
+| Open LenGrowth HQ channel | Approved HQ channel loads |
 | Send `@lengrowth get tasks` | Reply within 5s from nostr_adapter |
 | Send `@lengrowth get metrics north_star` | Metrics data in reply |
 | Disconnect + reconnect | No duplicate `nostr_links` records in MongoDB |
@@ -259,7 +286,7 @@ Still pending: authenticated starter writes, LenGrowth link/revoke, task dispatc
 
 **Relay health check fails**
 ```bash
-curl -sv https://relay.lengrowth.com/health
+curl -sv https://<production-relay-host>/health
 # Check ECS service events in AWS console
 # Check CloudWatch logs: /ecs/lenos
 ```
@@ -268,15 +295,17 @@ curl -sv https://relay.lengrowth.com/health
 ```bash
 scalingo --app lengrowth-main logs --filter nostradapter -n 200
 # Verify NOSTR_PRIVATE_KEY is 64-char hex
-# Verify LENOS_RELAY_URL=wss://relay.lengrowth.com (not http, not ws)
+# Verify LENOS_RELAY_URL uses the approved wss:// production relay URL
 ```
 
 **Cloudflare blocking WebSocket**
-- Confirm `relay.lengrowth.com` has orange cloud OFF (DNS-only / grey cloud) in Cloudflare dashboard
+- Confirm the approved production relay host has orange cloud OFF (DNS-only / grey cloud) in Cloudflare dashboard
 
 **Terraform apply fails — binary not on PATH**
-- Windows: `choco install terraform` or download from hashicorp.com
-- State file at `infra/terraform/terraform.tfstate` — required for apply, do not delete
+- Install the pinned Terraform version through the approved operator toolchain.
+- A legacy local state file may exist outside the repository. Do not delete or
+  apply it; preserve it for the approved remote-state migration described in
+  `infra/terraform/REMOTE_STATE.md`.
 
 **Task def not updated after terraform change**
 ```bash

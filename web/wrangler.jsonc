@@ -3,7 +3,8 @@
   "compatibility_date": "2026-08-04",
   "main": "src/index.ts",
   "routes": [
-    { "pattern": "lenos-e2e32.lengrowth.com/*", "zone_name": "lengrowth.com" }
+    { "pattern": "lenos-e2e32.lengrowth.com/*", "zone_name": "lengrowth.com" },
+    { "pattern": "e2etest26.lengrowth.com/*", "zone_name": "lengrowth.com" }
   ],
   "vars": {
     "RELAY_ORIGIN": "https://relay.lengrowth.com"

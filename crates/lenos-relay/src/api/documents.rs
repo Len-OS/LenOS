@@ -6,6 +6,8 @@
 //!   GET    /api/documents/search   — semantic search over document chunks
 //!   DELETE /api/documents/:id      — soft-delete (uploader only)
 
+#![allow(missing_docs)]
+
 use std::sync::Arc;
 
 use axum::{
@@ -28,13 +30,13 @@ const DEFAULT_SEARCH_LIMIT: i64 = 5;
 // ── Response types ────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
-pub(crate) struct UploadResponse {
+pub struct UploadResponse {
     document_id: String,
     status: &'static str,
 }
 
 #[derive(Serialize)]
-pub(crate) struct DocumentResponse {
+pub struct DocumentResponse {
     id: String,
     channel_id: Option<String>,
     filename: String,
@@ -46,7 +48,7 @@ pub(crate) struct DocumentResponse {
 }
 
 #[derive(Serialize)]
-pub(crate) struct SearchResponse {
+pub struct SearchResponse {
     chunks: Vec<ChunkResponse>,
 }
 
@@ -303,10 +305,9 @@ pub async fn delete_document(
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 fn infer_mime(bytes: &[u8], declared: &str) -> String {
-    if declared == "application/octet-stream" || declared.is_empty() {
-        if bytes.starts_with(b"%PDF") {
-            return "application/pdf".to_owned();
-        }
+    if (declared == "application/octet-stream" || declared.is_empty()) && bytes.starts_with(b"%PDF")
+    {
+        return "application/pdf".to_owned();
     }
     declared.to_owned()
 }

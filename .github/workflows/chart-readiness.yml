@@ -1,0 +1,83 @@
+name: Helm Chart Readiness
+
+on:
+  pull_request:
+    paths:
+      - "deploy/charts/lenos/**"
+      - ".github/workflows/chart-readiness.yml"
+  push:
+    branches: [main, release]
+    paths:
+      - "deploy/charts/lenos/**"
+      - ".github/workflows/chart-readiness.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chart-readiness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Helm chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: deploy/charts/lenos
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: v4.2.4
+
+      - name: Build declared dependencies
+        run: helm dependency build .
+
+      - name: Lint chart
+        run: helm lint .
+
+      - name: Run chart unit tests
+        run: |
+          plugin_archive="$RUNNER_TEMP/helm-unittest-v1.1.2.tgz"
+          plugin_dir="$RUNNER_TEMP/helm-unittest-v1.1.2"
+          curl --fail --location --silent --show-error \
+            --proto '=https' --tlsv1.2 \
+            -o "$plugin_archive" \
+            https://github.com/helm-unittest/helm-unittest/releases/download/v1.1.2/helm-unittest-linux-amd64-1.1.2.tgz
+          echo "de03d6b7ba7683282064702d0b36fbbe812ab2a22691fa3a8b2ce57c2682609c  $plugin_archive" | sha256sum --check --status
+          mkdir "$plugin_dir"
+          tar -xzf "$plugin_archive" -C "$plugin_dir" --strip-components=1
+          helm plugin install "$plugin_dir" --verify=false
+          helm unittest --skip-schema-validation .
+
+      - name: Render production-shaped profile
+        run: |
+          helm template lenos-production . \
+            --set relayUrl=wss://lenos.example.com \
+            --set ownerPubkey=0000000000000000000000000000000000000000000000000000000000000000 \
+            --set secrets.existingSecret=lenos-secrets \
+            --set externalPostgresql.url=postgres://external.example/lenos \
+            --set externalRedis.url=rediss://redis.example:6379 \
+            --set s3.endpoint=https://s3.example.com \
+            --set s3.bucket=lenos-media \
+            --set migrate.preUpgradeJob.enabled=true \
+            --set migrate.autoMigrate=false >/dev/null
+
+      - name: Reject non-quickstart generated secrets
+        run: |
+          if helm template lenos-unsafe . \
+            --set relayUrl=wss://lenos.example.com \
+            --set ownerPubkey=0000000000000000000000000000000000000000000000000000000000000000 \
+            --set externalPostgresql.url=postgres://external.example/lenos \
+            --set externalRedis.url=rediss://redis.example:6379 \
+            --set s3.endpoint=https://s3.example.com \
+            --set s3.bucket=lenos-media 2>&1 | grep -q "non-quickstart profiles require secrets.existingSecret"; then
+            exit 0
+          fi
+          echo "chart accepted a non-quickstart render without secrets.existingSecret"
+          exit 1

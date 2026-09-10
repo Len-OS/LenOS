@@ -12,6 +12,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -63,6 +64,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: https://storage.railway.app
@@ -89,6 +91,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -107,6 +110,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -125,6 +129,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -145,6 +150,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -172,6 +178,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -208,6 +215,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -228,6 +236,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       externalPostgresql.url: postgres://u:p@h:5432/d
       externalRedis.url: redis://h:6379
       s3.endpoint: http://minio:9000
@@ -303,6 +312,7 @@ tests:
     set:
       relayUrl: wss://lenos.example.com
       ownerPubkey: "0000000000000000000000000000000000000000000000000000000000000000"
+      secrets.existingSecret: lenos-secrets
       postgresql.enabled: true
       redis.enabled: true
       minio.enabled: true

@@ -646,7 +646,10 @@ pub struct TokenSummary {
 #[derive(Debug)]
 pub enum UpdateSlugOutcome {
     /// Successfully updated — contains the new full host.
-    Updated { new_host: String },
+    Updated {
+        /// New full host assigned to the community.
+        new_host: String,
+    },
     /// Another community already holds the target host.
     Conflict,
     /// The community was not found or not active.

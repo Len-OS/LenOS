@@ -1367,12 +1367,7 @@ fn spawn_recording_upload(
             .and_then(|n| n.to_str())
             .unwrap_or("recording.lenosopu")
             .to_owned();
-        let s3_key = format!(
-            "huddles/{}/{}/{}",
-            tenant.community(),
-            channel_id,
-            filename
-        );
+        let s3_key = format!("huddles/{}/{}/{}", tenant.community(), channel_id, filename);
 
         if let Err(e) = state
             .media_storage
@@ -1426,7 +1421,11 @@ fn spawn_recording_upload(
             Ok((stored, true)) => {
                 let _ = state
                     .pubsub
-                    .publish_event(&tenant, EventTopic::Channel(parent_channel_id), &stored.event)
+                    .publish_event(
+                        &tenant,
+                        EventTopic::Channel(parent_channel_id),
+                        &stored.event,
+                    )
                     .await;
             }
             Ok((_, false)) => {}

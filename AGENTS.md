@@ -26,6 +26,35 @@ LenOS (source)
 
 See [RELEASING.md](RELEASING.md) for the release flow.
 
+### LenGrowth migration and Growth OS execution
+
+LenOS is becoming the daily Growth OS while the sibling `../LenGrowth` repository
+remains the account, billing, workspace-provisioning, data, and growth-execution
+control plane during the private-beta migration.
+
+For migration work, follow these plans in order:
+
+1. [docs/LENOS_GROWTH_OS_GAPS_AND_IMPLEMENTATION.md](docs/LENOS_GROWTH_OS_GAPS_AND_IMPLEMENTATION.md)
+2. [docs/LENOS_PRODUCTION_AND_CLOUD_READINESS.md](docs/LENOS_PRODUCTION_AND_CLOUD_READINESS.md)
+
+Rules for this program:
+
+- Search LenGrowth first and reuse its working models, routes, services, agents,
+  tasks, approvals, assets, reporting, integrations, membership, and specialist
+  capabilities before creating equivalents.
+- During private beta, LenGrowth is authoritative for growth business records and
+  LenOS is authoritative for workspace collaboration. Do not introduce an
+  unowned dual-write.
+- Build typed UI/API actions for common workflows; keep `@lengrowth` only as a
+  compatibility and power-user surface.
+- Preserve workspace, company, identity, and role scope across every request,
+  event, job, callback, cache, search, asset, and agent-memory operation.
+- Carry correlation and idempotency identifiers through LenOS, LenGrowth, Celery,
+  nostradapter, and relay callbacks.
+- Treat UX states, accessibility, responsive behavior, failure recovery, and live
+  cross-repository verification as acceptance criteria.
+- Do not declare private-beta readiness until both documents' exit gates pass.
+
 ---
 
 ## Repo Structure

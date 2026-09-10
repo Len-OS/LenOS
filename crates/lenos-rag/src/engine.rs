@@ -16,6 +16,7 @@ pub struct RagEngine {
     pub db: Db,
     pub openai_api_key: String,
     /// S3 put closure: (key, bytes, content_type) → Result<(), String>
+    #[allow(clippy::type_complexity)]
     pub s3_put: std::sync::Arc<
         dyn Fn(
                 String,
@@ -33,6 +34,7 @@ impl RagEngine {
     ///
     /// Runs the embedding pipeline and updates the document status to
     /// `ready` on success or `failed` on error.
+    #[allow(clippy::too_many_arguments)]
     pub async fn ingest_document(
         &self,
         doc_id: Uuid,
@@ -54,7 +56,7 @@ impl RagEngine {
         // Store in S3.
         (self.s3_put)(s3_key.clone(), bytes.clone(), mime_type.to_owned())
             .await
-            .map_err(|e| RagError::StorageFailed(e))?;
+            .map_err(RagError::StorageFailed)?;
 
         // Create DB record using the caller-supplied doc_id so the returned
         // ID matches what the upload handler already sent to the client.
@@ -109,7 +111,7 @@ impl RagEngine {
         // Persist chunks.
         let chunk_records: Vec<doc_db::ChunkRecord> = chunks
             .into_iter()
-            .zip(embeddings.into_iter())
+            .zip(embeddings)
             .enumerate()
             .map(|(i, (content, embedding))| doc_db::ChunkRecord {
                 document_id: doc_id,
