@@ -531,6 +531,11 @@ resource "aws_ecs_service" "relay" {
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
 
+  ordered_placement_strategy {
+    type  = "spread"
+    field = "attribute:ecs.availability-zone"
+  }
+
   deployment_circuit_breaker {
     enable   = true
     rollback = true

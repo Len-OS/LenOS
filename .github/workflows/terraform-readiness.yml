@@ -74,4 +74,5 @@ jobs:
           grep -Eq 'resource[[:space:]]+"aws_flow_log"[[:space:]]+"lenos"' main.tf
           grep -Eq 'traffic_type[[:space:]]*=[[:space:]]*"ALL"' main.tf
           grep -Eq 'LENOS_AUTO_MIGRATE.*false' main.tf
-          grep -Eq 'lenos-admin.*migrate' main.tf
+          grep -Eq 'entryPoint[[:space:]]*=[^\n]*lenos-admin' main.tf
+          grep -Eq 'command[[:space:]]*=[^\n]*migrate' main.tf
