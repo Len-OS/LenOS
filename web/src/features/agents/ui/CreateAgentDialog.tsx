@@ -34,23 +34,26 @@ export function CreateAgentDialog({
     setSubmitting(true);
     try {
       const agentId = crypto.randomUUID();
-      const event = await signNostrEvent({
-        kind: 30177,
-        content: JSON.stringify({
-          name: name.trim(),
-          description: description.trim(),
-          agent_type: "remote",
-          status: "online",
-          remote: true,
-        }),
-        tags: [
-          ["d", agentId],
-          ["name", name.trim()],
-          ["about", description.trim()],
-          ["agent_type", "remote"],
-          ["status", "online"],
-        ],
-      }, { requireDurableSigner: true });
+      const event = await signNostrEvent(
+        {
+          kind: 30177,
+          content: JSON.stringify({
+            name: name.trim(),
+            description: description.trim(),
+            agent_type: "remote",
+            status: "online",
+            remote: true,
+          }),
+          tags: [
+            ["d", agentId],
+            ["name", name.trim()],
+            ["about", description.trim()],
+            ["agent_type", "remote"],
+            ["status", "online"],
+          ],
+        },
+        { requireDurableSigner: true },
+      );
 
       await getRelayClient(relayWsUrl()).publishAndWait(
         event as Record<string, unknown>,

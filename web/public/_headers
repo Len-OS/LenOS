@@ -5,3 +5,4 @@
   Permissions-Policy: camera=(), microphone=(self), geolocation=()
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://growth-api.lenquant.com https://*.lengrowth.com wss://*.lengrowth.com https://api.github.com

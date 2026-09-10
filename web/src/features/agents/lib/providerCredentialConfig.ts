@@ -5,7 +5,10 @@ export type ProviderCredentialConfig = {
 };
 
 // Keep in sync with desktop/src/features/agents/ui/agentConfigOptions.tsx
-export const PROVIDER_CREDENTIAL_CONFIG: Record<string, ProviderCredentialConfig> = {
+export const PROVIDER_CREDENTIAL_CONFIG: Record<
+  string,
+  ProviderCredentialConfig
+> = {
   anthropic: {
     label: "Anthropic",
     requiredEnvKeys: ["ANTHROPIC_API_KEY"],

@@ -138,14 +138,16 @@ export function AgentConfigDialog({ agent, open, onClose }: Props) {
               <CopyField label="Agent Type" value={agent.agentType} />
               <Separator />
               <div>
-                <label className="text-[11px] font-medium uppercase tracking-wider text-black/40 dark:text-white/40">
+                <label
+                  htmlFor="agent-llm-provider"
+                  className="text-[11px] font-medium uppercase tracking-wider text-black/40 dark:text-white/40"
+                >
                   LLM Provider
                 </label>
                 <select
+                  id="agent-llm-provider"
                   value={selectedProvider ?? ""}
-                  onChange={(e) =>
-                    setSelectedProvider(e.target.value || null)
-                  }
+                  onChange={(e) => setSelectedProvider(e.target.value || null)}
                   className="mt-1 w-full rounded-md border border-black/10 bg-transparent px-2 py-1.5 text-xs text-black/70 dark:border-white/10 dark:text-white/70"
                 >
                   <option value="">Select provider…</option>

@@ -109,7 +109,12 @@ interface Props {
 }
 
 export function SettingsModal({ isOpen, onClose }: Props) {
-  const [active, setActive] = useState<SectionId>("profile");
+  const [active, setActive] = useState<SectionId>(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    return SECTIONS.some((section) => section.id === requested)
+      ? (requested as SectionId)
+      : "profile";
+  });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

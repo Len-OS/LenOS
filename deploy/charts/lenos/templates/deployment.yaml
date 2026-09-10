@@ -153,7 +153,7 @@ spec:
             - { name: RELAY_OWNER_PUBKEY, value: {{ .Values.ownerPubkey | quote }} }
 
             # ── Migrations ───────────────────────────────────────────
-            - { name: LENOS_AUTO_MIGRATE, value: {{ .Values.migrate.autoMigrate | quote }} }
+            - { name: LENOS_AUTO_MIGRATE, value: {{ and .Values.migrate.autoMigrate (not .Values.migrate.preUpgradeJob.enabled) | quote }} }
 
             # ── Git ──────────────────────────────────────────────────
             - { name: LENOS_GIT_REPO_PATH,         value: {{ .Values.persistence.git.mountPath | quote }} }

@@ -95,7 +95,8 @@ ownerPubkey: ""
 #   LENOS_S3_SECRET_KEY            — S3 secret key
 secrets:
   existingSecret: ""
-  # Inline overrides (NOT recommended for production; they land in values).
+  # Non-quickstart migration profiles require existingSecret. Inline overrides
+  # (NOT recommended for production; they land in values) remain for evaluation.
   relayPrivateKey: ""
   gitHookHmacSecret: ""
 
@@ -368,7 +369,9 @@ git:
   maxConcurrentOps: 20
 
 # ── Migrations ───────────────────────────────────────────────────────────────
-# Relay runs sqlx migrations at startup via LENOS_AUTO_MIGRATE=true.
+# Production should enable preUpgradeJob and keep serving pods migration-free.
+# autoMigrate remains true for quickstart compatibility, but is automatically
+# disabled whenever the controlled pre-upgrade Job is enabled.
 migrate:
   autoMigrate: true
   preUpgradeJob:
