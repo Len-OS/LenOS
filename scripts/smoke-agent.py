@@ -134,10 +134,13 @@ def _ws_connect(url, host_override=None):
             raise ConnectionError("WebSocket handshake failed — connection closed")
         buf += chunk
 
+    header_end = buf.find(b"\r\n\r\n") + 4
     status = buf.split(b"\r\n")[0].decode()
     if "101" not in status:
         raise ConnectionError(f"WebSocket upgrade rejected: {status}")
-    return sock
+    # The first recv may also contain the relay's immediate AUTH challenge.
+    # Preserve those bytes instead of dropping them with the HTTP headers.
+    return sock, bytearray(buf[header_end:])
 
 
 def _ws_send(sock, text):
@@ -155,15 +158,16 @@ def _ws_send(sock, text):
     sock.sendall(hdr + mask + masked)
 
 
-def _ws_recv(sock):
+def _ws_recv(sock, pending):
     def _read(n):
-        buf = b""
-        while len(buf) < n:
-            c = sock.recv(n - len(buf))
+        while len(pending) < n:
+            c = sock.recv(n - len(pending))
             if not c:
                 raise ConnectionError("Connection closed mid-frame")
-            buf += c
-        return buf
+            pending.extend(c)
+        data = bytes(pending[:n])
+        del pending[:n]
+        return data
 
     while True:
         hdr    = _read(2)
@@ -353,7 +357,7 @@ def main():
 
     _log(f"connecting to {connect_url}" + (f" (Host: {host_hdr})" if host_hdr else ""))
     try:
-        sock = _ws_connect(connect_url, host_override=host_hdr)
+        sock, pending = _ws_connect(connect_url, host_override=host_hdr)
     except Exception as exc:
         print(f"[smoke] FAIL: could not connect — {exc}", file=sys.stderr)
         sys.exit(1)
@@ -378,7 +382,7 @@ def main():
     sock.settimeout(1.0)
     while time.time() < deadline:
         try:
-            raw = _ws_recv(sock)
+            raw = _ws_recv(sock, pending)
         except socket.timeout:
             continue
         except Exception as exc:
