@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-LenGrowth adapter smoke test — no external dependencies required (Python 3.8+).
+Live production LenGrowth adapter integration smoke — no external dependencies
+required (Python 3.8+). This checks the currently deployed relay and adapter;
+it does not verify a newly built relay image.
 
 Connects to a LenOS relay WebSocket, publishes a signed kind:9 @lengrowth
-command, waits up to TIMEOUT seconds for the adapter to reply with a kind:9
-event referencing ours, then exits 0 on success or 1 on timeout/failure.
+command in the configured channel, and waits up to TIMEOUT seconds for the
+configured adapter to reply with a matching kind:9 event.
 
 Usage:
     RELAY_URL=wss://lenos-e2e32.lengrowth.com \\
@@ -13,7 +15,7 @@ Usage:
 
 Env vars:
     RELAY_URL         Required. WebSocket URL of the relay workspace to test.
-    SMOKE_CHANNEL_ID  Community UUID for the h-tag (required; relay enforces it).
+    SMOKE_CHANNEL_ID  Channel UUID for the h-tag (required; relay enforces it).
     ADAPTER_PUBKEY    Hex pubkey of the LenGrowth adapter. Defaults to the
                       production adapter key.
     TIMEOUT           Seconds to wait for adapter response (default: 45).
@@ -26,6 +28,7 @@ Env vars:
 """
 import hashlib, json, os, socket, ssl, struct, sys, time, urllib.parse
 from base64 import b64encode
+from dataclasses import dataclass
 from os import urandom
 
 # ── secp256k1 / BIP-340 Schnorr (pure Python, no external deps) ─────────────
@@ -219,13 +222,125 @@ def _log(msg):
     print(f"[smoke] {msg}", flush=True)
 
 
+def is_expected_adapter_reply(event, command_event_id, channel_id, adapter_pubkey):
+    """Match only the configured adapter's exact channel-scoped reply."""
+    if not isinstance(event, dict):
+        return False
+    if event.get("kind") != KIND_CHAT or event.get("pubkey") != adapter_pubkey:
+        return False
+    tags = event.get("tags", [])
+    if not isinstance(tags, list):
+        return False
+    has_channel = any(
+        isinstance(tag, list)
+        and len(tag) >= 2
+        and tag[0] == "h"
+        and tag[1] == channel_id
+        for tag in tags
+    )
+    if not has_channel:
+        return False
+    return any(
+        isinstance(tag, list)
+        and len(tag) >= 2
+        and tag[0] == "e"
+        and tag[1] == command_event_id
+        for tag in tags
+    )
+
+
+@dataclass
+class SmokeState:
+    """Correlate NIP-42 authentication, command acceptance, and the reply."""
+
+    channel_id: str
+    adapter_pubkey: str
+    auth_event_id: str = ""
+    auth_confirmed: bool = False
+    command_event_id: str = ""
+    command_sent: bool = False
+    command_accepted: bool = False
+    failure: str = ""
+    reply_event: dict = None
+
+    def handle(self, message):
+        """Advance the state machine and return a meaningful protocol action."""
+        if not isinstance(message, list) or not message:
+            return None
+
+        message_type = message[0]
+        if message_type == "AUTH":
+            if not self.auth_event_id and len(message) >= 2:
+                return ("auth-challenge", message[1])
+            return None
+
+        if message_type == "OK":
+            event_id = message[1] if len(message) >= 2 else ""
+            accepted = len(message) >= 3 and message[2] is True
+            reason = message[3] if len(message) >= 4 else "unknown"
+
+            if self.auth_event_id and event_id == self.auth_event_id:
+                if self.auth_confirmed:
+                    return None
+                if not accepted:
+                    self.failure = f"authentication rejected — {reason}"
+                    return "failure"
+                self.auth_confirmed = True
+                return "auth-confirmed"
+
+            if self.command_event_id and event_id == self.command_event_id:
+                if not accepted:
+                    self.failure = f"command rejected — {reason}"
+                    return "failure"
+                self.command_accepted = True
+                return "command-accepted"
+
+            # This includes delayed responses to commands sent before auth.
+            # They are unrelated to the exact events tracked by this run.
+            return None
+
+        if message_type == "EVENT":
+            event = message[2] if len(message) >= 3 else {}
+            if (
+                self.auth_confirmed
+                and self.command_accepted
+                and self.command_event_id
+                and is_expected_adapter_reply(
+                    event,
+                    self.command_event_id,
+                    self.channel_id,
+                    self.adapter_pubkey,
+                )
+            ):
+                self.reply_event = event
+                return "reply"
+            return None
+
+        # NOTICE, EOSE, malformed messages, and future relay message types do
+        # not advance authentication or command state.
+        return None
+
+    def set_auth_event(self, event):
+        if self.auth_event_id:
+            raise ValueError("AUTH event already set")
+        self.auth_event_id = event["id"]
+
+    def set_command_event(self, event):
+        if not self.auth_confirmed:
+            raise ValueError("cannot send command before authentication")
+        if self.command_sent:
+            raise ValueError("command already sent")
+        self.command_event_id = event["id"]
+        self.command_sent = True
+
+
 def main():
     if not RELAY_URL:
         print("[smoke] FAIL: RELAY_URL is required", file=sys.stderr)
         sys.exit(2)
-    # SMOKE_CHANNEL_ID is required when the relay enforces h-tag channel scoping.
-    # An open-visibility channel is used so the test key can post without being
-    # a member. See scripts/provision-smoke-channel.py to create/discover it.
+    if not CHANNEL_ID:
+        print("[smoke] FAIL: SMOKE_CHANNEL_ID is required", file=sys.stderr)
+        sys.exit(2)
 
     # When the tenant subdomain is behind Cloudflare, connect via the base
     # relay URL (DNS-only, bypasses CF) with a Host header override.
@@ -245,11 +360,10 @@ def main():
 
     _log("WebSocket connected")
 
-    # Subscribe to recent kind:9 from the adapter — so we catch replies that
-    # arrive before we finish publishing the trigger event.
-    # Include #h filter when channel is set: the adapter reply includes an h-tag
-    # making it channel-scoped; the relay only delivers channel-scoped events to
-    # subscriptions that have a matching #h filter (fan_out_scoped in subscription.rs).
+    state = SmokeState(CHANNEL_ID, ADAPTER_PK)
+
+    # Prepare the subscription before connecting, but do not send it until the
+    # relay has confirmed the exact NIP-42 AUTH event below.
     sub_id = f"smoke-{int(time.time())}"
     sub_filter = {
         "kinds": [KIND_CHAT],
@@ -257,23 +371,9 @@ def main():
         "since": int(time.time()) - 60,
         "limit": 5,
     }
-    if CHANNEL_ID:
-        sub_filter["#h"] = [CHANNEL_ID]
-    _ws_send(sock, json.dumps(["REQ", sub_id, sub_filter]))
-
-    # Publish "@lengrowth get tasks" as an unscoped kind:9.
-    # kind:9 does not require an h tag; omitting it avoids the channel-membership
-    # check while still triggering the adapter's @lengrowth command handler.
-    # If SMOKE_CHANNEL_ID is set it is echoed back in the adapter reply tags
-    # (useful when you want to verify a specific channel's dispatch path).
-    tags = [["h", CHANNEL_ID]] if CHANNEL_ID else []
-    evt  = _nostr_event(KIND_CHAT, "@lengrowth get tasks", tags, PRIV_HEX)
-    _ws_send(sock, json.dumps(["EVENT", evt]))
-    _log(f"published @lengrowth get tasks (event {evt['id'][:8]}...)")
+    sub_filter["#h"] = [CHANNEL_ID]
 
     deadline  = time.time() + TIMEOUT
-    auth_done = False
-    published = False
 
     sock.settimeout(1.0)
     while time.time() < deadline:
@@ -294,59 +394,46 @@ def main():
         except json.JSONDecodeError:
             continue
 
-        mtype = msg[0] if msg else ""
+        action = state.handle(msg)
+        if action == "auth-challenge":
+            challenge = msg[1]
+            _log("NIP-42 challenge received, authenticating...")
+            auth_evt = _nostr_event(KIND_NIP42, "", [
+                ["relay", RELAY_URL],
+                ["challenge", challenge],
+            ], PRIV_HEX)
+            state.set_auth_event(auth_evt)
+            _ws_send(sock, json.dumps(["AUTH", auth_evt]))
+            continue
 
-        if mtype == "AUTH":
-            if not auth_done:
-                challenge = msg[1]
-                _log("NIP-42 challenge received, authenticating...")
-                auth_evt = _nostr_event(KIND_NIP42, "", [
-                    ["relay", RELAY_URL],
-                    ["challenge", challenge],
-                ], PRIV_HEX)
-                _ws_send(sock, json.dumps(["AUTH", auth_evt]))
-                auth_done = True
-                # Re-subscribe and re-publish after successful auth.
-                _ws_send(sock, json.dumps(["REQ", sub_id, sub_filter]))
-                if not published:
-                    _ws_send(sock, json.dumps(["EVENT", evt]))
-                    _log(f"re-published @lengrowth get tasks after auth")
-                    published = True
+        if action == "auth-confirmed":
+            _log("NIP-42 authentication confirmed")
+            # Subscribe and publish exactly once, after auth OK=true for the
+            # exact AUTH event ID.
+            _ws_send(sock, json.dumps(["REQ", sub_id, sub_filter]))
+            command_evt = _nostr_event(
+                KIND_CHAT, "@lengrowth get tasks", [["h", CHANNEL_ID]], PRIV_HEX
+            )
+            state.set_command_event(command_evt)
+            _ws_send(sock, json.dumps(["EVENT", command_evt]))
+            _log(f"published @lengrowth get tasks (event {command_evt['id'][:8]}...)")
+            continue
 
-        elif mtype == "OK":
-            accepted = msg[2] if len(msg) > 2 else False
-            event_ref = (msg[1] or '')[:8]
-            _log(f"relay {'accepted' if accepted else 'REJECTED'} event {event_ref}...")
-            if not accepted:
-                reason = msg[3] if len(msg) > 3 else "unknown"
-                if "auth-required" not in str(reason):
-                    print(f"[smoke] FAIL: relay rejected event — {reason}", file=sys.stderr)
-                    sys.exit(1)
-            else:
-                published = True
+        if action == "failure":
+            print(f"[smoke] FAIL: {state.failure}", file=sys.stderr)
+            sock.close()
+            sys.exit(1)
 
-        elif mtype == "EOSE":
-            _log("EOSE — waiting for adapter kind:9 reply...")
+        if action == "command-accepted":
+            _log("relay accepted the exact command event")
+            continue
 
-        elif mtype == "EVENT":
-            event = msg[2] if len(msg) > 2 else {}
-            if event.get("kind") != KIND_CHAT:
-                continue
-            if event.get("pubkey") != ADAPTER_PK:
-                continue
-            # Accept any kind:9 from the adapter that has our event in an e-tag,
-            # OR any adapter kind:9 published after our trigger (adapter only
-            # sends replies in response to @lengrowth commands).
-            event_tags = event.get("tags", [])
-            e_refs = {t[1] for t in event_tags if t and t[0] == "e"}
-            if evt["id"] in e_refs or event.get("created_at", 0) >= evt["created_at"]:
-                _log(f"PASS: adapter replied (event {event.get('id', '')[:8]}...)")
-                _log(f"  content: {event.get('content', '')[:120]}")
-                sock.close()
-                sys.exit(0)
-
-        elif mtype == "NOTICE":
-            _log(f"NOTICE: {msg[1] if len(msg) > 1 else ''}")
+        if action == "reply":
+            event = state.reply_event
+            _log(f"PASS: adapter replied (event {event.get('id', '')[:8]}...)")
+            _log(f"  content: {event.get('content', '')[:120]}")
+            sock.close()
+            sys.exit(0)
 
     print(f"[smoke] FAIL: no adapter kind:9 reply within {TIMEOUT}s", file=sys.stderr)
     sock.close()
