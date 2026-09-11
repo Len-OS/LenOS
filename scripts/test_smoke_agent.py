@@ -128,3 +128,17 @@ def test_websocket_receive_consumes_handshake_remainder_before_socket():
     pending = bytearray(frame)
     assert smoke_agent._ws_recv(NoReadSocket(), pending) == payload.decode()
     assert pending == bytearray()
+
+
+def test_websocket_ping_is_masked_control_frame():
+    class CaptureSocket:
+        def __init__(self):
+            self.sent = b""
+
+        def sendall(self, data):
+            self.sent += data
+
+    sock = CaptureSocket()
+    smoke_agent._ws_ping(sock)
+    assert sock.sent[:2] == bytes([0x89, 0x80])
+    assert len(sock.sent) == 6

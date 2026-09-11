@@ -158,6 +158,12 @@ def _ws_send(sock, text):
     sock.sendall(hdr + mask + masked)
 
 
+def _ws_ping(sock):
+    """Send a masked control frame to flush gateway-to-client data."""
+    mask = urandom(4)
+    sock.sendall(bytes([0x89, 0x80]) + mask)
+
+
 def _ws_recv(sock, pending):
     def _read(n):
         while len(pending) < n:
@@ -363,6 +369,7 @@ def main():
         sys.exit(1)
 
     _log("WebSocket connected")
+    _ws_ping(sock)
 
     state = SmokeState(CHANNEL_ID, ADAPTER_PK)
 
