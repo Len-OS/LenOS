@@ -404,8 +404,13 @@ def main():
         try:
             msg = json.loads(raw)
         except json.JSONDecodeError:
+            _log("WebSocket text message was not valid JSON")
             continue
 
+        if isinstance(msg, list) and msg:
+            _log(f"WebSocket message type={msg[0]}")
+        else:
+            _log("WebSocket message had unexpected shape")
         action = state.handle(msg)
         if action == "auth-challenge":
             challenge = msg[1]
