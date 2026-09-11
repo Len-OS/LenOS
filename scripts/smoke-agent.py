@@ -184,6 +184,7 @@ def _ws_recv(sock, pending):
         elif length == 127:
             length = struct.unpack('>Q', _read(8))[0]
         masked = bool(hdr[1] & 0x80)
+        _log(f"WebSocket frame opcode={opcode} length={length}")
         if masked:
             key  = _read(4)
             data = bytes(b ^ key[i % 4] for i, b in enumerate(_read(length)))
