@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# LenGrowth adapter smoke test.
+# Live production LenGrowth adapter integration smoke.
 #
 # Publishes a kind:9 "@lengrowth get tasks" command to the relay and waits
 # for the LenGrowth nostr_adapter to reply with a kind:9 response.
@@ -9,11 +9,9 @@
 #   RELAY_URL         WebSocket URL of the workspace relay to test.
 #                     e.g. wss://lenos-e2e32.lengrowth.com
 #
-# Optional:
-#   SMOKE_CHANNEL_ID  Channel UUID for the h-tag on the command event.
-#                     When omitted the command is published unscoped, which
-#                     still triggers the adapter but skips channel-membership
-#                     enforcement.
+# Required:
+#   SMOKE_CHANNEL_ID  Channel UUID for the h-tag on the command and reply.
+#                     Required so the smoke exercises channel scoping.
 #   RELAY_GATEWAY_URL Connect via this URL with Host: <RELAY_URL host>.
 #                     Set to wss://relay.lengrowth.com when the tenant
 #                     subdomain is behind Cloudflare Bot Fight Mode.
@@ -29,6 +27,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -z "${RELAY_URL:-}" ]; then
   echo "[smoke] FAIL: RELAY_URL environment variable is required" >&2
+  exit 2
+fi
+
+if [ -z "${SMOKE_CHANNEL_ID:-}" ]; then
+  echo "[smoke] FAIL: SMOKE_CHANNEL_ID environment variable is required" >&2
   exit 2
 fi
 

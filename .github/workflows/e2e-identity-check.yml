@@ -1,8 +1,10 @@
-name: Daily E2E identity check
+name: Daily live production adapter integration smoke
 
-# Verifies durable E2E test identities (managed Nostr) for the fern2gue+32 and
+# Verifies durable production smoke identities (managed Nostr) for the fern2gue+32 and
 # fern2gue+33 accounts can connect to the production relay, authenticate, and
-# send + receive kind:9 messages through the lenos-e2e32 community.
+# send + receive strictly matched kind:9 adapter replies through the
+# lenos-e2e32 community. This checks the deployed relay and adapter, not a
+# newly built relay image.
 #
 # Runs daily at 07:00 UTC and can be triggered manually.  Failures page the
 # team via GitHub Actions notification to catch relay or identity rot before
@@ -15,7 +17,7 @@ on:
 
 jobs:
   e2e-identity-smoke:
-    name: E2E identity smoke (${{ matrix.label }})
+    name: Live adapter integration smoke (${{ matrix.label }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,7 +37,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run identity smoke test (${{ matrix.label }})
+      - name: Run live production adapter integration smoke (${{ matrix.label }})
         run: bash scripts/smoke-agent.sh
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}

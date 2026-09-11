@@ -57,6 +57,8 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "patches/**"
+      - "scripts/smoke-agent.sh"
+      - "scripts/smoke-agent.py"
   pull_request:
     paths:
       - "Dockerfile"
@@ -72,6 +74,8 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "patches/**"
+      - "scripts/smoke-agent.sh"
+      - "scripts/smoke-agent.py"
   workflow_dispatch:
     inputs:
       version:
@@ -344,7 +348,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   smoke-test:
-    name: Smoke-test production relay + agent
+    name: Live production adapter integration smoke (current relay)
     # Only run after the multi-arch manifest is merged, and only on main-branch
     # pushes so we don't spam production on every PR build.
     needs: merge
@@ -356,7 +360,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run relay + agent smoke test
+      - name: Run live production adapter integration smoke
+        # This validates the already deployed relay plus the LenGrowth adapter.
+        # It is intentionally separate from the candidate image build.
         run: bash scripts/smoke-agent.sh
         env:
           # RELAY_URL: tenant WebSocket URL (e.g. wss://lenos-e2e32.lengrowth.com).
