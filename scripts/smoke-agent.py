@@ -412,17 +412,8 @@ def main():
         else:
             _log("WebSocket message had unexpected shape")
         action = state.handle(msg)
-        if isinstance(msg, list) and msg and msg[0] == "AUTH":
-            challenge_length = (
-                len(msg[1]) if len(msg) >= 2 and isinstance(msg[1], str) else 0
-            )
-            _log(
-                "AUTH fields="
-                f"{len(msg)} challenge_length={challenge_length} "
-                f"action={action or 'none'} auth_event_set={bool(state.auth_event_id)}"
-            )
-        if action == "auth-challenge":
-            challenge = msg[1]
+        if isinstance(action, tuple) and action and action[0] == "auth-challenge":
+            challenge = action[1]
             _log("NIP-42 challenge received, authenticating...")
             auth_evt = _nostr_event(KIND_NIP42, "", [
                 ["relay", RELAY_URL],
