@@ -115,3 +115,16 @@ def test_timeout_without_exact_reply_has_no_success_state():
     assert state.handle(["EOSE", "smoke-sub"]) is None
     assert state.handle(["EVENT", "smoke-sub", _reply(tags=[["h", "channel-id"]])]) is None
     assert state.reply_event is None
+
+
+def test_websocket_receive_consumes_handshake_remainder_before_socket():
+    payload = b'["AUTH","challenge"]'
+    frame = bytes([0x81, len(payload)]) + payload
+
+    class NoReadSocket:
+        def recv(self, _size):
+            raise AssertionError("socket read should not be needed")
+
+    pending = bytearray(frame)
+    assert smoke_agent._ws_recv(NoReadSocket(), pending) == payload.decode()
+    assert pending == bytearray()
